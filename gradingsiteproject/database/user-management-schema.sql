@@ -1,0 +1,183 @@
+-- User Management SQLite Database Schema
+-- This database stores user accounts and order information
+
+-- Users table
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
+    phone TEXT,
+    role TEXT DEFAULT 'user' CHECK(role IN ('user', 'admin', 'staff')),
+    is_active BOOLEAN DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_login DATETIME,
+    email_verified BOOLEAN DEFAULT 0,
+    reset_token TEXT,
+    reset_token_expires DATETIME
+);
+
+-- User addresses table
+CREATE TABLE IF NOT EXISTS user_addresses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    type TEXT DEFAULT 'shipping' CHECK(type IN ('shipping', 'billing')),
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
+    company TEXT,
+    address_line1 TEXT NOT NULL,
+    address_line2 TEXT,
+    city TEXT NOT NULL,
+    state TEXT NOT NULL,
+    postal_code TEXT NOT NULL,
+    country TEXT DEFAULT 'US',
+    is_default BOOLEAN DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Orders table
+CREATE TABLE IF NOT EXISTS orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    order_number TEXT UNIQUE NOT NULL,
+    package_id TEXT NOT NULL,
+    package_name TEXT NOT NULL,
+    package_price DECIMAL(10,2) NOT NULL,
+    total_cards INTEGER NOT NULL,
+    subtotal DECIMAL(10,2) NOT NULL,
+    tax DECIMAL(10,2) DEFAULT 0,
+    shipping DECIMAL(10,2) DEFAULT 0,
+    total DECIMAL(10,2) NOT NULL,
+    status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'received', 'in_progress', 'grading', 'completed', 'shipped', 'delivered', 'cancelled')),
+    payment_status TEXT DEFAULT 'pending' CHECK(payment_status IN ('pending', 'paid', 'failed', 'refunded')),
+    payment_method TEXT,
+    stripe_payment_intent_id TEXT,
+    tracking_number TEXT,
+    estimated_completion DATE,
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Order items table (individual cards in each order)
+CREATE TABLE IF NOT EXISTS order_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL,
+    card_name TEXT NOT NULL,
+    card_game TEXT NOT NULL,
+    card_type TEXT,
+    card_rarity TEXT,
+    card_number TEXT,
+    card_image_url TEXT,
+    quantity INTEGER NOT NULL DEFAULT 1,
+    unit_price DECIMAL(10,2) NOT NULL,
+    grade INTEGER, -- Final grade assigned (1-10)
+    grade_notes TEXT,
+    is_custom BOOLEAN DEFAULT 0, -- Whether this was a custom-added card
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+);
+
+-- Order status history table
+CREATE TABLE IF NOT EXISTS order_status_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL,
+    old_status TEXT,
+    new_status TEXT NOT NULL,
+    changed_by INTEGER, -- user_id of who made the change
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (changed_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Chat messages table (for order communication)
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    sender_type TEXT NOT NULL CHECK(sender_type IN ('user', 'staff', 'admin')),
+    message TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Payment records table
+CREATE TABLE IF NOT EXISTS payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL,
+    stripe_payment_intent_id TEXT,
+    amount DECIMAL(10,2) NOT NULL,
+    currency TEXT DEFAULT 'USD',
+    status TEXT NOT NULL,
+    payment_method TEXT,
+    transaction_fee DECIMAL(10,2) DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+);
+
+-- User sessions table (optional, for better session management)
+CREATE TABLE IF NOT EXISTS user_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    session_token TEXT UNIQUE NOT NULL,
+    expires_at DATETIME NOT NULL,
+    ip_address TEXT,
+    user_agent TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_order_number ON orders(order_number);
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_order_id ON chat_messages(order_id);
+CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments(order_id);
+CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_sessions_token ON user_sessions(session_token);
+
+-- Triggers to update updated_at timestamps
+CREATE TRIGGER IF NOT EXISTS update_users_updated_at 
+    AFTER UPDATE ON users
+BEGIN
+    UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS update_user_addresses_updated_at 
+    AFTER UPDATE ON user_addresses
+BEGIN
+    UPDATE user_addresses SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS update_orders_updated_at 
+    AFTER UPDATE ON orders
+BEGIN
+    UPDATE orders SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS update_payments_updated_at 
+    AFTER UPDATE ON payments
+BEGIN
+    UPDATE payments SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+-- Trigger to create order status history when order status changes
+CREATE TRIGGER IF NOT EXISTS order_status_change_history
+    AFTER UPDATE OF status ON orders
+    WHEN OLD.status != NEW.status
+BEGIN
+    INSERT INTO order_status_history (order_id, old_status, new_status, notes)
+    VALUES (NEW.id, OLD.status, NEW.status, 'Status updated automatically');
+END;
