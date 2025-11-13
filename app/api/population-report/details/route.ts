@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { gradedCardsDb, initializeGradedCardsDatabase } from '@/lib/graded-cards-database'
+import { populationReportDb, initializePopulationReportDatabase } from '@/lib/population-report-database'
 
 export async function GET(req: NextRequest) {
   try {
-    await initializeGradedCardsDatabase()
+    await initializePopulationReportDatabase()
     const url = new URL(req.url)
     const cardName = url.searchParams.get('cardName')
     const game = url.searchParams.get('game')
@@ -18,52 +18,51 @@ export async function GET(req: NextRequest) {
     }
 
     const gameFilter = getGameFilter(game)
-    
+
     // Build query parameters
     let whereClause = `WHERE card_name = ?`
     let params: any[] = [cardName]
-    
+
     if (game) {
       whereClause += ` AND (${gameFilter})`
     }
     if (year) {
-      whereClause += ` AND year_card = ?`
+      whereClause += ` AND strftime('%Y', date_graded) = ?`
       params.push(year)
     }
     if (set) {
       whereClause += ` AND set_name = ?`
       params.push(set)
     }
-    
+
     // Get detailed grading information for a specific card
-    const cardDetails = await gradedCardsDb.runQuery(`
-      SELECT 
+    const cardDetails = await populationReportDb.runQuery(`
+      SELECT
         id,
         card_id,
         card_name,
-        card_type,
+        card_game,
         set_name,
         rarity,
         edition,
-        grade,
-        grade_name,
-        date_grade as graded_date,
-        year_card,
-        author
-      FROM graded_cards
+        card_grade as grade,
+        card_grade as grade_name,
+        date_graded as graded_date,
+        card_owner as author
+      FROM population_report_cards
       ${whereClause}
-      ORDER BY grade DESC, created_at DESC
+      ORDER BY card_grade DESC, created_at DESC
     `, params)
 
     // Get grade distribution for this card
-    const gradeDistribution = await gradedCardsDb.runQuery(`
-      SELECT 
-        grade,
+    const gradeDistribution = await populationReportDb.runQuery(`
+      SELECT
+        card_grade as grade,
         COUNT(*) as count
-      FROM graded_cards 
+      FROM population_report_cards
       ${whereClause}
-      GROUP BY grade
-      ORDER BY grade DESC
+      GROUP BY card_grade
+      ORDER BY card_grade DESC
     `, params)
 
     // Calculate statistics
@@ -81,26 +80,28 @@ export async function GET(req: NextRequest) {
     }))
 
     // Get popularity rank (how rare this card is)
-    const popularityRank = await gradedCardsDb.runQuerySingle(`
-      SELECT 
+    const popularityRank = await populationReportDb.runQuery(`
+      SELECT
         card_name,
         COUNT(*) as total_graded,
         (
-          SELECT COUNT(*) + 1 
+          SELECT COUNT(*) + 1
           FROM (
             SELECT card_name, COUNT(*) as cnt
-            FROM graded_cards 
+            FROM population_report_cards
             ${game ? `WHERE (${gameFilter})` : 'WHERE 1=1'}
-            ${year ? 'AND year_card = ?' : ''}
+            ${year ? 'AND strftime(\'%Y\', date_graded) = ?' : ''}
             ${set ? 'AND set_name = ?' : ''}
             GROUP BY card_name
-            HAVING cnt > (SELECT COUNT(*) FROM graded_cards WHERE card_name = ?)
+            HAVING cnt > (SELECT COUNT(*) FROM population_report_cards WHERE card_name = ?)
           ) ranked
         ) as popularity_rank
-      FROM graded_cards 
+      FROM population_report_cards
       ${whereClause}
       GROUP BY card_name
     `, [...params, cardName])
+
+    const popularityResult = popularityRank.length > 0 ? popularityRank[0] : null
 
     return NextResponse.json({
       success: true,
@@ -114,7 +115,7 @@ export async function GET(req: NextRequest) {
           avgGrade: parseFloat(avgGrade.toFixed(2)),
           highestGrade,
           lowestGrade,
-          popularityRank: popularityRank?.popularity_rank || 'N/A'
+          popularityRank: popularityResult?.popularity_rank || 'N/A'
         },
         gradeDistribution: gradeStats,
         individualCards: cardDetails.map(card => ({
@@ -137,16 +138,16 @@ export async function GET(req: NextRequest) {
 
 function getGameFilter(game: string | null): string {
   if (!game) return '1=1'
-  
+
   switch (game) {
     case 'pokemon':
-      return "UPPER(card_type) LIKE '%POKEMON%'"
+      return "UPPER(card_game) LIKE '%POKEMON%'"
     case 'yugioh':
-      return "(UPPER(card_type) LIKE '%YU-GI-OH%' OR UPPER(card_type) LIKE '%YUGIOH%')"
+      return "(UPPER(card_game) LIKE '%YU-GI-OH%' OR UPPER(card_game) LIKE '%YUGIOH%')"
     case 'mtg':
-      return "(UPPER(card_type) LIKE '%MAGIC%' OR UPPER(card_type) LIKE '%MTG%')"
+      return "(UPPER(card_game) LIKE '%MAGIC%' OR UPPER(card_game) LIKE '%MTG%')"
     case 'onepiece':
-      return "(UPPER(card_type) LIKE '%ONE PIECE%' OR UPPER(card_type) LIKE '%ONEPIECE%')"
+      return "(UPPER(card_game) LIKE '%ONE PIECE%' OR UPPER(card_game) LIKE '%ONEPIECE%')"
     default:
       return "1=1"
   }
