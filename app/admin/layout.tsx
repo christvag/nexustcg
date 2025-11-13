@@ -16,14 +16,17 @@ import {
   X,
   Bell,
   LogOut,
-  User
+  User,
+  Award,
+  BarChart3
 } from 'lucide-react';
 
 const sidebarItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/dashboard/orders', label: 'Orders', icon: ShoppingCart },
   { href: '/admin/dashboard/users', label: 'Users', icon: Users },
-  { href: '/admin/dashboard/products', label: 'Products', icon: Package },
+  { href: '/admin/dashboard/grading', label: 'Grading', icon: Award },
+  { href: '/admin/dashboard/population-report', label: 'Population Report', icon: BarChart3 },
   { href: '/admin/dashboard/pricing', label: 'Price Management', icon: TrendingUp },
   { href: '/admin/dashboard/messages', label: 'Messages', icon: MessageSquare },
   { href: '/admin/dashboard/payment', label: 'Payment Config', icon: CreditCard },
@@ -90,8 +93,8 @@ export default function AdminLayout({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400"></div>
       </div>
     );
   }
@@ -103,11 +106,11 @@ export default function AdminLayout({
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="max-w-md w-full bg-gray-800 rounded-lg shadow-lg p-8 text-center">
           <div className="text-6xl mb-4">🔐</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Admin Access Required</h2>
-          <p className="text-gray-600 mb-6">
+          <h2 className="text-2xl font-bold text-white mb-4">Admin Access Required</h2>
+          <p className="text-gray-400 mb-6">
             You need admin privileges to access this area. Please log in with an admin account.
           </p>
           <div className="space-y-3">
@@ -119,7 +122,7 @@ export default function AdminLayout({
             </Link>
             <Link
               href="/packages"
-              className="block w-full text-gray-600 border border-gray-300 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              className="block w-full text-gray-400 border border-gray-700 py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors font-medium"
             >
               Back to Site
             </Link>
@@ -130,7 +133,7 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -141,15 +144,15 @@ export default function AdminLayout({
 
       {/* Sidebar */}
       <div
-        className={`fixed top-0 left-0 z-50 h-full w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 z-50 h-full w-64 bg-gray-800 shadow-lg transform transition-transform duration-300 ease-in-out ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0`}
       >
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-xl font-bold text-gray-800">Admin Panel</h2>
+        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <h2 className="text-xl font-bold text-white">Admin Panel</h2>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden text-gray-500 hover:text-gray-700"
+            className="lg:hidden text-gray-400 hover:text-white"
           >
             <X className="h-6 w-6" />
           </button>
@@ -167,8 +170,8 @@ export default function AdminLayout({
                     href={item.href}
                     className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
                       isActive
-                        ? 'bg-blue-50 text-blue-600 font-medium'
-                        : 'text-gray-700 hover:bg-gray-100'
+                        ? 'bg-blue-900/20 text-blue-400 font-medium'
+                        : 'text-gray-300 hover:bg-gray-700'
                     }`}
                   >
                     <Icon className="h-5 w-5" />
@@ -180,18 +183,18 @@ export default function AdminLayout({
           </ul>
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t">
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-900">{user.name}</p>
-              <p className="text-xs text-gray-500 capitalize">{user.role}</p>
+              <p className="text-sm font-medium text-white">{user.name}</p>
+              <p className="text-xs text-gray-400 capitalize">{user.role}</p>
             </div>
             <button
               onClick={handleLogout}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
               title="Logout"
             >
-              <LogOut className="h-5 w-5 text-gray-600" />
+              <LogOut className="h-5 w-5 text-gray-400" />
             </button>
           </div>
         </div>
@@ -200,23 +203,23 @@ export default function AdminLayout({
       {/* Main content */}
       <div className="lg:ml-64">
         {/* Top bar */}
-        <header className="bg-white shadow-sm border-b">
+        <header className="bg-gray-800 shadow-sm border-b border-gray-700">
           <div className="flex items-center justify-between px-4 py-3">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden text-gray-500 hover:text-gray-700"
+              className="lg:hidden text-gray-400 hover:text-white"
             >
               <Menu className="h-6 w-6" />
             </button>
 
             <div className="flex-1 px-4">
-              <h1 className="text-xl font-semibold text-gray-800">
+              <h1 className="text-xl font-semibold text-white">
                 {sidebarItems.find(item => item.href === pathname)?.label || 'Dashboard'}
               </h1>
             </div>
 
             <div className="flex items-center space-x-4">
-              <button className="relative text-gray-500 hover:text-gray-700">
+              <button className="relative text-gray-400 hover:text-white">
                 <Bell className="h-6 w-6" />
                 <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full text-white text-xs flex items-center justify-center">
                   3
@@ -224,22 +227,22 @@ export default function AdminLayout({
               </button>
               
               <div className="relative group">
-                <button className="flex items-center space-x-2 text-gray-700 hover:text-gray-900">
+                <button className="flex items-center space-x-2 text-gray-300 hover:text-white">
                   <User className="h-6 w-6" />
                   <span className="hidden md:block">Admin</span>
                 </button>
                 
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border hidden group-hover:block">
+                <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg border border-gray-700 hidden group-hover:block">
                   <Link
                     href="/admin/profile"
-                    className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                    className="block px-4 py-2 text-gray-300 hover:bg-gray-700"
                   >
                     Profile
                   </Link>
                   <hr className="my-1" />
                   <button 
                     onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                    className="w-full text-left px-4 py-2 text-gray-300 hover:bg-gray-700 flex items-center space-x-2"
                   >
                     <LogOut className="h-4 w-4" />
                     <span>Logout</span>
