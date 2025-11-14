@@ -17,7 +17,6 @@ import {
   Bell,
   LogOut,
   User,
-  Award,
   BarChart3
 } from 'lucide-react';
 
@@ -25,7 +24,6 @@ const sidebarItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/dashboard/orders', label: 'Orders', icon: ShoppingCart },
   { href: '/admin/dashboard/users', label: 'Users', icon: Users },
-  { href: '/admin/dashboard/grading', label: 'Grading', icon: Award },
   { href: '/admin/dashboard/population-report', label: 'Population Report', icon: BarChart3 },
   { href: '/admin/dashboard/pricing', label: 'Price Management', icon: TrendingUp },
   { href: '/admin/dashboard/messages', label: 'Messages', icon: MessageSquare },
@@ -226,27 +224,31 @@ export default function AdminLayout({
                 </span>
               </button>
               
-              <div className="relative group">
-                <button className="flex items-center space-x-2 text-gray-300 hover:text-white">
+              <div id="admin-profile-dropdown" className="relative group">
+                <button id="admin-profile-btn" className="flex items-center space-x-2 text-gray-300 hover:text-white">
                   <User className="h-6 w-6" />
                   <span className="hidden md:block">Admin</span>
                 </button>
-                
-                <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg border border-gray-700 hidden group-hover:block">
-                  <Link
-                    href="/admin/profile"
-                    className="block px-4 py-2 text-gray-300 hover:bg-gray-700"
-                  >
-                    Profile
-                  </Link>
-                  <hr className="my-1" />
-                  <button 
-                    onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 text-gray-300 hover:bg-gray-700 flex items-center space-x-2"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    <span>Logout</span>
-                  </button>
+
+                <div id="admin-dropdown-menu" className="absolute right-0 top-full pt-2 w-48 hidden group-hover:block">
+                  <div className="bg-gray-800 rounded-lg shadow-lg border border-gray-700">
+                    <Link
+                      id="admin-profile-link"
+                      href="/admin/profile"
+                      className="block px-4 py-2 text-gray-300 hover:bg-gray-700 rounded-t-lg"
+                    >
+                      Profile
+                    </Link>
+                    <hr className="my-1 border-gray-700" />
+                    <button
+                      id="admin-logout-btn"
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2 text-gray-300 hover:bg-gray-700 flex items-center space-x-2 rounded-b-lg"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

@@ -1,9 +1,12 @@
 import sqlite3 from 'sqlite3'
+import Database from 'better-sqlite3'
 import path from 'path'
 import bcrypt from 'bcryptjs'
 
-// Database connection
+// Database connection (async for backward compatibility)
 let db: sqlite3.Database | null = null
+// Synchronous database connection
+let syncDb: Database.Database | null = null
 
 const getDatabasePath = () => {
   // Path to the user management database
@@ -20,11 +23,21 @@ const getDatabase = (): sqlite3.Database => {
       }
       console.log('Connected to the user management SQLite database.')
     })
-    
+
     // Enable foreign keys
     db.run('PRAGMA foreign_keys = ON')
   }
   return db
+}
+
+const getSyncDatabase = (): Database.Database => {
+  if (!syncDb) {
+    const dbPath = getDatabasePath()
+    syncDb = new Database(dbPath)
+    syncDb.pragma('foreign_keys = ON')
+    console.log('Connected to the user management SQLite database (sync).')
+  }
+  return syncDb
 }
 
 // User interface
@@ -132,8 +145,8 @@ export const initializeDatabase = (): Promise<void> => {
   })
 }
 
-// User management functions
-export const createUser = (userData: {
+// User management functions - v3 (NEW SYNC VERSION)
+export const createUserSync = async (userData: {
   email: string
   password: string
   first_name: string
@@ -141,37 +154,58 @@ export const createUser = (userData: {
   phone?: string
   role?: 'user' | 'admin' | 'staff'
 }): Promise<User> => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const database = getDatabase()
-      const hashedPassword = await bcrypt.hash(userData.password, 12)
-      
-      const sql = `
-        INSERT INTO users (email, password_hash, first_name, last_name, phone, role)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `
-      
-      database.run(sql, [
-        userData.email,
-        hashedPassword,
-        userData.first_name,
-        userData.last_name,
-        userData.phone || null,
-        userData.role || 'user'
-      ], function(err) {
-        if (err) {
-          console.error('Error creating user:', err.message)
-          reject(err)
-          return
-        }
-        
-        // Get the created user
-        getUserById(this.lastID).then(resolve).catch(reject)
-      })
-    } catch (error) {
-      reject(error)
+  console.log('[createUserSync v3] Starting SYNC user creation')
+  try {
+    const database = getSyncDatabase()
+    const hashedPassword = await bcrypt.hash(userData.password, 12)
+
+    const sql = `
+      INSERT INTO users (email, password_hash, first_name, last_name, phone, role)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `
+
+    console.log('[createUserSync] Creating user with email:', userData.email)
+
+    const result = database.prepare(sql).run(
+      userData.email,
+      hashedPassword,
+      userData.first_name,
+      userData.last_name,
+      userData.phone || null,
+      userData.role || 'user'
+    )
+
+    const userId = result.lastInsertRowid as number
+    console.log('[createUserSync] User created with ID:', userId)
+
+    // Query the newly created user
+    const selectSql = 'SELECT * FROM users WHERE id = ?'
+    const user = database.prepare(selectSql).get(userId) as User
+
+    if (!user) {
+      console.error('[createUserSync] User not found after creation, ID:', userId)
+      throw new Error('User not found after creation')
     }
-  })
+
+    console.log('[createUserSync] Successfully created and retrieved user:', user.email)
+    return user
+  } catch (error) {
+    console.error('[createUserSync] Error:', error)
+    throw error
+  }
+}
+
+// User management functions - v2 (DEPRECATED - keeping for backwards compatibility)
+export const createUser = async (userData: {
+  email: string
+  password: string
+  first_name: string
+  last_name: string
+  phone?: string
+  role?: 'user' | 'admin' | 'staff'
+}): Promise<User> => {
+  // Redirect to new sync version
+  return createUserSync(userData)
 }
 
 export const getUserById = (id: number): Promise<User> => {
@@ -460,6 +494,36 @@ export const updateOrderStatus = (orderId: number, status: Order['status'], note
       }
       
       getOrderById(orderId).then(resolve).catch(reject)
+    })
+  })
+}
+
+// Generic query execution utility
+export const runQuery = (sql: string, params: any[] = []): Promise<any[]> => {
+  return new Promise((resolve, reject) => {
+    const database = getDatabase()
+    database.all(sql, params, (err, rows: any[]) => {
+      if (err) {
+        console.error('Error executing query:', err.message)
+        reject(err)
+        return
+      }
+      resolve(rows || [])
+    })
+  })
+}
+
+// Single row query execution utility
+export const runQuerySingle = (sql: string, params: any[] = []): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    const database = getDatabase()
+    database.get(sql, params, (err, row: any) => {
+      if (err) {
+        console.error('Error executing single query:', err.message)
+        reject(err)
+        return
+      }
+      resolve(row)
     })
   })
 }
