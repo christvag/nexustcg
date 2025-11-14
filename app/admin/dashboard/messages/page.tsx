@@ -55,37 +55,50 @@ interface Message {
 }
 
 export default function MessagingSystem() {
-  const [tickets, setTickets] = useState<Ticket[]>([
-    {
-      id: '1',
-      ticketNumber: 'TICK-001',
-      subject: 'Issue with card grading',
-      customer: { name: 'John Doe', email: 'john@example.com' },
-      priority: 'high',
-      status: 'open',
-      category: 'Grading',
-      lastMessage: 'I received my card back but the grade seems incorrect...',
-      lastActivity: '2024-01-15T10:30:00Z',
-      messageCount: 3,
-      isUnread: true,
-      orderId: 'ORD-001'
-    },
-    {
-      id: '2',
-      ticketNumber: 'TICK-002',
-      subject: 'Payment not processed',
-      customer: { name: 'Jane Smith', email: 'jane@example.com' },
-      priority: 'urgent',
-      status: 'in_progress',
-      category: 'Payment',
-      assignedTo: 'Admin User',
-      lastMessage: 'Thank you for looking into this. I can provide more details...',
-      lastActivity: '2024-01-15T09:15:00Z',
-      messageCount: 5,
-      isUnread: false,
-      orderId: 'ORD-002'
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchTickets();
+  }, []);
+
+  const fetchTickets = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/admin/messages', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+
+      if (response.ok && data.tickets) {
+        const mappedTickets = data.tickets.map((ticket: any) => ({
+          id: String(ticket.id),
+          ticketNumber: ticket.id,
+          subject: ticket.subject,
+          customer: {
+            name: ticket.customerName,
+            email: ticket.customerEmail
+          },
+          priority: ticket.priority as 'low' | 'normal' | 'high' | 'urgent',
+          status: ticket.status as 'open' | 'in_progress' | 'waiting_customer' | 'waiting_admin' | 'resolved' | 'closed',
+          category: ticket.category,
+          assignedTo: ticket.assignedTo,
+          lastMessage: ticket.messages[0]?.content || '',
+          lastActivity: ticket.lastActivity,
+          messageCount: ticket.messages.length,
+          isUnread: false,
+          orderId: ticket.orderId
+        }));
+        setTickets(mappedTickets);
+      }
+    } catch (error) {
+      console.error('Error fetching tickets:', error);
+    } finally {
+      setIsLoading(false);
     }
-  ]);
+  };
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -225,6 +238,17 @@ export default function MessagingSystem() {
   });
 
   const ticketMessages = messages.filter(msg => msg.ticketId === selectedTicket?.id);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading messages...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-[calc(100vh-200px)] flex">

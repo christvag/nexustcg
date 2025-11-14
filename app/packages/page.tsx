@@ -94,7 +94,7 @@ export default function PackagesPage() {
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
             <span className="text-gradient">Choose Your Package</span>
           </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300">
+          <p className="text-xl text-gray-300">
             Select the service that best fits your needs
           </p>
         </motion.div>
@@ -106,9 +106,9 @@ export default function PackagesPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className={`relative bg-white dark:bg-gray-900 rounded-2xl shadow-xl overflow-hidden ${
+              className={`relative bg-gray-900 rounded-2xl shadow-xl overflow-hidden ${
                 selectedPackage === pkg.id ? 'ring-4 ring-gaming-primary' : ''
-              } ${pkg.popular ? 'gradient-border dark:gradient-border' : 'border border-gray-200 dark:border-gray-800'}`}
+              } ${pkg.popular ? 'gradient-border' : 'border border-gray-800'}`}
             >
               {pkg.popular && (
                 <div className="absolute top-0 right-0 bg-gradient-to-r from-gaming-primary to-gaming-secondary text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
@@ -117,16 +117,16 @@ export default function PackagesPage() {
               )}
 
               <div className="p-6">
-                <h3 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">
+                <h3 className="text-2xl font-bold mb-2 text-white">
                   {pkg.name}
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                <p className="text-gray-400 mb-4">
                   {pkg.description}
                 </p>
 
                 <div className="mb-6">
                   <span className="text-4xl font-bold text-gradient">${pkg.price}</span>
-                  <span className="text-gray-600 dark:text-gray-400">/card</span>
+                  <span className="text-gray-400">/card</span>
                 </div>
 
                 <div className="space-y-3 mb-6">
@@ -145,14 +145,14 @@ export default function PackagesPage() {
                           d="M5 13l4 4L19 7"
                         />
                       </svg>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                      <span className="text-sm text-gray-400">
                         {feature}
                       </span>
                     </div>
                   ))}
                 </div>
 
-                <div className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                <div className="text-sm text-gray-400 mb-6">
                   <div className="flex items-center">
                     <svg
                       className="h-4 w-4 mr-2"
@@ -194,7 +194,7 @@ export default function PackagesPage() {
                   className={`w-full py-3 px-4 rounded-lg font-medium transition-all ${
                     pkg.popular
                       ? 'bg-gradient-to-r from-gaming-primary to-gaming-secondary text-white hover:scale-105'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700'
+                      : 'bg-gray-800 text-white hover:bg-gray-700'
                   }`}
                 >
                   Select Package
@@ -210,7 +210,7 @@ export default function PackagesPage() {
           transition={{ delay: 0.5 }}
           className="mt-12 text-center"
         >
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-gray-400">
             All packages include free return shipping and insurance
           </p>
         </motion.div>

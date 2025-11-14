@@ -4,7 +4,9 @@
       "Bash(mkdir:*)",
       "Bash(docker-compose:*)",
       "Bash(taskkill:*)",
-      "Bash(true)"
+      "Bash(true)",
+      "WebFetch(domain:my.taggrading.com)",
+      "WebSearch"
     ],
     "deny": []
   }

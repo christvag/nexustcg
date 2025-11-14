@@ -25,7 +25,9 @@ const nextConfig = {
       'tcgplayer-cdn.tcgplayer.com',
       'product-images.tcgplayer.com',
       'cdn.scryfall.com',
-      'cards.scryfall.io'
+      'cards.scryfall.io',
+      'assets.tcgdex.net',
+      'api.scryfall.com'
     ],
   },
   // Enable standalone output for Docker

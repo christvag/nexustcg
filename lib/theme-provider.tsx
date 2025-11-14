@@ -5,12 +5,18 @@ import { type ReactNode } from 'react'
 
 interface ThemeProviderProps {
   children: ReactNode
-  attribute?: string
-  defaultTheme?: string
-  enableSystem?: boolean
-  disableTransitionOnChange?: boolean
 }
 
-export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
-  return <NextThemesProvider {...props}>{children}</NextThemesProvider>
+export function ThemeProvider({ children }: ThemeProviderProps) {
+  return (
+    <NextThemesProvider
+      attribute="class"
+      defaultTheme="dark"
+      forcedTheme="dark"
+      enableSystem={false}
+      disableTransitionOnChange
+    >
+      {children}
+    </NextThemesProvider>
+  )
 }

@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Search,
   Filter,
   UserPlus,
   Eye,
+  EyeOff,
   Edit,
   Trash2,
   Ban,
@@ -26,8 +27,9 @@ interface User {
   firstName: string;
   lastName: string;
   email: string;
+  username?: string;
   phone?: string;
-  role: 'user' | 'admin' | 'moderator';
+  role: 'user' | 'admin' | 'staff';
   isActive: boolean;
   emailVerified: boolean;
   totalOrders: number;
@@ -38,64 +40,7 @@ interface User {
 }
 
 export default function UsersManagement() {
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: '1',
-      firstName: 'John',
-      lastName: 'Doe',
-      email: 'john@example.com',
-      phone: '+1-555-0123',
-      role: 'user',
-      isActive: true,
-      emailVerified: true,
-      totalOrders: 15,
-      totalSpent: 2456.78,
-      lastLogin: '2024-01-15T14:30:00Z',
-      createdAt: '2023-08-15T10:00:00Z'
-    },
-    {
-      id: '2',
-      firstName: 'Jane',
-      lastName: 'Smith',
-      email: 'jane@example.com',
-      phone: '+1-555-0124',
-      role: 'moderator',
-      isActive: true,
-      emailVerified: true,
-      totalOrders: 8,
-      totalSpent: 1234.56,
-      lastLogin: '2024-01-15T12:15:00Z',
-      createdAt: '2023-07-20T09:30:00Z'
-    },
-    {
-      id: '3',
-      firstName: 'Bob',
-      lastName: 'Johnson',
-      email: 'bob@example.com',
-      role: 'user',
-      isActive: false,
-      emailVerified: false,
-      totalOrders: 0,
-      totalSpent: 0,
-      lastLogin: '2024-01-10T08:00:00Z',
-      createdAt: '2024-01-05T16:20:00Z'
-    },
-    {
-      id: '4',
-      firstName: 'Alice',
-      lastName: 'Brown',
-      email: 'alice@example.com',
-      phone: '+1-555-0125',
-      role: 'admin',
-      isActive: true,
-      emailVerified: true,
-      totalOrders: 0,
-      totalSpent: 0,
-      lastLogin: '2024-01-15T16:45:00Z',
-      createdAt: '2023-01-01T00:00:00Z'
-    }
-  ]);
-
+  const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -103,14 +48,62 @@ export default function UsersManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    username: '',
+    phone: '',
+    password: '',
+    role: 'user',
+    isActive: true,
+    emailVerified: false
+  });
 
   const usersPerPage = 10;
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('/api/users');
+      const data = await response.json();
+
+      if (response.ok && data.users) {
+        // Map API data to component format
+        const mappedUsers = data.users.map((user: any) => ({
+          id: String(user.id),
+          firstName: user.first_name,
+          lastName: user.last_name,
+          email: user.email,
+          username: user.username || null,
+          phone: user.phone || null,
+          role: user.role || 'user',
+          isActive: Boolean(user.is_active),
+          emailVerified: Boolean(user.email_verified),
+          totalOrders: user.total_orders || 0,
+          totalSpent: user.total_spent || 0,
+          lastLogin: user.last_login,
+          createdAt: user.created_at
+        }));
+        setUsers(mappedUsers);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const getRoleIcon = (role: string) => {
     switch (role) {
       case 'admin':
         return <Crown className="h-4 w-4 text-yellow-500" />;
-      case 'moderator':
+      case 'staff':
         return <Shield className="h-4 w-4 text-blue-500" />;
       case 'user':
         return <UserIcon className="h-4 w-4 text-gray-500" />;
@@ -123,7 +116,7 @@ export default function UsersManagement() {
     switch (role) {
       case 'admin':
         return 'bg-yellow-100 text-yellow-800';
-      case 'moderator':
+      case 'staff':
         return 'bg-blue-100 text-blue-800';
       case 'user':
         return 'bg-gray-100 text-gray-800';
@@ -132,38 +125,228 @@ export default function UsersManagement() {
     }
   };
 
-  const handleStatusToggle = (userId: string) => {
-    setUsers(users.map(user => 
-      user.id === userId ? { ...user, isActive: !user.isActive } : user
-    ));
+  const handleStatusToggle = async (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+
+    const newStatus = !user.isActive;
+
+    try {
+      const response = await fetch(`/api/users?id=${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          first_name: user.firstName,
+          last_name: user.lastName,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+          is_active: newStatus ? 1 : 0,
+          email_verified: user.emailVerified ? 1 : 0
+        })
+      });
+
+      if (response.ok) {
+        // Update local state
+        setUsers(users.map(u =>
+          u.id === userId ? { ...u, isActive: newStatus } : u
+        ));
+      } else {
+        const data = await response.json();
+        alert(`Failed to update user status: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      alert('Failed to update user status');
+    }
   };
 
-  const handleRoleChange = (userId: string, newRole: 'user' | 'admin' | 'moderator') => {
-    setUsers(users.map(user => 
-      user.id === userId ? { ...user, role: newRole } : user
-    ));
+  const handleRoleChange = async (userId: string, newRole: 'user' | 'admin' | 'staff') => {
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+
+    try {
+      const response = await fetch(`/api/users?id=${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          first_name: user.firstName,
+          last_name: user.lastName,
+          email: user.email,
+          phone: user.phone,
+          role: newRole,
+          is_active: user.isActive ? 1 : 0,
+          email_verified: user.emailVerified ? 1 : 0
+        })
+      });
+
+      if (response.ok) {
+        // Update local state
+        setUsers(users.map(u =>
+          u.id === userId ? { ...u, role: newRole } : u
+        ));
+      } else {
+        const data = await response.json();
+        alert(`Failed to update user role: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error updating role:', error);
+      alert('Failed to update user role');
+    }
   };
 
-  const handleBulkAction = (action: string) => {
+  const handleDeleteUser = async (userId: string) => {
+    console.log('Delete button clicked for user ID:', userId);
+
+    if (!confirm('Are you sure you want to delete this user? This will also delete all their orders and related data.')) {
+      console.log('User cancelled deletion');
+      return;
+    }
+
+    console.log('Sending DELETE request for user ID:', userId);
+
+    try {
+      const response = await fetch(`/api/users?id=${userId}`, {
+        method: 'DELETE'
+      });
+
+      console.log('DELETE response status:', response.status);
+      const data = await response.json();
+      console.log('DELETE response data:', data);
+
+      if (response.ok) {
+        alert('✅ User deleted successfully!');
+        console.log('Refreshing user list...');
+        await fetchUsers(); // Refresh the list
+        console.log('User list refreshed');
+      } else {
+        alert(`❌ Failed to delete user: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert('❌ Network error: Failed to delete user');
+    }
+  };
+
+  const handleCreateOrUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.email || !formData.firstName || !formData.lastName) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    // For new users, password is required
+    if (!editingUser && !formData.password) {
+      alert('Password is required for new users');
+      return;
+    }
+
+    try {
+      const url = editingUser
+        ? `/api/users?id=${editingUser.id}`
+        : '/api/users';
+
+      const method = editingUser ? 'PUT' : 'POST';
+
+      const body: any = {
+        email: formData.email,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        phone: formData.phone || null,
+        role: formData.role,
+        is_active: formData.isActive ? 1 : 0,
+        email_verified: formData.emailVerified ? 1 : 0
+      };
+
+      // Only include password and username for new users
+      if (!editingUser) {
+        body.password = formData.password;
+        body.username = formData.username;
+      }
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(editingUser ? 'User updated successfully' : 'User created successfully');
+        setShowUserModal(false);
+        setEditingUser(null);
+        setFormData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          username: '',
+          phone: '',
+          password: '',
+          role: 'user',
+          isActive: true,
+          emailVerified: false
+        });
+        fetchUsers(); // Refresh the list
+      } else {
+        alert(`Failed to ${editingUser ? 'update' : 'create'} user: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error saving user:', error);
+      alert('Failed to save user');
+    }
+  };
+
+  const handleBulkAction = async (action: string) => {
     if (selectedUsers.length === 0) {
       alert('Please select users first');
       return;
     }
-    
+
     switch (action) {
       case 'activate':
-        setUsers(users.map(user => 
+        setUsers(users.map(user =>
           selectedUsers.includes(user.id) ? { ...user, isActive: true } : user
         ));
         break;
       case 'deactivate':
-        setUsers(users.map(user => 
+        setUsers(users.map(user =>
           selectedUsers.includes(user.id) ? { ...user, isActive: false } : user
         ));
         break;
       case 'delete':
-        if (confirm(`Delete ${selectedUsers.length} users?`)) {
-          setUsers(users.filter(user => !selectedUsers.includes(user.id)));
+        if (confirm(`Are you sure you want to delete ${selectedUsers.length} user(s)? This will also delete all their orders and related data.`)) {
+          console.log('Bulk deleting users:', selectedUsers);
+
+          try {
+            // Delete each user via API
+            const deletePromises = selectedUsers.map(userId =>
+              fetch(`/api/users?id=${userId}`, { method: 'DELETE' })
+            );
+
+            const responses = await Promise.all(deletePromises);
+            const successCount = responses.filter(r => r.ok).length;
+            const failCount = responses.length - successCount;
+
+            if (failCount === 0) {
+              alert(`✅ Successfully deleted ${successCount} user(s)`);
+            } else {
+              alert(`⚠️ Deleted ${successCount} user(s), failed to delete ${failCount} user(s)`);
+            }
+
+            // Refresh the user list
+            await fetchUsers();
+          } catch (error) {
+            console.error('Bulk delete error:', error);
+            alert('❌ Error deleting users');
+          }
         }
         break;
       case 'send-email':
@@ -190,106 +373,169 @@ export default function UsersManagement() {
     currentPage * usersPerPage
   );
 
-  const UserForm = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <h3 className="text-lg font-semibold mb-4">
+  return (
+    <div className="p-6 bg-[#0b0b0b] min-h-screen">
+      {/* User Modal */}
+      {showUserModal && (
+    <div id="user-modal-overlay" className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+      <div id="user-modal-container" className="bg-[#171717] rounded-lg p-6 w-full max-w-md border border-gray-800">
+        <h3 id="user-modal-title" className="text-lg font-semibold mb-4 text-white">
           {editingUser ? 'Edit User' : 'Add New User'}
         </h3>
-        
-        <form className="space-y-4">
+
+        <form id="user-form" className="space-y-4" onSubmit={handleCreateOrUpdateUser}>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                First Name
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                First Name <span className="text-[#d83f0a]">*</span>
               </label>
               <input
+                id="user-form-firstname"
                 type="text"
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                defaultValue={editingUser?.firstName || ''}
+                required
+                autoComplete="given-name"
+                className="w-full px-3 py-2 bg-[#0b0b0b] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
+                value={formData.firstName}
+                onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Last Name
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Last Name <span className="text-[#d83f0a]">*</span>
               </label>
               <input
+                id="user-form-lastname"
                 type="text"
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                defaultValue={editingUser?.lastName || ''}
+                required
+                autoComplete="family-name"
+                className="w-full px-3 py-2 bg-[#0b0b0b] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
+                value={formData.lastName}
+                onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Email <span className="text-[#d83f0a]">*</span>
             </label>
             <input
+              id="user-form-email"
               type="email"
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              defaultValue={editingUser?.email || ''}
+              required
+              autoComplete="email"
+              className="w-full px-3 py-2 bg-[#0b0b0b] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
+              value={formData.email}
+              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
             />
           </div>
 
+          {!editingUser && (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Username <span className="text-[#d83f0a]">*</span>
+              </label>
+              <input
+                id="user-form-username"
+                type="text"
+                required
+                minLength={3}
+                autoComplete="username"
+                className="w-full px-3 py-2 bg-[#0b0b0b] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
+                value={formData.username}
+                onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+                placeholder="Minimum 3 characters"
+              />
+            </div>
+          )}
+
+          {!editingUser && (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Password <span className="text-[#d83f0a]">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  id="user-form-password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  minLength={6}
+                  autoComplete="new-password"
+                  className="w-full px-3 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={formData.password}
+                  onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                  placeholder="Minimum 6 characters"
+                />
+                <button
+                  id="toggle-password-visibility"
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+          )}
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Phone
             </label>
             <input
+              id="user-form-phone"
               type="tel"
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              defaultValue={editingUser?.phone || ''}
+              autoComplete="tel"
+              className="w-full px-3 py-2 bg-[#0b0b0b] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
+              value={formData.phone}
+              onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Role
             </label>
             <select
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              defaultValue={editingUser?.role || 'user'}
+              id="user-form-role"
+              className="w-full px-3 py-2 bg-[#0b0b0b] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
+              value={formData.role}
+              onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
             >
               <option value="user">User</option>
-              <option value="moderator">Moderator</option>
+              <option value="staff">Staff</option>
               <option value="admin">Admin</option>
             </select>
           </div>
 
-          <div className="flex items-center space-x-4">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                className="rounded mr-2"
-                defaultChecked={editingUser?.isActive ?? true}
-              />
-              <span className="text-sm text-gray-700">Active</span>
-            </label>
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                className="rounded mr-2"
-                defaultChecked={editingUser?.emailVerified ?? false}
-              />
-              <span className="text-sm text-gray-700">Email Verified</span>
-            </label>
-          </div>
-
           <div className="flex justify-end space-x-3 pt-4">
             <button
+              id="user-form-cancel-btn"
               type="button"
               onClick={() => {
                 setShowUserModal(false);
                 setEditingUser(null);
+                setFormData({
+                  firstName: '',
+                  lastName: '',
+                  email: '',
+                  username: '',
+                  phone: '',
+                  password: '',
+                  role: 'user',
+                  isActive: true,
+                  emailVerified: false
+                });
               }}
-              className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+              className="px-4 py-2 border border-gray-700 rounded-lg text-gray-300 hover:bg-[#0b0b0b]"
             >
               Cancel
             </button>
             <button
+              id="user-form-submit-btn"
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-4 py-2 bg-gradient-to-r from-[#d83f0a] to-[#d66a0a] text-white rounded-lg hover:opacity-90"
             >
               {editingUser ? 'Update' : 'Create'} User
             </button>
@@ -297,16 +543,31 @@ export default function UsersManagement() {
         </form>
       </div>
     </div>
-  );
+      )}
 
-  return (
-    <div className="space-y-6">
+      {/* Loading State */}
+      {isLoading && (
+        <div className="space-y-6">
+          <h2 className="text-2xl font-bold text-white">Users Management</h2>
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading users...</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
+      {!isLoading && (
+        <div id="users-management-container" className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Users Management</h2>
+      <div id="users-header" className="flex justify-between items-center">
+        <h2 id="users-title" className="text-2xl font-bold text-white">Users Management</h2>
         <button
+          id="add-user-button"
           onClick={() => setShowUserModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+          className="bg-gradient-to-r from-[#d83f0a] to-[#d66a0a] text-white px-4 py-2 rounded-lg hover:opacity-90 flex items-center space-x-2"
         >
           <UserPlus className="h-5 w-5" />
           <span>Add User</span>
@@ -314,17 +575,17 @@ export default function UsersManagement() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow p-4">
+      <div id="users-stats-cards" className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div id="stat-total-users" className="bg-[#171717] rounded-lg border border-gray-800 p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Total Users</p>
-              <p className="text-2xl font-bold text-gray-900">{users.length}</p>
+              <p className="text-2xl font-bold text-white">{users.length}</p>
             </div>
             <UserIcon className="h-8 w-8 text-blue-500" />
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
+        <div id="stat-active-users" className="bg-[#171717] rounded-lg border border-gray-800 p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Active Users</p>
@@ -333,7 +594,7 @@ export default function UsersManagement() {
             <CheckCircle className="h-8 w-8 text-green-500" />
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
+        <div id="stat-admins" className="bg-[#171717] rounded-lg border border-gray-800 p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Admins</p>
@@ -342,7 +603,7 @@ export default function UsersManagement() {
             <Crown className="h-8 w-8 text-yellow-500" />
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
+        <div id="stat-verified-users" className="bg-[#171717] rounded-lg border border-gray-800 p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Verified Users</p>
@@ -354,12 +615,13 @@ export default function UsersManagement() {
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-lg shadow p-4">
+      <div id="users-filters-section" className="bg-[#171717] rounded-lg border border-gray-800 p-4">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
+                id="user-search-input"
                 type="text"
                 placeholder="Search users by name or email..."
                 className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -368,19 +630,21 @@ export default function UsersManagement() {
               />
             </div>
           </div>
-          
+
           <select
+            id="filter-role-select"
             className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={filterRole}
             onChange={(e) => setFilterRole(e.target.value)}
           >
             <option value="all">All Roles</option>
             <option value="user">Users</option>
-            <option value="moderator">Moderators</option>
+            <option value="staff">Staff</option>
             <option value="admin">Admins</option>
           </select>
 
           <select
+            id="filter-status-select"
             className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
@@ -432,13 +696,14 @@ export default function UsersManagement() {
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div id="users-table-section" className="bg-[#171717] rounded-lg border border-gray-800 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table id="users-table" className="w-full">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left">
                   <input
+                    id="select-all-users-checkbox"
                     type="checkbox"
                     className="rounded"
                     checked={selectedUsers.length === paginatedUsers.length && paginatedUsers.length > 0}
@@ -474,11 +739,12 @@ export default function UsersManagement() {
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-[#171717] divide-y divide-gray-800">
               {paginatedUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
+                <tr key={user.id} id={`user-row-${user.id}`} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <input
+                      id={`user-checkbox-${user.id}`}
                       type="checkbox"
                       className="rounded"
                       checked={selectedUsers.includes(user.id)}
@@ -499,7 +765,7 @@ export default function UsersManagement() {
                         </span>
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-white">
                           {user.firstName} {user.lastName}
                         </div>
                         <div className="flex items-center text-xs text-gray-500">
@@ -510,7 +776,7 @@ export default function UsersManagement() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center text-sm text-gray-900 mb-1">
+                    <div className="flex items-center text-sm text-white mb-1">
                       <Mail className="h-4 w-4 mr-2 text-gray-400" />
                       {user.email}
                       {user.emailVerified && <CheckCircle className="h-3 w-3 ml-1 text-green-500" />}
@@ -530,7 +796,7 @@ export default function UsersManagement() {
                         onChange={(e) => handleRoleChange(user.id, e.target.value as any)}
                       >
                         <option value="user">User</option>
-                        <option value="moderator">Moderator</option>
+                        <option value="staff">Staff</option>
                         <option value="admin">Admin</option>
                       </select>
                     </div>
@@ -557,7 +823,7 @@ export default function UsersManagement() {
                       )}
                     </button>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                     <div>{user.totalOrders} orders</div>
                     <div className="text-xs text-gray-500">${user.totalSpent.toFixed(2)} spent</div>
                   </td>
@@ -566,20 +832,49 @@ export default function UsersManagement() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <div className="flex items-center space-x-2">
-                      <button className="text-blue-600 hover:text-blue-900" title="View">
+                      <button
+                        id={`user-view-btn-${user.id}`}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="View"
+                      >
                         <Eye className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => {
+                        id={`user-edit-btn-${user.id}`}
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           setEditingUser(user);
+                          setFormData({
+                            firstName: user.firstName,
+                            lastName: user.lastName,
+                            email: user.email,
+                            username: user.username || '',
+                            phone: user.phone || '',
+                            password: '',
+                            role: user.role,
+                            isActive: user.isActive,
+                            emailVerified: user.emailVerified
+                          });
                           setShowUserModal(true);
                         }}
-                        className="text-gray-600 hover:text-gray-900"
+                        className="text-gray-600 hover:text-white"
                         title="Edit"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
-                      <button className="text-red-600 hover:text-red-900" title="Delete">
+                      <button
+                        id={`user-delete-btn-${user.id}`}
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleDeleteUser(user.id);
+                        }}
+                        className="text-red-600 hover:text-red-900"
+                        title="Delete"
+                      >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
@@ -624,8 +919,8 @@ export default function UsersManagement() {
           </div>
         </div>
       </div>
-
-      {showUserModal && <UserForm />}
+        </div>
+      )}
     </div>
   );
 }

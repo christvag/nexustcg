@@ -3,9 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { loadStripe } from '@stripe/stripe-js'
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+import StripeCheckout from './components/StripeCheckout'
 
 interface PaymentData {
   packageId: string
@@ -52,65 +50,77 @@ export default function PaymentPage() {
     }))
   }
 
-  const handleStripePayment = async () => {
-    setIsProcessing(true)
-    
+  const handlePaymentSuccess = async (paymentIntent: any) => {
     try {
-      // Create payment intent on backend
-      const response = await fetch('/api/payments/create-payment-intent', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount: Math.round(paymentData!.total * 100), // Convert to cents
-          currency: 'usd',
-          customerInfo: formData,
-          orderData: paymentData
-        })
-      })
-
-      const { clientSecret, error } = await response.json()
-
-      if (error) {
-        alert('Payment failed: ' + error)
-        setIsProcessing(false)
-        return
-      }
-
-      // Get Stripe instance
-      const stripe = await stripePromise
-      if (!stripe) {
-        alert('Stripe failed to load')
-        setIsProcessing(false)
-        return
-      }
-
-      // For demo purposes, simulate successful payment
-      // In production, you would use Stripe Elements to collect card details
-      // and confirm the payment properly
+      // Save order to database if user is authenticated
+      const userData = JSON.parse(localStorage.getItem('paymentData') || '{}')
       
-      // Simulate processing time
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      if (userData.user && userData.user.id !== 999999) {
+        const orderResponse = await fetch('/api/orders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user_id: userData.user.id,
+            package_id: paymentData!.packageId,
+            package_name: paymentData!.packageName,
+            package_price: paymentData!.packagePrice,
+            total_cards: paymentData!.totalCards,
+            subtotal: paymentData!.subtotal,
+            tax: paymentData!.tax,
+            shipping: paymentData!.shipping,
+            total: paymentData!.total,
+            cards: paymentData!.cards,
+            payment_intent_id: paymentIntent.id,
+            payment_status: 'paid',
+            customer_info: formData
+          })
+        })
 
-      // Payment successful
+        const orderResult = await orderResponse.json()
+        console.log('Order saved:', orderResult)
+      }
+
+      // Payment successful - redirect to confirmation
       const confirmationData = {
         ...paymentData,
         customerInfo: formData,
         paymentMethod: 'stripe',
-        orderNumber: `TCG-${Date.now()}`,
+        orderNumber: paymentIntent.metadata?.order_number || `TCG-${Date.now()}`,
         orderDate: new Date().toISOString(),
+        paymentIntentId: paymentIntent.id,
+        status: 'success'
       }
+      
       localStorage.setItem('confirmationData', JSON.stringify(confirmationData))
       localStorage.removeItem('orderData')
       localStorage.removeItem('paymentData')
       router.push('/packages/confirmation')
       
     } catch (error) {
-      console.error('Payment error:', error)
-      alert('Payment failed. Please try again.')
-      setIsProcessing(false)
+      console.error('Post-payment processing error:', error)
+      // Still redirect to confirmation since payment succeeded
+      const confirmationData = {
+        ...paymentData,
+        customerInfo: formData,
+        paymentMethod: 'stripe',
+        orderNumber: `TCG-${Date.now()}`,
+        orderDate: new Date().toISOString(),
+        paymentIntentId: paymentIntent.id,
+        status: 'success'
+      }
+      
+      localStorage.setItem('confirmationData', JSON.stringify(confirmationData))
+      localStorage.removeItem('orderData')
+      localStorage.removeItem('paymentData')
+      router.push('/packages/confirmation')
     }
+  }
+
+  const handlePaymentError = (error: string) => {
+    alert('Payment failed: ' + error)
+    setIsProcessing(false)
   }
 
   const handlePayPalPayment = () => {
@@ -137,7 +147,7 @@ export default function PaymentPage() {
           <h1 className="text-4xl font-bold mb-2">
             <span className="text-gradient">Payment Information</span>
           </h1>
-          <p className="text-gray-600 dark:text-gray-300">
+          <p className="text-gray-300">
             Enter your details to complete your order
           </p>
         </motion.div>
@@ -149,7 +159,7 @@ export default function PaymentPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6"
+              className="bg-gray-900 rounded-xl shadow-lg p-6"
             >
               <h2 className="text-2xl font-bold mb-6">Customer Information</h2>
               
@@ -163,7 +173,7 @@ export default function PaymentPage() {
                       value={formData.name}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none dark:bg-gray-800"
+                      className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none bg-gray-800"
                     />
                   </div>
                   <div>
@@ -174,7 +184,7 @@ export default function PaymentPage() {
                       value={formData.email}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none dark:bg-gray-800"
+                      className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none bg-gray-800"
                     />
                   </div>
                 </div>
@@ -187,7 +197,7 @@ export default function PaymentPage() {
                     value={formData.phone}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none dark:bg-gray-800"
+                    className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none bg-gray-800"
                   />
                 </div>
 
@@ -201,7 +211,7 @@ export default function PaymentPage() {
                     value={formData.address}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none dark:bg-gray-800"
+                    className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none bg-gray-800"
                   />
                 </div>
 
@@ -214,7 +224,7 @@ export default function PaymentPage() {
                       value={formData.city}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none dark:bg-gray-800"
+                      className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none bg-gray-800"
                     />
                   </div>
                   <div>
@@ -225,7 +235,7 @@ export default function PaymentPage() {
                       value={formData.state}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none dark:bg-gray-800"
+                      className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none bg-gray-800"
                     />
                   </div>
                   <div>
@@ -236,7 +246,7 @@ export default function PaymentPage() {
                       value={formData.zipCode}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none dark:bg-gray-800"
+                      className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none bg-gray-800"
                     />
                   </div>
                 </div>
@@ -247,7 +257,7 @@ export default function PaymentPage() {
                     name="country"
                     value={formData.country}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none dark:bg-gray-800"
+                    className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none bg-gray-800"
                   >
                     <option value="United States">United States</option>
                     <option value="Canada">Canada</option>
@@ -265,34 +275,34 @@ export default function PaymentPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 sticky top-24"
+              className="bg-gray-900 rounded-xl shadow-lg p-6 sticky top-24"
             >
               <h2 className="text-2xl font-bold mb-4">Order Summary</h2>
               
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Package</span>
+                  <span className="text-gray-400">Package</span>
                   <span className="font-medium">{paymentData.packageName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Cards</span>
+                  <span className="text-gray-400">Cards</span>
                   <span className="font-medium">{paymentData.totalCards}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
+                  <span className="text-gray-400">Subtotal</span>
                   <span className="font-medium">${paymentData.subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Tax</span>
+                  <span className="text-gray-400">Tax</span>
                   <span className="font-medium">${paymentData.tax.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Shipping</span>
+                  <span className="text-gray-400">Shipping</span>
                   <span className="font-medium">
                     {paymentData.shipping === 0 ? 'FREE' : `$${paymentData.shipping.toFixed(2)}`}
                   </span>
                 </div>
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                <div className="border-t border-gray-700 pt-3">
                   <div className="flex justify-between">
                     <span className="text-lg font-semibold">Total</span>
                     <span className="text-2xl font-bold text-gradient">
@@ -302,29 +312,36 @@ export default function PaymentPage() {
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <button
-                  onClick={handleStripePayment}
-                  disabled={isProcessing || !formData.name || !formData.email}
-                  className="w-full bg-gradient-to-r from-gaming-primary to-gaming-secondary text-white py-3 rounded-lg font-medium hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                >
-                  {isProcessing ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  ) : (
-                    'Pay with Stripe'
-                  )}
-                </button>
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold mb-3">Payment Method</h3>
+                {formData.name && formData.email && formData.address ? (
+                  <StripeCheckout
+                    paymentData={paymentData}
+                    customerInfo={formData}
+                    onSuccess={handlePaymentSuccess}
+                    onError={handlePaymentError}
+                  />
+                ) : (
+                  <div className="p-4 bg-yellow-900/20 border border-yellow-700 rounded-lg">
+                    <p className="text-yellow-200 text-sm">
+                      Please fill out all required customer information fields above to enable payment.
+                    </p>
+                  </div>
+                )}
                 
-                <button
-                  onClick={handlePayPalPayment}
-                  disabled={isProcessing || !formData.name || !formData.email}
-                  className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Pay with PayPal
-                </button>
+                <div className="text-center">
+                  <p className="text-sm text-gray-400 mb-2">Or</p>
+                  <button
+                    onClick={handlePayPalPayment}
+                    disabled={isProcessing || !formData.name || !formData.email}
+                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Pay with PayPal (Coming Soon)
+                  </button>
+                </div>
               </div>
 
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-4 text-center">
+              <p className="text-xs text-gray-400 mt-4 text-center">
                 Your payment information is secure and encrypted
               </p>
             </motion.div>

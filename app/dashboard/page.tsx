@@ -70,11 +70,11 @@ export default function UserDashboard() {
           </p>
         </div>
         
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-12 text-center">
+        <div className="bg-gray-800 rounded-2xl shadow-lg p-12 text-center">
           <div className="max-w-md mx-auto">
             <div className="text-6xl mb-4">📦</div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Login Required</h3>
-            <p className="text-gray-600 dark:text-gray-300 mb-6">
+            <h3 className="text-xl font-semibold text-white mb-4">Login Required</h3>
+            <p className="text-gray-300 mb-6">
               You need to be logged in to view your dashboard. Please log in or create an account to get started.
             </p>
             <div className="space-y-3">
@@ -86,7 +86,7 @@ export default function UserDashboard() {
               </Link>
               <Link
                 href="/packages"
-                className="block w-full text-blue-600 border border-blue-600 py-3 px-4 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors font-medium"
+                className="block w-full text-blue-600 border border-blue-600 py-3 px-4 rounded-lg hover:bg-blue-900/20 transition-colors font-medium"
               >
                 Browse Packages
               </Link>
@@ -124,10 +124,10 @@ export default function UserDashboard() {
   return (
     <div className="space-y-8 pb-20 lg:pb-8">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+        <h1 className="text-3xl font-bold text-white">
           Welcome back, {currentUser?.first_name}!
         </h1>
-        <p className="text-gray-600 dark:text-gray-300 mt-2">
+        <p className="text-gray-300 mt-2">
           Track your orders and manage your account
         </p>
       </div>
@@ -161,11 +161,11 @@ export default function UserDashboard() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden"
+        className="bg-gray-800 rounded-2xl shadow-lg overflow-hidden"
       >
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-6 border-b border-gray-700">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Recent Orders</h2>
+            <h2 className="text-xl font-bold text-white">Recent Orders</h2>
             <Link
               href="/dashboard/orders"
               className="text-blue-600 hover:text-blue-700 font-medium text-sm"
@@ -175,10 +175,10 @@ export default function UserDashboard() {
           </div>
         </div>
 
-        <div className="divide-y divide-gray-200 dark:divide-gray-700">
+        <div className="divide-y divide-gray-700">
           {stats?.recentOrders?.length > 0 ? (
             stats.recentOrders.map((order: any) => (
-              <div key={order.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+              <div key={order.id} className="p-6 hover:bg-gray-700 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center space-x-4">
@@ -186,7 +186,7 @@ export default function UserDashboard() {
                         <Link href={`/dashboard/orders/${order.id}`} className="text-blue-600 hover:text-blue-700 font-medium">
                           {order.order_number}
                         </Link>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        <p className="text-sm text-gray-400 mt-1">
                           {order.package_name} • {order.total_cards} cards
                         </p>
                       </div>
@@ -195,18 +195,18 @@ export default function UserDashboard() {
                   
                   <div className="flex items-center space-x-4">
                     <div className="text-right">
-                      <p className="font-medium text-gray-900 dark:text-white">${order.total}</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                      <p className="font-medium text-white">${order.total}</p>
+                      <p className="text-sm text-gray-400">
                         {new Date(order.created_at).toLocaleDateString()}
                       </p>
                     </div>
                     
                     <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
-                      order.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                      order.status === 'in_progress' || order.status === 'grading' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                      order.status === 'pending' || order.status === 'received' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                      order.status === 'shipped' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
-                      'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                      order.status === 'completed' ? 'bg-green-900 text-green-200' :
+                      order.status === 'in_progress' || order.status === 'grading' ? 'bg-blue-900 text-blue-200' :
+                      order.status === 'pending' || order.status === 'received' ? 'bg-yellow-900 text-yellow-200' :
+                      order.status === 'shipped' ? 'bg-purple-900 text-purple-200' :
+                      'bg-gray-900 text-gray-200'
                     }`}>
                       {order.status.replace('_', ' ')}
                     </span>
@@ -215,7 +215,7 @@ export default function UserDashboard() {
               </div>
             ))
           ) : (
-            <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+            <div className="p-8 text-center text-gray-400">
               <div className="text-4xl mb-4">📦</div>
               <p className="text-lg mb-2">No orders yet</p>
               <p className="text-sm">Start by submitting your first order!</p>
@@ -237,41 +237,41 @@ export default function UserDashboard() {
         transition={{ delay: 0.4 }}
         className="grid grid-cols-1 md:grid-cols-2 gap-6"
       >
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h3>
+        <div className="bg-gray-800 rounded-2xl shadow-lg p-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
           <div className="space-y-3">
-            <Link href="/packages" className="flex items-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            <Link href="/packages" className="flex items-center p-3 rounded-lg hover:bg-gray-700 transition-colors">
               <span className="mr-3 text-xl">➕</span>
               <div>
                 <span className="font-medium">Submit New Order</span>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Start a new grading request</p>
+                <p className="text-sm text-gray-400">Start a new grading request</p>
               </div>
             </Link>
-            <Link href="/dashboard/chat" className="flex items-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            <Link href="/dashboard/chat" className="flex items-center p-3 rounded-lg hover:bg-gray-700 transition-colors">
               <span className="mr-3 text-xl">💬</span>
               <div>
                 <span className="font-medium">Chat Support</span>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Get help from our staff</p>
+                <p className="text-sm text-gray-400">Get help from our staff</p>
               </div>
             </Link>
-            <Link href="/dashboard/profile" className="flex items-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            <Link href="/dashboard/profile" className="flex items-center p-3 rounded-lg hover:bg-gray-700 transition-colors">
               <span className="mr-3 text-xl">👤</span>
               <div>
                 <span className="font-medium">Update Profile</span>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Manage your account</p>
+                <p className="text-sm text-gray-400">Manage your account</p>
               </div>
             </Link>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Need Help?</h3>
+        <div className="bg-gray-800 rounded-2xl shadow-lg p-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Need Help?</h3>
           <div className="space-y-4">
             <div className="flex items-start">
               <span className="mr-3 text-xl">📋</span>
               <div>
                 <h4 className="font-medium">Grading Guide</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Learn about our grading process</p>
+                <p className="text-sm text-gray-400">Learn about our grading process</p>
                 <Link href="/about" className="text-blue-600 hover:text-blue-700 text-sm">
                   Learn More →
                 </Link>
@@ -281,7 +281,7 @@ export default function UserDashboard() {
               <span className="mr-3 text-xl">📞</span>
               <div>
                 <h4 className="font-medium">Contact Support</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Get in touch with our team</p>
+                <p className="text-sm text-gray-400">Get in touch with our team</p>
                 <p className="text-sm text-blue-600">support@tcggrading.com</p>
               </div>
             </div>

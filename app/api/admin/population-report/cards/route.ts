@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { populationReportDb, initializePopulationReportDatabase } from '@/lib/population-report-database'
+import fs from 'fs'
+import path from 'path'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'nexus-tcgrading-secret-key-2024'
 
@@ -15,6 +17,46 @@ function verifyToken(token: string): JWTPayload | null {
     const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload
     return decoded
   } catch (error) {
+    return null
+  }
+}
+
+function saveBase64Image(base64Data: string, cardId: string, side: 'front' | 'back'): string | null {
+  try {
+    if (!base64Data || !base64Data.includes('base64,')) {
+      return null
+    }
+
+    // Extract the base64 data (remove data:image/png;base64, prefix)
+    const base64String = base64Data.split('base64,')[1]
+    const buffer = Buffer.from(base64String, 'base64')
+
+    // Determine file extension from the data URL
+    const mimeType = base64Data.split(';')[0].split(':')[1]
+    const extension = mimeType.split('/')[1] || 'png'
+
+    // Create filename with card ID and timestamp
+    const fileName = `${cardId}_${Date.now()}.${extension}`
+
+    // Determine the folder path
+    const folderName = side === 'front' ? 'front_cards' : 'back_cards'
+    const folderPath = path.join(process.cwd(), 'storage', 'card_image', folderName)
+
+    // Ensure directory exists
+    if (!fs.existsSync(folderPath)) {
+      fs.mkdirSync(folderPath, { recursive: true })
+    }
+
+    // Full file path
+    const filePath = path.join(folderPath, fileName)
+
+    // Save the file
+    fs.writeFileSync(filePath, buffer)
+
+    // Return the relative path to store in database
+    return `/storage/card_image/${folderName}/${fileName}`
+  } catch (error) {
+    console.error(`Error saving ${side} image:`, error)
     return null
   }
 }
@@ -93,10 +135,10 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { cardId, cardGame, cardName, cardGrade, setName, edition, rarity, cardInfo, cardOwner, frontImage, backImage } = body
+    const { cardId, cardGame, cardName, cardGrade, gradeName, yearCard, setName, edition, rarity, cardInfo, cardOwner, frontImage, backImage } = body
 
     // Validate required fields
-    if (!cardId || !cardGame || !cardName || !cardGrade || !setName || !rarity || !cardOwner) {
+    if (!cardId || !cardGame || !cardName || !cardGrade || !gradeName || !yearCard || !setName || !rarity || !cardOwner) {
       return NextResponse.json({
         success: false,
         error: 'Missing required fields'
@@ -105,19 +147,28 @@ export async function POST(req: NextRequest) {
 
     await initializePopulationReportDatabase()
 
+    // Save images to storage and get file paths
+    const frontImagePath = frontImage ? saveBase64Image(frontImage, cardId, 'front') : null
+    const backImagePath = backImage ? saveBase64Image(backImage, cardId, 'back') : null
+
+    console.log('[Add Card] Front image saved to:', frontImagePath)
+    console.log('[Add Card] Back image saved to:', backImagePath)
+
     const cardData = {
       card_id: cardId,
       card_game: cardGame,
       card_name: cardName,
       card_grade: cardGrade,
+      grade_name: gradeName,
+      year_card: yearCard,
       set_name: setName,
       edition: edition || '',
       rarity: rarity,
       card_info: cardInfo || '',
       card_owner: cardOwner,
       date_graded: new Date().toISOString(),
-      front_image: frontImage || '',
-      back_image: backImage || ''
+      front_image: frontImagePath || '',
+      back_image: backImagePath || ''
     }
 
     const insertedId = await populationReportDb.insertCard(cardData)

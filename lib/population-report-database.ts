@@ -9,6 +9,8 @@ interface PopulationReportCard {
   card_game: string
   card_name: string
   card_grade: string
+  grade_name?: string
+  year_card?: string
   set_name: string
   edition?: string
   rarity: string
@@ -65,6 +67,8 @@ class PopulationReportDatabase {
           card_game TEXT NOT NULL,
           card_name TEXT NOT NULL,
           card_grade TEXT NOT NULL,
+          grade_name TEXT,
+          year_card TEXT,
           set_name TEXT NOT NULL,
           edition TEXT,
           rarity TEXT NOT NULL,
@@ -134,10 +138,10 @@ class PopulationReportDatabase {
 
       const sql = `
         INSERT INTO population_report_cards (
-          card_id, card_game, card_name, card_grade,
+          card_id, card_game, card_name, card_grade, grade_name, year_card,
           set_name, edition, rarity, card_info, card_owner, date_graded,
           front_image, back_image
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `
 
       this.db.run(sql, [
@@ -145,6 +149,8 @@ class PopulationReportDatabase {
         card.card_game,
         card.card_name,
         card.card_grade,
+        card.grade_name || '',
+        card.year_card || '',
         card.set_name,
         card.edition || '',
         card.rarity,
@@ -167,6 +173,29 @@ class PopulationReportDatabase {
   async getAllCards(): Promise<PopulationReportCard[]> {
     const sql = 'SELECT * FROM population_report_cards ORDER BY created_at DESC'
     return await this.runQuery(sql)
+  }
+
+  async getCardByCardId(cardId: string): Promise<PopulationReportCard | null> {
+    const sql = 'SELECT * FROM population_report_cards WHERE card_id = ?'
+    const results = await this.runQuery(sql, [cardId])
+    return results.length > 0 ? results[0] : null
+  }
+
+  async getNextCardId(): Promise<string> {
+    const sql = 'SELECT card_id FROM population_report_cards ORDER BY id DESC LIMIT 1'
+    const results = await this.runQuery(sql)
+
+    if (results.length === 0) {
+      // First card
+      return '00000001'
+    }
+
+    const lastCardId = results[0].card_id
+    const lastNumber = parseInt(lastCardId, 10)
+    const nextNumber = lastNumber + 1
+
+    // Format to 8 digits with leading zeros
+    return nextNumber.toString().padStart(8, '0')
   }
 
   async deleteCard(id: number): Promise<void> {

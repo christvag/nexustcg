@@ -88,7 +88,7 @@ export default function ConfirmationPage() {
           <h1 className="text-4xl font-bold mb-4">
             <span className="text-gradient">Order Confirmed!</span>
           </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300">
+          <p className="text-xl text-gray-300">
             Thank you for choosing TCG Grading Service
           </p>
         </motion.div>
@@ -98,32 +98,32 @@ export default function ConfirmationPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-8 mb-8"
+          className="bg-gray-900 rounded-xl shadow-lg p-8 mb-8"
         >
           <div className="grid md:grid-cols-2 gap-6 mb-6">
             <div>
-              <h3 className="text-sm text-gray-600 dark:text-gray-400 mb-1">Order Number</h3>
+              <h3 className="text-sm text-gray-400 mb-1">Order Number</h3>
               <p className="font-semibold text-lg">{confirmationData.orderNumber}</p>
             </div>
             <div>
-              <h3 className="text-sm text-gray-600 dark:text-gray-400 mb-1">Order Date</h3>
+              <h3 className="text-sm text-gray-400 mb-1">Order Date</h3>
               <p className="font-semibold text-lg">
                 {new Date(confirmationData.orderDate).toLocaleDateString()}
               </p>
             </div>
             <div>
-              <h3 className="text-sm text-gray-600 dark:text-gray-400 mb-1">Package</h3>
+              <h3 className="text-sm text-gray-400 mb-1">Package</h3>
               <p className="font-semibold text-lg">{confirmationData.packageName}</p>
             </div>
             <div>
-              <h3 className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Cards</h3>
+              <h3 className="text-sm text-gray-400 mb-1">Total Cards</h3>
               <p className="font-semibold text-lg">{confirmationData.totalCards}</p>
             </div>
           </div>
 
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+          <div className="border-t border-gray-700 pt-6">
             <h3 className="text-lg font-semibold mb-4">Shipping Address</h3>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-gray-400">
               {confirmationData.customerInfo.name}<br />
               {confirmationData.customerInfo.address}<br />
               {confirmationData.customerInfo.city}, {confirmationData.customerInfo.state} {confirmationData.customerInfo.zipCode}<br />
@@ -131,7 +131,7 @@ export default function ConfirmationPage() {
             </p>
           </div>
 
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-6 mt-6">
+          <div className="border-t border-gray-700 pt-6 mt-6">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold">Total Paid</h3>
               <p className="text-2xl font-bold text-gradient">
@@ -146,12 +146,12 @@ export default function ConfirmationPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6 mb-8"
+          className="bg-blue-900/20 border border-blue-800 rounded-xl p-6 mb-8"
         >
-          <h3 className="text-lg font-semibold mb-4 text-blue-900 dark:text-blue-100">
+          <h3 className="text-lg font-semibold mb-4 text-blue-100">
             What Happens Next?
           </h3>
-          <ol className="space-y-3 text-blue-800 dark:text-blue-200">
+          <ol className="space-y-3 text-blue-200">
             <li className="flex items-start">
               <span className="font-semibold mr-2">1.</span>
               <span>Check your email for order confirmation and shipping instructions</span>
@@ -190,7 +190,7 @@ export default function ConfirmationPage() {
           </Link>
           <Link
             href="/packages"
-            className="inline-flex items-center justify-center px-6 py-3 border-2 border-gray-300 dark:border-gray-700 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="inline-flex items-center justify-center px-6 py-3 border-2 border-gray-700 rounded-lg font-medium hover:bg-gray-800 transition-colors"
           >
             Submit Another Order
           </Link>
@@ -201,7 +201,7 @@ export default function ConfirmationPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="text-center mt-12 text-sm text-gray-600 dark:text-gray-400"
+          className="text-center mt-12 text-sm text-gray-400"
         >
           <p>
             Need help? Contact us at{' '}

@@ -33,7 +33,7 @@ export default function ReportPage() {
           <h1 className="text-4xl font-bold mb-4">
             <span className="text-gradient">Grading Reports</span>
           </h1>
-          <p className="text-gray-600 dark:text-gray-300">
+          <p className="text-gray-300">
             Track your grading history and statistics
           </p>
         </motion.div>
@@ -48,7 +48,7 @@ export default function ReportPage() {
           <select
             value={reportType}
             onChange={(e) => setReportType(e.target.value)}
-            className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none"
+            className="px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none"
           >
             <option value="grading">Grading History</option>
             <option value="authentication">Authentication History</option>
@@ -58,7 +58,7 @@ export default function ReportPage() {
           <select
             value={dateRange}
             onChange={(e) => setDateRange(e.target.value)}
-            className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none"
+            className="px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none"
           >
             <option value="last7days">Last 7 Days</option>
             <option value="last30days">Last 30 Days</option>
@@ -104,7 +104,7 @@ export default function ReportPage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 + 0.2 }}
-              className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6"
+              className="bg-gray-900 rounded-xl shadow-lg p-6"
             >
               <div className="flex items-center justify-between mb-4">
                 <span className="text-3xl">{stat.icon}</span>
@@ -113,7 +113,7 @@ export default function ReportPage() {
                 />
               </div>
               <p className="text-2xl font-bold mb-1">{stat.value}</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{stat.label}</p>
+              <p className="text-sm text-gray-400">{stat.label}</p>
             </motion.div>
           ))}
         </div>
@@ -123,33 +123,33 @@ export default function ReportPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white dark:bg-gray-900 rounded-xl shadow-lg overflow-hidden"
+          className="bg-gray-900 rounded-xl shadow-lg overflow-hidden"
         >
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="p-6 border-b border-gray-700">
             <h2 className="text-2xl font-bold">Recent Activity</h2>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-800">
+              <thead className="bg-gray-800">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Date
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Cards
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Package
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Status
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="divide-y divide-gray-700">
                 {recentActivity.map((activity, index) => (
-                  <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <tr key={index} className="hover:bg-gray-800">
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {activity.date}
                     </td>
@@ -163,8 +163,8 @@ export default function ReportPage() {
                       <span
                         className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                           activity.status === 'Completed'
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                            ? 'bg-green-900 text-green-200'
+                            : 'bg-yellow-900 text-yellow-200'
                         }`}
                       >
                         {activity.status}

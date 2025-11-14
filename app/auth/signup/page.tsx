@@ -18,6 +18,7 @@ export default function SignupPage() {
     first_name: '',
     last_name: '',
     email: '',
+    username: '',
     phone: '',
     password: '',
     confirmPassword: ''
@@ -45,6 +46,7 @@ export default function SignupPage() {
         first_name: formData.first_name,
         last_name: formData.last_name,
         email: formData.email,
+        username: formData.username,
         phone: formData.phone
       })
 
@@ -57,6 +59,7 @@ export default function SignupPage() {
           first_name: formData.first_name,
           last_name: formData.last_name,
           email: formData.email,
+          username: formData.username,
           phone: formData.phone,
           password: formData.password
         })
@@ -187,6 +190,24 @@ export default function SignupPage() {
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-700 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-gaming-primary focus:border-gaming-primary bg-gray-800 text-white"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-300">
+                Username <span className="text-[#d83f0a]">*</span>
+              </label>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                autoComplete="username"
+                required
+                minLength={3}
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-700 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-gaming-primary focus:border-gaming-primary bg-gray-800 text-white"
+                placeholder="Choose a unique username"
               />
             </div>
 

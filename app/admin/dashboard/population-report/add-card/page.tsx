@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Save, Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Save, Upload, X, Image as ImageIcon, Search } from 'lucide-react';
 
 interface FormData {
   cardId: string;
   cardGame: string;
   cardName: string;
   cardGrade: string;
+  gradeName: string;
+  yearCard: string;
   setName: string;
   edition: string;
   rarity: string;
@@ -15,19 +17,29 @@ interface FormData {
   cardOwner: string;
 }
 
+interface User {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+}
+
 const CARD_GAMES = ['Pokemon', 'Yu-Gi-Oh!', 'MTG', 'One Piece'];
+
 const CARD_GRADES = [
-  { value: 'A', label: 'A - Authentication' },
-  { value: '1', label: '1 - Poor' },
-  { value: '2', label: '2 - Fair' },
-  { value: '3', label: '3 - Good' },
-  { value: '4', label: '4 - Very Good' },
-  { value: '5', label: '5 - Excellent' },
-  { value: '6', label: '6 - Near Mint' },
-  { value: '7', label: '7 - Near Mint+' },
-  { value: '8', label: '8 - Mint' },
-  { value: '9', label: '9 - Mint+' },
-  { value: '10', label: '10 - Pristine' },
+  { value: 'Auth', label: 'Auth - Authentication', name: 'Authentic' },
+  { value: '1', label: '1', name: 'Poor' },
+  { value: '2', label: '2', name: 'Fair' },
+  { value: '3', label: '3', name: 'Good' },
+  { value: '4', label: '4', name: 'Very Good' },
+  { value: '5', label: '5', name: 'Excellent' },
+  { value: '6', label: '6', name: 'Near Mint' },
+  { value: '7', label: '7', name: 'Near Mint+' },
+  { value: '8', label: '8', name: 'Mint' },
+  { value: '9', label: '9', name: 'Mint+' },
+  { value: '10', label: '10', name: 'Pristine' },
 ];
 
 export default function AddCardPage() {
@@ -36,6 +48,8 @@ export default function AddCardPage() {
     cardGame: '',
     cardName: '',
     cardGrade: '',
+    gradeName: '',
+    yearCard: '',
     setName: '',
     edition: '',
     rarity: '',
@@ -47,15 +61,115 @@ export default function AddCardPage() {
   const [frontPreview, setFrontPreview] = useState<string>('');
   const [backPreview, setBackPreview] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [loadingCardId, setLoadingCardId] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
 
+  // User search state
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userSearchResults, setUserSearchResults] = useState<User[]>([]);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+
   const frontInputRef = useRef<HTMLInputElement>(null);
   const backInputRef = useRef<HTMLInputElement>(null);
+  const userSearchRef = useRef<HTMLDivElement>(null);
+
+  // Fetch next card ID on mount
+  useEffect(() => {
+    fetchNextCardId();
+  }, []);
+
+  // Handle user search
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (userSearchQuery.length >= 2) {
+        searchUsers();
+      } else {
+        setUserSearchResults([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [userSearchQuery]);
+
+  // Click outside handler for dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userSearchRef.current && !userSearchRef.current.contains(event.target as Node)) {
+        setShowUserDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const fetchNextCardId = async () => {
+    try {
+      setLoadingCardId(true);
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('/api/admin/population-report/next-card-id', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setFormData(prev => ({ ...prev, cardId: data.nextCardId }));
+      }
+    } catch (err) {
+      console.error('Error fetching next card ID:', err);
+    } finally {
+      setLoadingCardId(false);
+    }
+  };
+
+  const searchUsers = async () => {
+    try {
+      setSearchingUsers(true);
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/users/search?q=${encodeURIComponent(userSearchQuery)}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setUserSearchResults(data.users);
+        setShowUserDropdown(true);
+      }
+    } catch (err) {
+      console.error('Error searching users:', err);
+    } finally {
+      setSearchingUsers(false);
+    }
+  };
+
+  const selectUser = (user: User) => {
+    const displayName = user.username || `${user.first_name} ${user.last_name}`;
+    setFormData(prev => ({ ...prev, cardOwner: displayName }));
+    setUserSearchQuery(displayName);
+    setShowUserDropdown(false);
+    setUserSearchResults([]);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleGradeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedGrade = e.target.value;
+    const gradeData = CARD_GRADES.find(g => g.value === selectedGrade);
+
+    setFormData(prev => ({
+      ...prev,
+      cardGrade: selectedGrade,
+      gradeName: gradeData?.name || ''
+    }));
   };
 
   const handleFrontImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,18 +241,23 @@ export default function AddCardPage() {
 
       if (response.ok) {
         setSuccess(true);
-        // Reset form
-        setFormData({
-          cardId: '',
+        // Fetch next card ID for the next submission
+        await fetchNextCardId();
+        // Reset form (keeping cardId from fetch)
+        setFormData(prev => ({
+          cardId: prev.cardId,
           cardGame: '',
           cardName: '',
           cardGrade: '',
+          gradeName: '',
+          yearCard: '',
           setName: '',
           edition: '',
           rarity: '',
           cardInfo: '',
           cardOwner: '',
-        });
+        }));
+        setUserSearchQuery('');
         removeFrontImage();
         removeBackImage();
 
@@ -146,337 +265,349 @@ export default function AddCardPage() {
       } else {
         setError(data.error || 'Failed to add card');
       }
-    } catch (error) {
-      console.error('Failed to add card:', error);
+    } catch (err) {
+      console.error('Error submitting card:', err);
       setError('An error occurred while adding the card');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleReset = () => {
-    setFormData({
-      cardId: '',
-      cardGame: '',
-      cardName: '',
-      cardGrade: '',
-      setName: '',
-      edition: '',
-      rarity: '',
-      cardInfo: '',
-      cardOwner: '',
-    });
-    removeFrontImage();
-    removeBackImage();
-    setError('');
-    setSuccess(false);
-  };
-
   return (
-    <div className="max-w-6xl" id="pr-add-card-container">
-      <div className="bg-gray-800 rounded-lg border border-gray-700 p-6" id="pr-add-card-form-container">
-        <div className="mb-6" id="pr-add-card-header">
-          <h2 className="text-2xl font-bold text-white mb-2" id="pr-add-card-title">Add Graded Card</h2>
-          <p className="text-gray-400" id="pr-add-card-subtitle">
-            Submit a new graded card to the population report
-          </p>
+    <div id="add-card-page" className="p-6 max-w-4xl">
+      <div id="add-card-header" className="mb-6">
+        <h1 className="text-2xl font-bold text-white">Add New Card</h1>
+        <p className="text-gray-400 mt-1">Submit a new graded card to the population report</p>
+      </div>
+
+      {success && (
+        <div id="add-card-success" className="mb-6 p-4 bg-green-900/20 border border-green-700 rounded-lg">
+          <p className="text-green-400">Card added successfully!</p>
+        </div>
+      )}
+
+      {error && (
+        <div id="add-card-error" className="mb-6 p-4 bg-red-900/20 border border-red-700 rounded-lg">
+          <p className="text-red-400">{error}</p>
+        </div>
+      )}
+
+      <form id="add-card-form" onSubmit={handleSubmit} className="space-y-6">
+        {/* Card ID */}
+        <div id="card-id-field">
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Card No. <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            name="cardId"
+            value={formData.cardId}
+            readOnly
+            disabled={loadingCardId}
+            className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white font-mono text-lg cursor-not-allowed opacity-75"
+            placeholder="Auto-generated"
+          />
+          <p className="text-xs text-gray-500 mt-1">Automatically generated 8-digit card number</p>
         </div>
 
-        {success && (
-          <div className="mb-6 bg-green-900/20 border border-green-700 text-green-400 px-4 py-3 rounded-lg" id="pr-add-card-success">
-            Card added successfully!
-          </div>
-        )}
-
-        {error && (
-          <div className="mb-6 bg-red-900/20 border border-red-700 text-red-400 px-4 py-3 rounded-lg" id="pr-add-card-error">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6" id="pr-add-card-form">
-          {/* Card Images Upload Section */}
-          <div className="bg-gray-700/30 rounded-lg p-6 border border-gray-600" id="pr-card-images-section">
-            <h3 className="text-lg font-semibold text-white mb-4" id="pr-images-title">Card Images</h3>
-            <p className="text-sm text-gray-400 mb-4">Upload front and back images of the graded card</p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Front Image */}
-              <div id="pr-front-image-container">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Front Image
-                </label>
-                {!frontPreview ? (
-                  <div
-                    onClick={() => frontInputRef.current?.click()}
-                    className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors"
-                    id="pr-front-upload-area"
-                  >
-                    <ImageIcon className="h-12 w-12 text-gray-500 mx-auto mb-3" />
-                    <p className="text-gray-400 mb-2">Click to upload front image</p>
-                    <p className="text-xs text-gray-500">PNG, JPG up to 10MB</p>
-                    <input
-                      ref={frontInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFrontImageChange}
-                      className="hidden"
-                      id="pr-front-image-input"
-                    />
-                  </div>
-                ) : (
-                  <div className="relative" id="pr-front-preview-container">
-                    <img
-                      src={frontPreview}
-                      alt="Front preview"
-                      className="w-full h-64 object-contain bg-gray-900 rounded-lg"
-                      id="pr-front-preview-image"
-                    />
-                    <button
-                      type="button"
-                      onClick={removeFrontImage}
-                      className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-full hover:bg-red-700"
-                      id="pr-front-remove-btn"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Back Image */}
-              <div id="pr-back-image-container">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Back Image
-                </label>
-                {!backPreview ? (
-                  <div
-                    onClick={() => backInputRef.current?.click()}
-                    className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors"
-                    id="pr-back-upload-area"
-                  >
-                    <ImageIcon className="h-12 w-12 text-gray-500 mx-auto mb-3" />
-                    <p className="text-gray-400 mb-2">Click to upload back image</p>
-                    <p className="text-xs text-gray-500">PNG, JPG up to 10MB</p>
-                    <input
-                      ref={backInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleBackImageChange}
-                      className="hidden"
-                      id="pr-back-image-input"
-                    />
-                  </div>
-                ) : (
-                  <div className="relative" id="pr-back-preview-container">
-                    <img
-                      src={backPreview}
-                      alt="Back preview"
-                      className="w-full h-64 object-contain bg-gray-900 rounded-lg"
-                      id="pr-back-preview-image"
-                    />
-                    <button
-                      type="button"
-                      onClick={removeBackImage}
-                      className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-full hover:bg-red-700"
-                      id="pr-back-remove-btn"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6" id="pr-form-grid-1">
-            {/* Card ID */}
-            <div id="pr-field-card-id">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Card ID <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="cardId"
-                value={formData.cardId}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="e.g., TC-2024-001"
-              />
-            </div>
-
-            {/* Card Game */}
-            <div id="pr-field-card-game">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Card Game <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="cardGame"
-                value={formData.cardGame}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select a game</option>
-                {CARD_GAMES.map(game => (
-                  <option key={game} value={game}>{game}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6" id="pr-form-grid-2">
-            {/* Card Name */}
-            <div id="pr-field-card-name">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Card Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="cardName"
-                value={formData.cardName}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="e.g., Pikachu VMAX"
-              />
-            </div>
-
-            {/* Card Grade */}
-            <div id="pr-field-card-grade">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Card Grade <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="cardGrade"
-                value={formData.cardGrade}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select grade</option>
-                {CARD_GRADES.map(grade => (
-                  <option key={grade.value} value={grade.value}>{grade.label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6" id="pr-form-grid-3">
-            {/* Set Name */}
-            <div id="pr-field-set-name">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Set Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="setName"
-                value={formData.setName}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="e.g., Vivid Voltage"
-              />
-            </div>
-
-            {/* Edition */}
-            <div id="pr-field-edition">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Edition
-              </label>
-              <input
-                type="text"
-                name="edition"
-                value={formData.edition}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="e.g., 1st Edition"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6" id="pr-form-grid-4">
-            {/* Rarity */}
-            <div id="pr-field-rarity">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Rarity <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="rarity"
-                value={formData.rarity}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="e.g., Secret Rare, Holo Rare"
-              />
-            </div>
-
-            {/* Card Owner */}
-            <div id="pr-field-card-owner">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Card Owner <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="cardOwner"
-                value={formData.cardOwner}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Owner name"
-              />
-            </div>
-          </div>
-
-          {/* Card Info */}
-          <div id="pr-field-card-info">
+        {/* Card Game & Card Name */}
+        <div id="game-name-fields" className="grid grid-cols-2 gap-4">
+          <div id="card-game-field">
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Card Information
+              Card Game <span className="text-red-500">*</span>
             </label>
-            <textarea
-              name="cardInfo"
-              value={formData.cardInfo}
+            <select
+              name="cardGame"
+              value={formData.cardGame}
               onChange={handleChange}
-              rows={4}
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Additional card information, notes, or special characteristics..."
+              required
+              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
+            >
+              <option value="">Select a game</option>
+              {CARD_GAMES.map(game => (
+                <option key={game} value={game}>{game}</option>
+              ))}
+            </select>
+          </div>
+
+          <div id="card-name-field">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Card Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="cardName"
+              value={formData.cardName}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
+              placeholder="e.g., Charizard"
+            />
+          </div>
+        </div>
+
+        {/* Card Grade & Grade Name */}
+        <div id="grade-fields" className="grid grid-cols-2 gap-4">
+          <div id="card-grade-field">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Card Grade <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="cardGrade"
+              value={formData.cardGrade}
+              onChange={handleGradeChange}
+              required
+              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
+            >
+              <option value="">Select grade</option>
+              {CARD_GRADES.map(grade => (
+                <option key={grade.value} value={grade.value}>{grade.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div id="grade-name-field">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Grade Name
+            </label>
+            <input
+              type="text"
+              name="gradeName"
+              value={formData.gradeName}
+              readOnly
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-400 cursor-not-allowed"
+              placeholder="Auto-filled"
+            />
+          </div>
+        </div>
+
+        {/* Year, Set Name, Edition */}
+        <div id="details-fields" className="grid grid-cols-3 gap-4">
+          <div id="year-field">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Year
+            </label>
+            <input
+              type="text"
+              name="yearCard"
+              value={formData.yearCard}
+              onChange={handleChange}
+              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
+              placeholder="e.g., 1999"
             />
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-end space-x-4 pt-4 border-t border-gray-700" id="pr-form-actions">
-            <button
-              type="button"
-              onClick={handleReset}
-              className="px-6 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
-              id="pr-btn-reset"
-            >
-              <X className="h-4 w-4" />
-              <span>Reset</span>
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-              id="pr-btn-submit"
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  <span>Add Card</span>
-                </>
-              )}
-            </button>
+          <div id="set-name-field">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Set Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="setName"
+              value={formData.setName}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
+              placeholder="e.g., Base Set"
+            />
           </div>
-        </form>
-      </div>
+
+          <div id="edition-field">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Edition
+            </label>
+            <input
+              type="text"
+              name="edition"
+              value={formData.edition}
+              onChange={handleChange}
+              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
+              placeholder="e.g., 1st Edition"
+            />
+          </div>
+        </div>
+
+        {/* Rarity */}
+        <div id="rarity-field">
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Rarity <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            name="rarity"
+            value={formData.rarity}
+            onChange={handleChange}
+            required
+            className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
+            placeholder="e.g., Rare Holo"
+          />
+        </div>
+
+        {/* Card Owner with Search */}
+        <div id="card-owner-field" ref={userSearchRef} className="relative">
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Card Owner <span className="text-red-500">*</span>
+          </label>
+          <div className="relative">
+            <input
+              type="text"
+              value={userSearchQuery}
+              onChange={(e) => {
+                setUserSearchQuery(e.target.value);
+                setFormData(prev => ({ ...prev, cardOwner: e.target.value }));
+              }}
+              onFocus={() => userSearchResults.length > 0 && setShowUserDropdown(true)}
+              required
+              className="w-full px-4 py-2 pr-10 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
+              placeholder="Search by username, email, or name..."
+            />
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          </div>
+          <p className="text-xs text-gray-500 mt-1">Type to search for users in the database</p>
+
+          {/* User Dropdown */}
+          {showUserDropdown && userSearchResults.length > 0 && (
+            <div id="user-search-dropdown" className="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              {searchingUsers ? (
+                <div className="p-4 text-center text-gray-400">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#d83f0a] mx-auto"></div>
+                </div>
+              ) : (
+                userSearchResults.map(user => (
+                  <div
+                    key={user.id}
+                    onClick={() => selectUser(user)}
+                    className="px-4 py-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700 last:border-b-0"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-white font-medium">
+                          {user.username || `${user.first_name} ${user.last_name}`}
+                        </p>
+                        <p className="text-sm text-gray-400">{user.email}</p>
+                      </div>
+                      <span className="text-xs text-gray-500 bg-gray-700 px-2 py-1 rounded">
+                        {user.role}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Additional Info */}
+        <div id="card-info-field">
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Additional Information
+          </label>
+          <textarea
+            name="cardInfo"
+            value={formData.cardInfo}
+            onChange={handleChange}
+            rows={3}
+            className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent resize-none"
+            placeholder="Any additional notes about this card..."
+          />
+        </div>
+
+        {/* Image Uploads */}
+        <div id="image-uploads" className="grid grid-cols-2 gap-4">
+          {/* Front Image */}
+          <div id="front-image-upload">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Front Image
+            </label>
+            <div className="border-2 border-dashed border-gray-700 rounded-lg p-4">
+              {frontPreview ? (
+                <div className="relative">
+                  <img src={frontPreview} alt="Front preview" className="w-full h-48 object-contain rounded" />
+                  <button
+                    type="button"
+                    onClick={removeFrontImage}
+                    className="absolute top-2 right-2 p-1 bg-red-600 rounded-full hover:bg-red-700"
+                  >
+                    <X className="h-4 w-4 text-white" />
+                  </button>
+                </div>
+              ) : (
+                <div
+                  onClick={() => frontInputRef.current?.click()}
+                  className="flex flex-col items-center justify-center h-48 cursor-pointer hover:bg-gray-800/50 rounded"
+                >
+                  <ImageIcon className="h-12 w-12 text-gray-600 mb-2" />
+                  <p className="text-sm text-gray-400">Click to upload front image</p>
+                </div>
+              )}
+              <input
+                ref={frontInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFrontImageChange}
+                className="hidden"
+              />
+            </div>
+          </div>
+
+          {/* Back Image */}
+          <div id="back-image-upload">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Back Image
+            </label>
+            <div className="border-2 border-dashed border-gray-700 rounded-lg p-4">
+              {backPreview ? (
+                <div className="relative">
+                  <img src={backPreview} alt="Back preview" className="w-full h-48 object-contain rounded" />
+                  <button
+                    type="button"
+                    onClick={removeBackImage}
+                    className="absolute top-2 right-2 p-1 bg-red-600 rounded-full hover:bg-red-700"
+                  >
+                    <X className="h-4 w-4 text-white" />
+                  </button>
+                </div>
+              ) : (
+                <div
+                  onClick={() => backInputRef.current?.click()}
+                  className="flex flex-col items-center justify-center h-48 cursor-pointer hover:bg-gray-800/50 rounded"
+                >
+                  <ImageIcon className="h-12 w-12 text-gray-600 mb-2" />
+                  <p className="text-sm text-gray-400">Click to upload back image</p>
+                </div>
+              )}
+              <input
+                ref={backInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleBackImageChange}
+                className="hidden"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Submit Button */}
+        <div id="submit-section" className="flex items-center space-x-4 pt-4">
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex items-center px-6 py-3 bg-gradient-to-r from-[#d83f0a] to-[#d66a0a] text-white rounded-lg hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                Submitting...
+              </>
+            ) : (
+              <>
+                <Save className="h-5 w-5 mr-2" />
+                Add Card
+              </>
+            )}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

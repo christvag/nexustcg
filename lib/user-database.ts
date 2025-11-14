@@ -151,6 +151,7 @@ export const createUserSync = async (userData: {
   password: string
   first_name: string
   last_name: string
+  username?: string
   phone?: string
   role?: 'user' | 'admin' | 'staff'
 }): Promise<User> => {
@@ -160,8 +161,8 @@ export const createUserSync = async (userData: {
     const hashedPassword = await bcrypt.hash(userData.password, 12)
 
     const sql = `
-      INSERT INTO users (email, password_hash, first_name, last_name, phone, role)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO users (email, password_hash, first_name, last_name, username, phone, role)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `
 
     console.log('[createUserSync] Creating user with email:', userData.email)
@@ -171,6 +172,7 @@ export const createUserSync = async (userData: {
       hashedPassword,
       userData.first_name,
       userData.last_name,
+      userData.username || null,
       userData.phone || null,
       userData.role || 'user'
     )
@@ -201,6 +203,7 @@ export const createUser = async (userData: {
   password: string
   first_name: string
   last_name: string
+  username?: string
   phone?: string
   role?: 'user' | 'admin' | 'staff'
 }): Promise<User> => {

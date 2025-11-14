@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Search,
   Filter,
@@ -35,69 +35,54 @@ interface Order {
 }
 
 export default function OrdersManagement() {
-  const [orders, setOrders] = useState<Order[]>([
-    {
-      id: '1',
-      orderNumber: 'ORD-2024-001',
-      customer: 'John Doe',
-      email: 'john@example.com',
-      items: 3,
-      total: 234.50,
-      status: 'pending',
-      paymentStatus: 'paid',
-      paymentMethod: 'Stripe',
-      createdAt: '2024-01-15T10:30:00Z'
-    },
-    {
-      id: '2',
-      orderNumber: 'ORD-2024-002',
-      customer: 'Jane Smith',
-      email: 'jane@example.com',
-      items: 5,
-      total: 567.80,
-      status: 'processing',
-      paymentStatus: 'paid',
-      paymentMethod: 'PayPal',
-      createdAt: '2024-01-15T09:15:00Z'
-    },
-    {
-      id: '3',
-      orderNumber: 'ORD-2024-003',
-      customer: 'Bob Johnson',
-      email: 'bob@example.com',
-      items: 2,
-      total: 123.45,
-      status: 'shipped',
-      paymentStatus: 'paid',
-      paymentMethod: 'Stripe',
-      trackingNumber: 'TRACK123456',
-      createdAt: '2024-01-14T14:20:00Z',
-      shippedDate: '2024-01-15T08:00:00Z'
-    },
-    {
-      id: '4',
-      orderNumber: 'ORD-2024-004',
-      customer: 'Alice Brown',
-      email: 'alice@example.com',
-      items: 7,
-      total: 890.12,
-      status: 'delivered',
-      paymentStatus: 'paid',
-      paymentMethod: 'Stripe',
-      trackingNumber: 'TRACK789012',
-      createdAt: '2024-01-13T11:45:00Z',
-      shippedDate: '2024-01-14T09:00:00Z',
-      deliveredDate: '2024-01-15T16:30:00Z'
-    }
-  ]);
-
+  const [orders, setOrders] = useState<Order[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [showOrderDetails, setShowOrderDetails] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const ordersPerPage = 10;
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    try {
+      const response = await fetch('/api/orders');
+      const data = await response.json();
+
+      if (response.ok && data.orders) {
+        // Fetch users to map user names
+        const usersResponse = await fetch('/api/users');
+        const usersData = await usersResponse.json();
+        const usersMap = new Map(usersData.users?.map((u: any) => [u.id, `${u.first_name} ${u.last_name}`]) || []);
+
+        const mappedOrders = data.orders.map((order: any) => ({
+          id: String(order.id),
+          orderNumber: order.order_number,
+          customer: usersMap.get(order.user_id) || 'Unknown',
+          email: order.email || '',
+          items: order.total_cards || 0,
+          total: parseFloat(order.total) || 0,
+          status: order.status,
+          paymentStatus: order.payment_status,
+          paymentMethod: order.payment_method || 'Stripe',
+          trackingNumber: order.tracking_number,
+          createdAt: order.created_at,
+          shippedDate: order.shipped_date,
+          deliveredDate: order.delivered_date
+        }));
+        setOrders(mappedOrders);
+      }
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -192,6 +177,20 @@ export default function OrdersManagement() {
     (currentPage - 1) * ordersPerPage,
     currentPage * ordersPerPage
   );
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold text-gray-900">Orders Management</h2>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading orders...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

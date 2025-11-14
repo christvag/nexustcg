@@ -1,38 +1,40 @@
 services:
-  # PostgreSQL database service
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: tcg_grading
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_HOST_AUTH_METHOD: trust
-      POSTGRES_INITDB_ARGS: "--auth-host=trust --auth-local=trust"
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./database/init:/docker-entrypoint-initdb.d
-    restart: unless-stopped
-    command: >
-      postgres 
-      -c listen_addresses='*'
-      -c max_connections=100
-      -c shared_buffers=128MB
-
   # TCG Grading App
   tcg-grading-app:
     build: .
     ports:
-      - "3000:3000"
+      - "4000:3000"
     environment:
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
+      - JWT_SECRET=${JWT_SECRET:-nexus-tcgrading-secret-key-2024}
     env_file:
       - .env.local
-    depends_on:
-      - postgres
+    volumes:
+      # Mount database directory for SQLite persistence
+      - ./database:/app/database
     restart: unless-stopped
 
-volumes:
-  postgres_data:
+  # SQLite Viewer - Population Report (graded-cards.db)
+  sqlite-viewer-graded:
+    image: coleifer/sqlite-web
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./database:/data
+    command: ["sqlite_web", "/data/graded-cards.db", "--host", "0.0.0.0", "--port", "8080", "--password"]
+    environment:
+      - SQLITE_WEB_PASSWORD=Testlocal@1!
+    restart: unless-stopped
+
+  # SQLite Viewer - Users & Orders (user-management.db)
+  sqlite-viewer-users:
+    image: coleifer/sqlite-web
+    ports:
+      - "8082:8080"
+    volumes:
+      - ./database:/data
+    command: ["sqlite_web", "/data/user-management.db", "--host", "0.0.0.0", "--port", "8080", "--password"]
+    environment:
+      - SQLITE_WEB_PASSWORD=Testlocal@1!
+    restart: unless-stopped

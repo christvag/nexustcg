@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verify } from 'jsonwebtoken';
+import { getDB } from '@/lib/user-database';
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,117 +22,90 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
 
-    // Mock data - replace with actual database query
-    const tickets = [
-      {
-        id: 'TICKET-001',
-        customerId: 'USR-001',
-        customerName: 'John Smith',
-        customerEmail: 'john@example.com',
-        orderId: 'ORD-2024-001',
-        subject: 'Question about grading timeline',
-        status: 'open',
-        priority: 'medium',
-        category: 'general_inquiry',
-        messages: [
-          {
-            id: 'MSG-001',
-            from: 'customer',
-            content: 'Hi, I submitted my card for grading last week. Can you provide an update on the timeline?',
-            timestamp: '2024-01-15T10:30:00Z',
-            attachments: []
-          }
-        ],
-        assignedTo: null,
-        createdAt: '2024-01-15T10:30:00Z',
-        lastActivity: '2024-01-15T10:30:00Z'
-      },
-      {
-        id: 'TICKET-002',
-        customerId: 'USR-002',
-        customerName: 'Sarah Johnson',
-        customerEmail: 'sarah@example.com',
-        orderId: 'ORD-2024-002',
-        subject: 'Damaged card received',
-        status: 'in_progress',
-        priority: 'high',
-        category: 'damage_claim',
-        messages: [
-          {
-            id: 'MSG-002',
-            from: 'customer',
-            content: 'I received my graded card today but the case appears to be cracked. Can you help?',
-            timestamp: '2024-01-14T14:20:00Z',
-            attachments: ['image1.jpg', 'image2.jpg']
-          },
-          {
-            id: 'MSG-003',
-            from: 'admin',
-            content: 'Thank you for bringing this to our attention. We will review your case and get back to you within 24 hours with a resolution.',
-            timestamp: '2024-01-14T15:45:00Z',
-            attachments: []
-          }
-        ],
-        assignedTo: 'admin-001',
-        createdAt: '2024-01-14T14:20:00Z',
-        lastActivity: '2024-01-14T15:45:00Z'
-      },
-      {
-        id: 'TICKET-003',
-        customerId: 'USR-003',
-        customerName: 'Mike Wilson',
-        customerEmail: 'mike@example.com',
-        orderId: null,
-        subject: 'Pricing question for bulk submission',
-        status: 'closed',
-        priority: 'low',
-        category: 'pricing_inquiry',
-        messages: [
-          {
-            id: 'MSG-004',
-            from: 'customer',
-            content: 'Do you offer discounts for bulk submissions of 50+ cards?',
-            timestamp: '2024-01-12T09:15:00Z',
-            attachments: []
-          },
-          {
-            id: 'MSG-005',
-            from: 'admin',
-            content: 'Yes, we offer a 10% discount for submissions of 50+ cards and 15% for 100+ cards. Please contact us directly for custom pricing.',
-            timestamp: '2024-01-12T11:30:00Z',
-            attachments: []
-          }
-        ],
-        assignedTo: 'admin-002',
-        createdAt: '2024-01-12T09:15:00Z',
-        lastActivity: '2024-01-12T11:30:00Z',
-        resolvedAt: '2024-01-12T11:30:00Z'
-      }
-    ];
+    const db = await getDB();
 
-    let filteredTickets = tickets;
+    // Build query
+    let query = `
+      SELECT
+        sm.id,
+        sm.user_id,
+        sm.subject,
+        sm.message,
+        sm.status,
+        sm.priority,
+        sm.created_at,
+        sm.updated_at,
+        u.first_name,
+        u.last_name,
+        u.email
+      FROM support_messages sm
+      LEFT JOIN users u ON sm.user_id = u.id
+    `;
+
+    const conditions = [];
+    const params: any[] = [];
 
     if (status) {
-      filteredTickets = filteredTickets.filter(t => t.status === status);
+      conditions.push('sm.status = ?');
+      params.push(status);
     }
 
     if (priority) {
-      filteredTickets = filteredTickets.filter(t => t.priority === priority);
+      conditions.push('sm.priority = ?');
+      params.push(priority);
     }
 
-    const startIndex = (page - 1) * limit;
-    const paginatedTickets = filteredTickets.slice(startIndex, startIndex + limit);
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
+    }
 
-    return NextResponse.json({ 
+    query += ' ORDER BY sm.created_at DESC';
+
+    const allTickets = await new Promise<any[]>((resolve, reject) => {
+      db.all(query, params, (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows || []);
+      });
+    });
+
+    // Map database results to API format
+    const tickets = allTickets.map((row: any) => ({
+      id: `TICKET-${String(row.id).padStart(3, '0')}`,
+      customerId: String(row.user_id),
+      customerName: `${row.first_name} ${row.last_name}`,
+      customerEmail: row.email,
+      orderId: null,
+      subject: row.subject,
+      status: row.status,
+      priority: row.priority,
+      category: 'general_inquiry',
+      messages: [
+        {
+          id: `MSG-${row.id}`,
+          from: 'customer',
+          content: row.message,
+          timestamp: row.created_at,
+          attachments: []
+        }
+      ],
+      assignedTo: null,
+      createdAt: row.created_at,
+      lastActivity: row.updated_at
+    }));
+
+    const startIndex = (page - 1) * limit;
+    const paginatedTickets = tickets.slice(startIndex, startIndex + limit);
+
+    return NextResponse.json({
       tickets: paginatedTickets,
-      total: filteredTickets.length,
+      total: tickets.length,
       page,
       limit,
-      totalPages: Math.ceil(filteredTickets.length / limit),
+      totalPages: Math.ceil(tickets.length / limit),
       statistics: {
         open: tickets.filter(t => t.status === 'open').length,
         inProgress: tickets.filter(t => t.status === 'in_progress').length,
-        closed: tickets.filter(t => t.status === 'closed').length,
+        closed: tickets.filter(t => t.status === 'resolved' || t.status === 'closed').length,
         averageResponseTime: '2.5 hours'
       }
     });

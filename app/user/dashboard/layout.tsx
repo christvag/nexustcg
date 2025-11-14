@@ -75,7 +75,7 @@ export default function UserDashboardLayout({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
@@ -83,11 +83,11 @@ export default function UserDashboardLayout({
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="max-w-md w-full bg-gray-800 rounded-lg shadow-lg p-8 text-center">
           <div className="text-6xl mb-4">🔒</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Login Required</h2>
-          <p className="text-gray-600 mb-6">
+          <h2 className="text-2xl font-bold text-white mb-4">Login Required</h2>
+          <p className="text-gray-400 mb-6">
             Please log in to access your user dashboard.
           </p>
           <div className="space-y-3">
@@ -99,7 +99,7 @@ export default function UserDashboardLayout({
             </Link>
             <Link
               href="/packages"
-              className="block w-full text-blue-600 border border-blue-600 py-3 px-4 rounded-lg hover:bg-blue-50 transition-colors font-medium"
+              className="block w-full text-blue-400 border border-blue-400 py-3 px-4 rounded-lg hover:bg-blue-900/20 transition-colors font-medium"
             >
               Browse Packages
             </Link>
@@ -110,7 +110,7 @@ export default function UserDashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -121,29 +121,29 @@ export default function UserDashboardLayout({
 
       {/* Sidebar */}
       <div
-        className={`fixed top-0 left-0 z-50 h-full w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 z-50 h-full w-64 bg-gray-800 shadow-lg transform transition-transform duration-300 ease-in-out ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0`}
       >
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-xl font-bold text-gray-800">My Account</h2>
+        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <h2 className="text-xl font-bold text-white">My Account</h2>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden text-gray-500 hover:text-gray-700"
+            className="lg:hidden text-gray-400 hover:text-gray-300"
           >
             <X className="h-6 w-6" />
           </button>
         </div>
 
         {/* User Info */}
-        <div className="p-4 border-b bg-gray-50">
+        <div className="p-4 border-b border-gray-700 bg-gray-900">
           <div className="flex items-center space-x-3">
             <div className="h-12 w-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium">
               JD
             </div>
             <div>
-              <div className="font-medium text-gray-900">{user.name}</div>
-              <div className="text-sm text-gray-500">{user.email}</div>
+              <div className="font-medium text-white">{user.name}</div>
+              <div className="text-sm text-gray-400">{user.email}</div>
             </div>
           </div>
         </div>
@@ -160,8 +160,8 @@ export default function UserDashboardLayout({
                     href={item.href}
                     className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
                       isActive
-                        ? 'bg-blue-50 text-blue-600 font-medium'
-                        : 'text-gray-700 hover:bg-gray-100'
+                        ? 'bg-blue-900/20 text-blue-400 font-medium'
+                        : 'text-gray-300 hover:bg-gray-700'
                     }`}
                   >
                     <Icon className="h-5 w-5" />
@@ -172,17 +172,17 @@ export default function UserDashboardLayout({
             })}
           </ul>
 
-          <div className="mt-8 pt-4 border-t">
+          <div className="mt-8 pt-4 border-t border-gray-700">
             <Link
               href="/help"
-              className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg"
+              className="flex items-center space-x-3 px-4 py-3 text-gray-300 hover:bg-gray-700 rounded-lg"
             >
               <HelpCircle className="h-5 w-5" />
               <span>Help & Support</span>
             </Link>
             <button 
               onClick={handleLogout}
-              className="w-full flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg"
+              className="w-full flex items-center space-x-3 px-4 py-3 text-gray-300 hover:bg-gray-700 rounded-lg"
             >
               <LogOut className="h-5 w-5" />
               <span>Logout</span>
@@ -194,30 +194,30 @@ export default function UserDashboardLayout({
       {/* Main content */}
       <div className="lg:ml-64">
         {/* Top bar */}
-        <header className="bg-white shadow-sm border-b">
+        <header className="bg-gray-800 shadow-sm border-b border-gray-700">
           <div className="flex items-center justify-between px-4 py-3">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden text-gray-500 hover:text-gray-700"
+              className="lg:hidden text-gray-400 hover:text-gray-300"
             >
               <Menu className="h-6 w-6" />
             </button>
 
             <div className="flex-1 px-4">
-              <h1 className="text-xl font-semibold text-gray-800">
+              <h1 className="text-xl font-semibold text-white">
                 {sidebarItems.find(item => item.href === pathname)?.label || 'Dashboard'}
               </h1>
             </div>
 
             <div className="flex items-center space-x-4">
-              <button className="relative text-gray-500 hover:text-gray-700">
+              <button className="relative text-gray-400 hover:text-gray-300">
                 <Bell className="h-6 w-6" />
                 <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full text-white text-xs flex items-center justify-center">
                   2
                 </span>
               </button>
               
-              <Link href="/shop" className="text-blue-600 hover:text-blue-700 font-medium">
+              <Link href="/shop" className="text-blue-400 hover:text-blue-300 font-medium">
                 Continue Shopping
               </Link>
             </div>

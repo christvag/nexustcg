@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Filter, Download, Edit2, Trash2, Eye } from 'lucide-react';
+import { Search, Filter, Download, Edit2, Trash2, Eye, Calendar } from 'lucide-react';
 
 interface GradedCard {
   id: number;
@@ -9,6 +9,8 @@ interface GradedCard {
   card_game: string;
   card_name: string;
   card_grade: string;
+  grade_name: string;
+  year_card: string;
   set_name: string;
   edition: string;
   rarity: string;
@@ -24,6 +26,11 @@ export default function PopulationReportCardsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterGame, setFilterGame] = useState('');
   const [filterGrade, setFilterGrade] = useState('');
+  const [filterRarity, setFilterRarity] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
+  const [selectedCards, setSelectedCards] = useState<Set<number>>(new Set());
+  const [selectAll, setSelectAll] = useState(false);
 
   useEffect(() => {
     fetchCards();
@@ -31,7 +38,16 @@ export default function PopulationReportCardsPage() {
 
   useEffect(() => {
     filterCards();
-  }, [searchTerm, filterGame, filterGrade, cards]);
+  }, [searchTerm, filterGame, filterGrade, filterRarity, filterDateFrom, filterDateTo, cards]);
+
+  useEffect(() => {
+    // Update select all checkbox state
+    if (filteredCards.length > 0 && selectedCards.size === filteredCards.length) {
+      setSelectAll(true);
+    } else {
+      setSelectAll(false);
+    }
+  }, [selectedCards, filteredCards]);
 
   const fetchCards = async () => {
     try {
@@ -73,7 +89,37 @@ export default function PopulationReportCardsPage() {
       filtered = filtered.filter(card => card.card_grade === filterGrade);
     }
 
+    if (filterRarity) {
+      filtered = filtered.filter(card => card.rarity === filterRarity);
+    }
+
+    if (filterDateFrom) {
+      filtered = filtered.filter(card => new Date(card.date_graded) >= new Date(filterDateFrom));
+    }
+
+    if (filterDateTo) {
+      filtered = filtered.filter(card => new Date(card.date_graded) <= new Date(filterDateTo));
+    }
+
     setFilteredCards(filtered);
+  };
+
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedCards(new Set());
+    } else {
+      setSelectedCards(new Set(filteredCards.map(card => card.id)));
+    }
+  };
+
+  const handleSelectCard = (id: number) => {
+    const newSelected = new Set(selectedCards);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedCards(newSelected);
   };
 
   const handleDelete = async (id: number) => {
@@ -99,19 +145,93 @@ export default function PopulationReportCardsPage() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedCards.size === 0) {
+      alert('Please select cards to delete');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete ${selectedCards.size} selected card(s)?`)) return;
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const deletePromises = Array.from(selectedCards).map(id =>
+        fetch(`/api/admin/population-report/cards/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+      );
+
+      await Promise.all(deletePromises);
+      setSelectedCards(new Set());
+      fetchCards();
+      alert('Selected cards deleted successfully');
+    } catch (error) {
+      console.error('Failed to delete cards:', error);
+      alert('An error occurred while deleting cards');
+    }
+  };
+
+  const formatDateToYYYYMMDD = (dateString: string): string => {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const handleBulkExport = () => {
+    if (selectedCards.size === 0) {
+      alert('Please select cards to export');
+      return;
+    }
+
+    const selectedCardsData = filteredCards.filter(card => selectedCards.has(card.id));
+    const csvContent = [
+      ['id', 'type', 'name_card', 'grade', 'grade_name', 'year_card', 'set_name', 'edition', 'card_info', 'author', 'rarity', 'date_graded'],
+      ...selectedCardsData.map(card => [
+        card.card_id,
+        card.card_game,
+        card.card_name,
+        card.card_grade,
+        card.grade_name || '',
+        card.year_card || '',
+        card.set_name,
+        card.edition || '',
+        card.card_info || '',
+        card.card_owner,
+        card.rarity,
+        formatDateToYYYYMMDD(card.date_graded)
+      ])
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `selected-cards-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
   const handleExport = () => {
     const csvContent = [
-      ['Card ID', 'Game', 'Name', 'Grade', 'Set', 'Edition', 'Rarity', 'Owner', 'Date Graded'],
+      ['id', 'type', 'name_card', 'grade', 'grade_name', 'year_card', 'set_name', 'edition', 'card_info', 'author', 'rarity', 'date_graded'],
       ...filteredCards.map(card => [
         card.card_id,
         card.card_game,
         card.card_name,
         card.card_grade,
+        card.grade_name || '',
+        card.year_card || '',
         card.set_name,
-        card.edition,
-        card.rarity,
+        card.edition || '',
+        card.card_info || '',
         card.card_owner,
-        new Date(card.date_graded).toLocaleDateString()
+        card.rarity,
+        formatDateToYYYYMMDD(card.date_graded)
       ])
     ].map(row => row.join(',')).join('\n');
 
@@ -126,6 +246,7 @@ export default function PopulationReportCardsPage() {
 
   const uniqueGames = Array.from(new Set(cards.map(card => card.card_game)));
   const uniqueGrades = Array.from(new Set(cards.map(card => card.card_grade)));
+  const uniqueRarities = Array.from(new Set(cards.map(card => card.rarity)));
 
   if (loading) {
     return (
@@ -139,9 +260,9 @@ export default function PopulationReportCardsPage() {
     <div className="space-y-6" id="pr-cards-container">
       {/* Header with Search and Filters */}
       <div className="bg-gray-800 rounded-lg border border-gray-700 p-4" id="pr-cards-filters">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {/* Search */}
-          <div className="md:col-span-2" id="pr-filter-search">
+          <div className="md:col-span-2 lg:col-span-2" id="pr-filter-search">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
@@ -181,20 +302,91 @@ export default function PopulationReportCardsPage() {
               ))}
             </select>
           </div>
+
+          {/* Filter by Rarity */}
+          <div id="pr-filter-rarity">
+            <select
+              value={filterRarity}
+              onChange={(e) => setFilterRarity(e.target.value)}
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Rarities</option>
+              {uniqueRarities.map(rarity => (
+                <option key={rarity} value={rarity}>{rarity}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filter by Date From */}
+          <div id="pr-filter-date-from">
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+              <input
+                type="date"
+                value={filterDateFrom}
+                onChange={(e) => setFilterDateFrom(e.target.value)}
+                placeholder="Date From"
+                className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Filter by Date To */}
+          <div id="pr-filter-date-to">
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+              <input
+                type="date"
+                value={filterDateTo}
+                onChange={(e) => setFilterDateTo(e.target.value)}
+                placeholder="Date To"
+                className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-700" id="pr-cards-actions">
-          <p className="text-gray-400 text-sm" id="pr-cards-count">
-            Showing {filteredCards.length} of {cards.length} cards
-          </p>
-          <button
-            onClick={handleExport}
-            className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            id="pr-btn-export"
-          >
-            <Download className="h-4 w-4" />
-            <span>Export CSV</span>
-          </button>
+        {/* Bulk Operations and Stats */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-4 pt-4 border-t border-gray-700" id="pr-cards-actions">
+          <div className="flex items-center gap-4">
+            <p className="text-gray-400 text-sm" id="pr-cards-count">
+              Showing {filteredCards.length} of {cards.length} cards
+              {selectedCards.size > 0 && (
+                <span className="ml-2 text-blue-400">({selectedCards.size} selected)</span>
+              )}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {selectedCards.size > 0 && (
+              <>
+                <button
+                  onClick={handleBulkExport}
+                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                  id="pr-btn-bulk-export"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Export Selected</span>
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                  id="pr-btn-bulk-delete"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span>Delete Selected</span>
+                </button>
+              </>
+            )}
+            <button
+              onClick={handleExport}
+              className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+              id="pr-btn-export"
+            >
+              <Download className="h-4 w-4" />
+              <span>Export All</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -204,6 +396,15 @@ export default function PopulationReportCardsPage() {
           <table className="w-full" id="pr-cards-table">
             <thead className="bg-gray-900/50">
               <tr>
+                <th className="px-4 py-3 text-left w-12" id="pr-th-select">
+                  <input
+                    type="checkbox"
+                    checked={selectAll}
+                    onChange={handleSelectAll}
+                    className="w-4 h-4 bg-gray-700 border-gray-600 rounded text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                    title="Select All"
+                  />
+                </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Card ID
                 </th>
@@ -215,6 +416,12 @@ export default function PopulationReportCardsPage() {
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Grade
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  Grade Name
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  Year
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Set
@@ -237,6 +444,14 @@ export default function PopulationReportCardsPage() {
               {filteredCards.length > 0 ? (
                 filteredCards.map((card) => (
                   <tr key={card.id} className="hover:bg-gray-700/50 transition-colors">
+                    <td className="px-4 py-3 text-sm" id={`pr-td-select-${card.id}`}>
+                      <input
+                        type="checkbox"
+                        checked={selectedCards.has(card.id)}
+                        onChange={() => handleSelectCard(card.id)}
+                        className="w-4 h-4 bg-gray-700 border-gray-600 rounded text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                      />
+                    </td>
                     <td className="px-4 py-3 text-sm text-white font-medium">
                       {card.card_id}
                     </td>
@@ -244,12 +459,25 @@ export default function PopulationReportCardsPage() {
                       {card.card_game}
                     </td>
                     <td className="px-4 py-3 text-sm text-white">
-                      {card.card_name}
+                      <a
+                        href={`/cert/${card.card_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#d83f0a] hover:text-[#d66a0a] hover:underline font-medium cursor-pointer transition-colors"
+                      >
+                        {card.card_name}
+                      </a>
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-900/30 text-blue-400">
                         {card.card_grade}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-white font-medium">
+                      {card.grade_name || '-'}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-300">
+                      {card.year_card || '-'}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-300">
                       {card.set_name}
@@ -278,7 +506,7 @@ export default function PopulationReportCardsPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={12} className="px-4 py-8 text-center text-gray-500">
                     No cards found
                   </td>
                 </tr>

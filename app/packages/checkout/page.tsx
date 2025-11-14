@@ -146,51 +146,74 @@ export default function CheckoutPage() {
   }
 
   const handleProceedToPayment = async () => {
-    if (!currentUser) {
-      setFormErrors(['Please login or create an account to continue'])
-      return
+    // Allow guest checkout or use logged in user
+    const guestUser = {
+      id: null, // Guest users don't have an ID
+      email: 'guest@checkout.com',
+      first_name: 'Guest',
+      last_name: 'User',
+      role: 'guest'
     }
+    
+    const userForOrder = currentUser || guestUser
 
     try {
-      // Create order in database
-      const orderResponse = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          user_id: currentUser.id,
-          package_id: orderData.packageId,
-          package_name: orderData.packageName,
-          package_price: orderData.packagePrice,
-          total_cards: orderData.totalCards,
-          subtotal,
-          tax,
-          shipping,
-          total,
-          cards: orderData.cards
+      // Create order in database (skip for guest users)
+      let orderResult = null
+      
+      if (currentUser) {
+        const orderResponse = await fetch('/api/orders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user_id: currentUser.id,
+            package_id: orderData.packageId,
+            package_name: orderData.packageName,
+            package_price: orderData.packagePrice,
+            total_cards: orderData.totalCards,
+            subtotal,
+            tax,
+            shipping,
+            total,
+            cards: orderData.cards,
+            customer_info: {
+              name: `${currentUser.first_name} ${currentUser.last_name}`,
+              email: currentUser.email,
+              phone: currentUser.phone || '',
+              address: '123 Main St', // Placeholder - should be from user profile
+              city: 'Anytown',
+              state: 'CA',
+              zipCode: '12345',
+              country: 'United States'
+            }
+          })
         })
-      })
 
-      const orderResult = await orderResponse.json()
+        orderResult = await orderResponse.json()
 
-      if (orderResponse.ok && orderResult.success) {
-        const paymentData = {
-          ...orderData,
-          subtotal,
-          tax,
-          shipping,
-          total,
-          user: currentUser,
-          order_id: orderResult.order.id
+        if (!orderResponse.ok || !orderResult.success) {
+          console.error('Order creation failed:', orderResult)
+          setFormErrors([orderResult.error || 'Failed to create order. Please try again.'])
+          return
         }
-        localStorage.setItem('paymentData', JSON.stringify(paymentData))
-        router.push('/packages/payment')
-      } else {
-        setFormErrors(['Failed to create order. Please try again.'])
       }
+
+      const paymentData = {
+        ...orderData,
+        subtotal,
+        tax,
+        shipping,
+        total,
+        user: userForOrder,
+        order_id: orderResult?.order?.id || `guest-${Date.now()}`
+      }
+      localStorage.setItem('paymentData', JSON.stringify(paymentData))
+      router.push('/packages/payment')
+      
     } catch (error) {
-      setFormErrors(['Failed to create order. Please try again.'])
+      setFormErrors(['Failed to proceed to payment. Please try again.'])
     }
   }
 
@@ -213,7 +236,7 @@ export default function CheckoutPage() {
           <h1 className="text-4xl font-bold mb-2">
             <span className="text-gradient">Review Your Order</span>
           </h1>
-          <p className="text-gray-600 dark:text-gray-300">
+          <p className="text-gray-300">
             Please review your order details before proceeding to payment
           </p>
         </motion.div>
@@ -227,14 +250,14 @@ export default function CheckoutPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6"
+                className="bg-gray-900 rounded-xl shadow-lg p-6"
               >
                 <h2 className="text-2xl font-bold mb-4">Account Information</h2>
                 
                 {formErrors.length > 0 && (
-                  <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg">
+                  <div className="mb-4 p-4 bg-red-900/20 border border-red-700 rounded-lg">
                     {formErrors.map((error, index) => (
-                      <p key={index} className="text-red-600 dark:text-red-400 text-sm">{error}</p>
+                      <p key={index} className="text-red-400 text-sm">{error}</p>
                     ))}
                   </div>
                 )}
@@ -245,7 +268,7 @@ export default function CheckoutPage() {
                     className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                       !hasAccount 
                         ? 'bg-gaming-primary text-white' 
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                        : 'bg-gray-700 text-gray-300'
                     }`}
                   >
                     Create Account
@@ -255,7 +278,7 @@ export default function CheckoutPage() {
                     className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                       hasAccount 
                         ? 'bg-gaming-primary text-white' 
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                        : 'bg-gray-700 text-gray-300'
                     }`}
                   >
                     Login
@@ -270,7 +293,7 @@ export default function CheckoutPage() {
                         type="email"
                         value={loginForm.email}
                         onChange={(e) => handleFormChange('login', 'email', e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none dark:bg-gray-800"
+                        className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none bg-gray-800"
                         required
                       />
                     </div>
@@ -280,7 +303,7 @@ export default function CheckoutPage() {
                         type="password"
                         value={loginForm.password}
                         onChange={(e) => handleFormChange('login', 'password', e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none dark:bg-gray-800"
+                        className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none bg-gray-800"
                         required
                       />
                     </div>
@@ -300,7 +323,7 @@ export default function CheckoutPage() {
                           type="text"
                           value={userForm.first_name}
                           onChange={(e) => handleFormChange('user', 'first_name', e.target.value)}
-                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none dark:bg-gray-800"
+                          className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none bg-gray-800"
                           required
                         />
                       </div>
@@ -310,7 +333,7 @@ export default function CheckoutPage() {
                           type="text"
                           value={userForm.last_name}
                           onChange={(e) => handleFormChange('user', 'last_name', e.target.value)}
-                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none dark:bg-gray-800"
+                          className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none bg-gray-800"
                           required
                         />
                       </div>
@@ -321,7 +344,7 @@ export default function CheckoutPage() {
                         type="email"
                         value={userForm.email}
                         onChange={(e) => handleFormChange('user', 'email', e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none dark:bg-gray-800"
+                        className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none bg-gray-800"
                         required
                       />
                     </div>
@@ -331,7 +354,7 @@ export default function CheckoutPage() {
                         type="tel"
                         value={userForm.phone}
                         onChange={(e) => handleFormChange('user', 'phone', e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none dark:bg-gray-800"
+                        className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none bg-gray-800"
                       />
                     </div>
                     <div className="grid md:grid-cols-2 gap-4">
@@ -341,7 +364,7 @@ export default function CheckoutPage() {
                           type="password"
                           value={userForm.password}
                           onChange={(e) => handleFormChange('user', 'password', e.target.value)}
-                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none dark:bg-gray-800"
+                          className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none bg-gray-800"
                           required
                         />
                       </div>
@@ -351,7 +374,7 @@ export default function CheckoutPage() {
                           type="password"
                           value={userForm.confirmPassword}
                           onChange={(e) => handleFormChange('user', 'confirmPassword', e.target.value)}
-                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none dark:bg-gray-800"
+                          className="w-full px-4 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-gaming-primary focus:outline-none bg-gray-800"
                           required
                         />
                       </div>
@@ -371,22 +394,22 @@ export default function CheckoutPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6"
+                className="bg-gray-900 rounded-xl shadow-lg p-6"
               >
                 <h2 className="text-2xl font-bold mb-4">Account Information</h2>
-                <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-green-900/20 border border-green-700 rounded-lg">
                   <div>
-                    <p className="font-medium text-green-800 dark:text-green-200">
+                    <p className="font-medium text-green-200">
                       Logged in as {currentUser.first_name} {currentUser.last_name}
                     </p>
-                    <p className="text-sm text-green-600 dark:text-green-400">{currentUser.email}</p>
+                    <p className="text-sm text-green-400">{currentUser.email}</p>
                   </div>
                   <button
                     onClick={() => {
                       setCurrentUser(null)
                       localStorage.removeItem('currentUser')
                     }}
-                    className="text-sm text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200"
+                    className="text-sm text-green-400 hover:text-green-200"
                   >
                     Logout
                   </button>
@@ -398,13 +421,13 @@ export default function CheckoutPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6"
+              className="bg-gray-900 rounded-xl shadow-lg p-6"
             >
               <h2 className="text-2xl font-bold mb-4">Order Details</h2>
               
-              <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div className="mb-6 p-4 bg-gray-800 rounded-lg">
                 <h3 className="font-semibold text-lg mb-2">{orderData.packageName} Package</h3>
-                <p className="text-gray-600 dark:text-gray-400">
+                <p className="text-gray-400">
                   ${orderData.packagePrice} per card
                 </p>
               </div>
@@ -414,10 +437,10 @@ export default function CheckoutPage() {
                 {orderData.cards.map((item) => (
                   <div
                     key={item.card.id}
-                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                    className="flex items-center justify-between p-4 bg-gray-800 rounded-lg"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-16 h-20 bg-gray-200 dark:bg-gray-700 rounded overflow-hidden relative">
+                      <div className="w-16 h-20 bg-gray-700 rounded overflow-hidden relative">
                         {item.card.imageUrl ? (
                           <Image
                             src={item.card.imageUrl}
@@ -439,7 +462,7 @@ export default function CheckoutPage() {
                       </div>
                       <div>
                         <h4 className="font-medium">{item.card.name}</h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-sm text-gray-400">
                           {item.card.game} • {item.selectedRarity || item.card.rarity}
                         </p>
                         <p className="text-sm text-gray-500">#{item.card.number}</p>
@@ -447,7 +470,7 @@ export default function CheckoutPage() {
                     </div>
                     <div className="text-right">
                       <p className="font-medium">Qty: {item.quantity}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-gray-400">
                         ${orderData.packagePrice * item.quantity}
                       </p>
                     </div>
@@ -463,31 +486,31 @@ export default function CheckoutPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 sticky top-24"
+              className="bg-gray-900 rounded-xl shadow-lg p-6 sticky top-24"
             >
               <h2 className="text-2xl font-bold mb-4">Order Summary</h2>
               
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
+                  <span className="text-gray-400">Subtotal</span>
                   <span className="font-medium">${subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Tax (8%)</span>
+                  <span className="text-gray-400">Tax (8%)</span>
                   <span className="font-medium">${tax.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Shipping</span>
+                  <span className="text-gray-400">Shipping</span>
                   <span className="font-medium">
                     {shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}
                   </span>
                 </div>
                 {shipping === 0 && (
-                  <p className="text-xs text-green-600 dark:text-green-400">
+                  <p className="text-xs text-green-400">
                     Free shipping on orders with 10+ cards!
                   </p>
                 )}
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                <div className="border-t border-gray-700 pt-3">
                   <div className="flex justify-between">
                     <span className="text-lg font-semibold">Total</span>
                     <span className="text-2xl font-bold text-gradient">
@@ -499,19 +522,14 @@ export default function CheckoutPage() {
 
               <button
                 onClick={handleProceedToPayment}
-                disabled={!currentUser}
-                className={`w-full py-3 rounded-lg font-medium transition-transform ${
-                  currentUser 
-                    ? 'bg-gradient-to-r from-gaming-primary to-gaming-secondary text-white hover:scale-105' 
-                    : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                }`}
+                className="w-full py-3 rounded-lg font-medium transition-transform bg-gradient-to-r from-gaming-primary to-gaming-secondary text-white hover:scale-105"
               >
-                {currentUser ? 'Proceed to Payment' : 'Login Required'}
+                {currentUser ? 'Proceed to Payment' : 'Continue as Guest'}
               </button>
 
               <button
                 onClick={() => router.back()}
-                className="w-full mt-3 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                className="w-full mt-3 text-gray-400 hover:text-white transition-colors"
               >
                 ← Back to Card Selection
               </button>

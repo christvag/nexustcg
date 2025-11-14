@@ -17,14 +17,9 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem
-          disableTransitionOnChange
-        >
+    <html lang="en" suppressHydrationWarning className="dark">
+      <body className={`${inter.className} min-h-screen bg-gradient-to-br from-gray-900 to-black text-white`}>
+        <ThemeProvider>
           <div className="flex min-h-screen flex-col">
             <ConditionalLayout>{children}</ConditionalLayout>
           </div>

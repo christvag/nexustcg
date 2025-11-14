@@ -82,8 +82,8 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-        <p className="text-gray-600 dark:text-gray-300 mt-2">
+        <h1 className="text-3xl font-bold text-white">Dashboard</h1>
+        <p className="text-gray-300 mt-2">
           Welcome to the TCG Grading Service admin panel
         </p>
       </div>
@@ -117,11 +117,11 @@ export default function AdminDashboard() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden"
+        className="bg-gray-800 rounded-2xl shadow-lg overflow-hidden"
       >
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-6 border-b border-gray-700">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Recent Orders</h2>
+            <h2 className="text-xl font-bold text-white">Recent Orders</h2>
             <Link
               href="/admin/orders"
               className="text-blue-600 hover:text-blue-700 font-medium text-sm"
@@ -133,32 +133,32 @@ export default function AdminDashboard() {
 
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700">
+            <thead className="bg-gray-700">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                   Order
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                   Customer
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                   Cards
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                   Total
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                   Date
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="divide-y divide-gray-700">
               {(stats?.recentOrders?.length ?? 0) > 0 ? (
                 stats?.recentOrders?.map((order: any) => (
-                  <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr key={order.id} className="hover:bg-gray-700">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <Link href={`/admin/orders/${order.id}`} className="text-blue-600 hover:text-blue-700 font-medium">
                         {order.order_number}
@@ -166,36 +166,36 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        <div className="text-sm font-medium text-white">
                           {order.first_name} {order.last_name}
                         </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">{order.email}</div>
+                        <div className="text-sm text-gray-400">{order.email}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        order.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                        order.status === 'in_progress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                        'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                        order.status === 'completed' ? 'bg-green-900 text-green-200' :
+                        order.status === 'in_progress' ? 'bg-blue-900 text-blue-200' :
+                        order.status === 'pending' ? 'bg-yellow-900 text-yellow-200' :
+                        'bg-gray-900 text-gray-200'
                       }`}>
                         {order.status.replace('_', ' ')}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                       {order.total_cards}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
                       ${order.total}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                       {new Date(order.created_at).toLocaleDateString()}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-400">
                     No recent orders found
                   </td>
                 </tr>
@@ -212,43 +212,43 @@ export default function AdminDashboard() {
         transition={{ delay: 0.5 }}
         className="grid grid-cols-1 md:grid-cols-3 gap-6"
       >
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h3>
+        <div className="bg-gray-800 rounded-2xl shadow-lg p-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
           <div className="space-y-3">
-            <Link href="/admin/orders?status=pending" className="flex items-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            <Link href="/admin/orders?status=pending" className="flex items-center p-3 rounded-lg hover:bg-gray-700 transition-colors">
               <span className="mr-3">⏳</span>
               <span>Review Pending Orders</span>
             </Link>
-            <Link href="/admin/orders?status=in_progress" className="flex items-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            <Link href="/admin/orders?status=in_progress" className="flex items-center p-3 rounded-lg hover:bg-gray-700 transition-colors">
               <span className="mr-3">🔄</span>
               <span>Update Order Status</span>
             </Link>
-            <Link href="/admin/analytics" className="flex items-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            <Link href="/admin/analytics" className="flex items-center p-3 rounded-lg hover:bg-gray-700 transition-colors">
               <span className="mr-3">📊</span>
               <span>View Analytics</span>
             </Link>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">System Status</h3>
+        <div className="bg-gray-800 rounded-2xl shadow-lg p-6">
+          <h3 className="text-lg font-semibold text-white mb-4">System Status</h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Database</span>
+              <span className="text-sm text-gray-400">Database</span>
               <span className="flex items-center text-green-600 text-sm">
                 <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
                 Online
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Payment System</span>
+              <span className="text-sm text-gray-400">Payment System</span>
               <span className="flex items-center text-green-600 text-sm">
                 <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
                 Active
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-400">API Status</span>
+              <span className="text-sm text-gray-400">API Status</span>
               <span className="flex items-center text-green-600 text-sm">
                 <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
                 Healthy
@@ -257,28 +257,28 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Activity</h3>
+        <div className="bg-gray-800 rounded-2xl shadow-lg p-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
           <div className="space-y-3 text-sm">
             <div className="flex items-start">
               <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
               <div>
-                <p className="text-gray-900 dark:text-white">New order received</p>
-                <p className="text-gray-500 dark:text-gray-400 text-xs">2 minutes ago</p>
+                <p className="text-white">New order received</p>
+                <p className="text-gray-400 text-xs">2 minutes ago</p>
               </div>
             </div>
             <div className="flex items-start">
               <div className="w-2 h-2 bg-green-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
               <div>
-                <p className="text-gray-900 dark:text-white">Order completed</p>
-                <p className="text-gray-500 dark:text-gray-400 text-xs">1 hour ago</p>
+                <p className="text-white">Order completed</p>
+                <p className="text-gray-400 text-xs">1 hour ago</p>
               </div>
             </div>
             <div className="flex items-start">
               <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
               <div>
-                <p className="text-gray-900 dark:text-white">Payment processed</p>
-                <p className="text-gray-500 dark:text-gray-400 text-xs">3 hours ago</p>
+                <p className="text-white">Payment processed</p>
+                <p className="text-gray-400 text-xs">3 hours ago</p>
               </div>
             </div>
           </div>

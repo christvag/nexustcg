@@ -6,6 +6,7 @@ export interface Card {
   rarity: string
   number: string
   imageUrl?: string
+  manaCost?: string
   sets?: Array<{
     id: string
     setName: string

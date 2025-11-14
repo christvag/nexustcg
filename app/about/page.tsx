@@ -66,7 +66,7 @@ export default function AboutPage() {
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             <span className="text-gradient">About TCG Grading Service</span>
           </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
             We are the premier trading card grading service, dedicated to preserving
             and authenticating your valuable card collection with the highest standards
             of quality and care.
@@ -81,7 +81,7 @@ export default function AboutPage() {
           className="bg-gradient-to-r from-gaming-primary/10 to-gaming-secondary/10 rounded-2xl p-8 mb-16"
         >
           <h2 className="text-3xl font-bold mb-4 text-center">Our Mission</h2>
-          <p className="text-lg text-center text-gray-700 dark:text-gray-300 max-w-4xl mx-auto">
+          <p className="text-lg text-center text-gray-300 max-w-4xl mx-auto">
             To provide collectors with the most accurate, consistent, and reliable card grading
             service in the industry. We combine traditional expertise with modern technology
             to ensure every card is evaluated fairly and preserved for generations to come.
@@ -107,11 +107,11 @@ export default function AboutPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 text-center card-hover"
+                className="bg-gray-900 rounded-xl shadow-lg p-6 text-center card-hover"
               >
                 <div className="text-4xl mb-4">{feature.icon}</div>
                 <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-                <p className="text-gray-600 dark:text-gray-400">{feature.description}</p>
+                <p className="text-gray-400">{feature.description}</p>
               </motion.div>
             ))}
           </div>
@@ -134,7 +134,7 @@ export default function AboutPage() {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white dark:bg-gray-900 rounded-xl shadow-lg overflow-hidden"
+                className="bg-gray-900 rounded-xl shadow-lg overflow-hidden"
               >
                 <div className="h-48 bg-gradient-to-br from-gaming-primary to-gaming-secondary flex items-center justify-center">
                   <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center text-4xl font-bold text-white">
@@ -144,7 +144,7 @@ export default function AboutPage() {
                 <div className="p-6">
                   <h3 className="text-xl font-bold mb-1">{member.name}</h3>
                   <p className="text-gaming-primary font-medium mb-2">{member.role}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-gray-400">
                     {member.experience} • {member.specialty}
                   </p>
                 </div>

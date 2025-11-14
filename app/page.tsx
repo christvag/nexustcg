@@ -26,14 +26,14 @@ export default function HomePage() {
               Professional TCG
             </span>
             <br />
-            <span className="text-gray-900 dark:text-white">Grading Service</span>
+            <span className="text-white">Grading Service</span>
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto"
+            className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto"
           >
             Get your Pokemon, Yu-Gi-Oh!, MTG, and other trading cards professionally graded
             with our fast and reliable service.
@@ -56,7 +56,7 @@ export default function HomePage() {
             </Link>
             <Link
               href="/about"
-              className="inline-flex items-center justify-center px-8 py-4 text-lg font-medium text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="inline-flex items-center justify-center px-8 py-4 text-lg font-medium text-white border-2 border-gray-700 rounded-lg hover:bg-gray-800 transition-colors"
             >
               Learn More
             </Link>
@@ -94,7 +94,7 @@ export default function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 px-4 bg-white/50 dark:bg-black/50 backdrop-blur-md">
+      <section className="py-20 px-4 bg-black/50 backdrop-blur-md">
         <div className="max-w-7xl mx-auto">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
@@ -131,17 +131,17 @@ export default function HomePage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.2 }}
-                className="bg-white dark:bg-gray-900 rounded-2xl p-8 shadow-xl border-2 border-transparent transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+                className="bg-gray-900 rounded-2xl p-8 shadow-xl border-2 border-transparent transition-all duration-300 hover:scale-105 hover:shadow-2xl"
                 style={{
-                  background: 'linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) border-box',
+                  background: 'linear-gradient(#1f2937, #1f2937) padding-box, linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) border-box',
                   border: '2px solid transparent'
                 }}
               >
                 <div className="text-5xl mb-4">{feature.icon}</div>
-                <h3 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
+                <h3 className="text-2xl font-bold mb-4 text-white">
                   {feature.title}
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400">{feature.description}</p>
+                <p className="text-gray-400">{feature.description}</p>
               </motion.div>
             ))}
           </div>
@@ -180,7 +180,7 @@ export default function HomePage() {
                 className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl p-6 text-center hover:from-blue-500/20 hover:to-purple-500/20 transition-all cursor-pointer hover:scale-105"
               >
                 <div className="text-3xl mb-2">🎴</div>
-                <p className="font-medium text-gray-900 dark:text-white">{game}</p>
+                <p className="font-medium text-white">{game}</p>
               </motion.div>
             ))}
           </div>

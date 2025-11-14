@@ -12,7 +12,10 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  MessageSquare
+  MessageSquare,
+  Award,
+  Trophy,
+  Star
 } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
@@ -25,9 +28,9 @@ export default function AdminDashboard() {
     totalRevenue: 0,
     totalUsers: 0,
     activeUsers: 0,
-    totalProducts: 0,
-    lowStockProducts: 0,
-    openTickets: 0
+    totalGraded: 0,
+    averageGrade: 0,
+    grade10Count: 0
   });
   const [isLoading, setIsLoading] = useState(true);
   const [revenueData, setRevenueData] = useState([]);
@@ -48,9 +51,18 @@ export default function AdminDashboard() {
       const usersResponse = await fetch('/api/users')
       const usersData = await usersResponse.json()
       
+      // Fetch grading report data
+      const gradingResponse = await fetch('/api/admin/grading-report')
+      const gradingData = await gradingResponse.json()
+      
       if (ordersResponse.ok && usersResponse.ok) {
         const orders = ordersData.orders || []
         const users = usersData.users || []
+        const gradingStats = gradingData.success ? gradingData.stats : {
+          totalGraded: 0,
+          averageGrade: 0,
+          grade10Count: 0
+        }
         
         // Calculate stats
         const totalOrders = orders.length
@@ -65,9 +77,9 @@ export default function AdminDashboard() {
           totalRevenue,
           totalUsers,
           activeUsers,
-          totalProducts: 0, // Card grading doesn't have traditional products
-          lowStockProducts: 0,
-          openTickets: 0
+          totalGraded: gradingStats.totalGraded,
+          averageGrade: gradingStats.averageGrade,
+          grade10Count: gradingStats.grade10Count
         })
         
         // Set recent orders (last 5)
@@ -267,14 +279,16 @@ export default function AdminDashboard() {
 
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <Users className="h-6 w-6 text-purple-600" />
+            <div className="p-2 bg-amber-100 rounded-lg">
+              <Award className="h-6 w-6 text-amber-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Users</p>
+              <p className="text-sm font-medium text-gray-600">Cards Graded</p>
               <div className="flex items-center">
-                <p className="text-2xl font-semibold text-gray-900">{stats.totalUsers}</p>
-                <span className="text-sm text-green-600 ml-2">({stats.activeUsers} active)</span>
+                <p className="text-2xl font-semibold text-gray-900">{stats.totalGraded}</p>
+                {stats.averageGrade > 0 && (
+                  <span className="text-sm text-blue-600 ml-2">Avg: {stats.averageGrade.toFixed(1)}</span>
+                )}
               </div>
             </div>
           </div>
@@ -405,20 +419,22 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Users className="h-6 w-6 text-blue-600" />
+            <div className="p-2 bg-amber-100 rounded-lg">
+              <svg className="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
             </div>
             <div className="ml-4">
-              <h4 className="text-lg font-medium text-gray-900">Manage Users</h4>
-              <p className="text-sm text-gray-600">View and manage user accounts</p>
+              <h4 className="text-lg font-medium text-gray-900">Grading Report</h4>
+              <p className="text-sm text-gray-600">View all graded cards</p>
             </div>
           </div>
           <div className="mt-4">
-            <a href="/admin/dashboard/users" className="text-blue-600 hover:text-blue-700 font-medium text-sm">
-              View Users →
+            <a href="/admin/dashboard/grading-report" className="text-amber-600 hover:text-amber-700 font-medium text-sm">
+              View Grading Report →
             </a>
           </div>
         </div>
@@ -442,17 +458,19 @@ export default function AdminDashboard() {
 
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <DollarSign className="h-6 w-6 text-purple-600" />
+            <div className="p-2 bg-indigo-100 rounded-lg">
+              <svg className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+              </svg>
             </div>
             <div className="ml-4">
-              <h4 className="text-lg font-medium text-gray-900">Pricing</h4>
-              <p className="text-sm text-gray-600">Manage package pricing</p>
+              <h4 className="text-lg font-medium text-gray-900">Population Report</h4>
+              <p className="text-sm text-gray-600">Notion integration</p>
             </div>
           </div>
           <div className="mt-4">
-            <a href="/admin/dashboard/pricing" className="text-purple-600 hover:text-purple-700 font-medium text-sm">
-              View Pricing →
+            <a href="/admin/dashboard/notion" className="text-indigo-600 hover:text-indigo-700 font-medium text-sm">
+              Manage Sync →
             </a>
           </div>
         </div>

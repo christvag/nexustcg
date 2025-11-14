@@ -51,11 +51,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="max-w-md w-full bg-gray-800 rounded-lg shadow-lg p-8 text-center">
           <div className="text-6xl mb-4">🔒</div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Login Required</h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">
+          <h2 className="text-2xl font-bold text-white mb-4">Login Required</h2>
+          <p className="text-gray-300 mb-6">
             Please log in to access your dashboard.
           </p>
           <div className="space-y-3">
@@ -67,7 +67,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </Link>
             <Link
               href="/packages"
-              className="block w-full text-blue-600 border border-blue-600 py-3 px-4 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors font-medium"
+              className="block w-full text-blue-600 border border-blue-600 py-3 px-4 rounded-lg hover:bg-blue-900/20 transition-colors font-medium"
             >
               Browse Packages
             </Link>
@@ -86,14 +86,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-900">
       {/* Mobile Header */}
-      <div className="lg:hidden bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 px-4 py-3">
+      <div className="lg:hidden bg-gray-800 shadow-sm border-b border-gray-700 px-4 py-3">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-gradient">My Dashboard</h1>
           <button
             onClick={handleLogout}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -105,8 +105,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <div className="lg:flex">
         {/* Sidebar */}
         <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0">
-          <div className="flex flex-col flex-grow bg-white dark:bg-gray-800 shadow-lg">
-            <div className="flex h-16 items-center justify-center border-b border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col flex-grow bg-gray-800 shadow-lg">
+            <div className="flex h-16 items-center justify-center border-b border-gray-700">
               <h1 className="text-xl font-bold text-gradient">My Dashboard</h1>
             </div>
 
@@ -116,7 +116,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   <Link
                     key={item.name}
                     href={item.href}
-                    className="flex items-center px-4 py-3 text-sm font-medium rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    className="flex items-center px-4 py-3 text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors"
                   >
                     <span className="mr-3 text-lg">{item.icon}</span>
                     {item.name}
@@ -125,7 +125,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
             </nav>
 
-            <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="p-4 border-t border-gray-700">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium">{user.first_name} {user.last_name}</p>
@@ -133,7 +133,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
                   title="Logout"
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -154,7 +154,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700">
         <div className="grid grid-cols-5 py-2">
           {navigation.map((item) => (
             <Link
@@ -163,7 +163,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               className="flex flex-col items-center justify-center py-2 px-1"
             >
               <span className="text-lg mb-1">{item.icon}</span>
-              <span className="text-xs text-gray-600 dark:text-gray-400">{item.name}</span>
+              <span className="text-xs text-gray-400">{item.name}</span>
             </Link>
           ))}
         </div>
