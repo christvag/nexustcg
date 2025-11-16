@@ -2,8 +2,82 @@
 
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import { useState, useEffect } from 'react'
+import { Search } from 'lucide-react'
+
+interface PopulationCard {
+  id: number
+  card_id: string
+  card_name: string
+  card_game: string
+  card_grade: string
+  set_name: string
+  rarity: string
+  card_owner: string
+  month_graded: number
+  year_graded: number
+  front_image?: string
+}
 
 export default function HomePage() {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [searchResults, setSearchResults] = useState<PopulationCard[]>([])
+  const [pokemonCards, setPokemonCards] = useState<PopulationCard[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [totalPokemon, setTotalPokemon] = useState(0)
+  const [showAllPokemon, setShowAllPokemon] = useState(false)
+
+  // Fetch Pokemon cards on mount
+  useEffect(() => {
+    fetchPokemonCards()
+  }, [])
+
+  // Debounced search
+  useEffect(() => {
+    if (searchTerm.trim().length < 2) {
+      setSearchResults([])
+      return
+    }
+
+    const timer = setTimeout(() => {
+      handleSearch()
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  const fetchPokemonCards = async () => {
+    try {
+      const response = await fetch('/api/public/population-report/pokemon?limit=20')
+      const result = await response.json()
+      if (result.success) {
+        setPokemonCards(result.data.cards)
+        setTotalPokemon(result.data.total)
+      }
+    } catch (error) {
+      console.error('Error fetching Pokemon cards:', error)
+    }
+  }
+
+  const handleSearch = async () => {
+    if (searchTerm.trim().length < 2) return
+
+    setIsSearching(true)
+    try {
+      const response = await fetch(`/api/public/population-report/search?search=${encodeURIComponent(searchTerm)}`)
+      const result = await response.json()
+      if (result.success) {
+        setSearchResults(result.data)
+      }
+    } catch (error) {
+      console.error('Error searching cards:', error)
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  const displayedPokemonCards = showAllPokemon ? pokemonCards : pokemonCards.slice(0, 8)
+
   return (
     <div className="relative overflow-hidden">
       {/* Hero Section */}
@@ -184,6 +258,191 @@ export default function HomePage() {
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Population Report Section */}
+      <section id="population-report-section" className="py-20 px-4 bg-black/50 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-4xl font-bold text-center mb-8"
+          >
+            <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+              Population Report
+            </span>
+          </motion.h2>
+
+          {/* Search Bar */}
+          <motion.div
+            id="pop-report-search-container"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="max-w-2xl mx-auto mb-12"
+          >
+            <div id="pop-report-search-wrapper" className="relative">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <input
+                id="pop-report-search-input"
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search cards by name, game, or set..."
+                className="w-full pl-12 pr-4 py-4 bg-gray-900 border-2 border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+              />
+              {isSearching && (
+                <div id="pop-report-search-loading" className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                  <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                </div>
+              )}
+            </div>
+
+            {/* Search Results */}
+            {searchResults.length > 0 && (
+              <div id="pop-report-search-results" className="mt-4 bg-gray-900 border-2 border-gray-700 rounded-lg overflow-hidden">
+                <div className="max-h-96 overflow-y-auto">
+                  {searchResults.map((card) => (
+                    <div
+                      key={card.id}
+                      id={`search-result-${card.id}`}
+                      className="p-4 border-b border-gray-700 last:border-b-0 hover:bg-gray-800 transition-colors"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div id={`search-result-card-id-${card.id}`} className="mb-1">
+                            <Link href={`/cert/${card.card_id}`}>
+                              <span className="inline-block px-2 py-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded text-xs font-bold hover:scale-105 transition-transform cursor-pointer">
+                                ID: {card.card_id}
+                              </span>
+                            </Link>
+                          </div>
+                          <Link href={`/card/${card.card_id}`}>
+                            <h3 className="font-bold text-white hover:text-blue-400 transition-colors cursor-pointer">{card.card_name}</h3>
+                          </Link>
+                          <p className="text-sm text-gray-400">{card.card_game} - {card.set_name}</p>
+                          <p className="text-sm text-gray-500">Owner: {card.card_owner}</p>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-blue-400">Grade: {card.card_grade}</div>
+                          <div className="text-sm text-gray-400">
+                            {new Date(card.year_graded, card.month_graded - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </motion.div>
+
+          {/* Game Categories */}
+          <div id="pop-report-categories" className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            {[
+              { name: 'Pokemon', logo: '⚡', active: true },
+              { name: 'Yu-Gi-Oh!', logo: '🎴', active: false },
+              { name: 'MTG', logo: '✨', active: false },
+              { name: 'One Piece', logo: '⚓', active: false },
+            ].map((game, index) => (
+              <motion.div
+                id={`game-category-${game.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
+                key={index}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className={`p-6 rounded-xl text-center cursor-pointer transition-all ${
+                  game.active
+                    ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20 border-2 border-blue-500'
+                    : 'bg-gray-900 border-2 border-gray-700 opacity-50'
+                }`}
+              >
+                <div className="text-4xl mb-2">{game.logo}</div>
+                <h3 className="font-bold text-white">{game.name}</h3>
+                {game.active && (
+                  <p className="text-sm text-blue-400 mt-2">{totalPokemon} cards graded</p>
+                )}
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Pokemon Cards Display */}
+          {pokemonCards.length > 0 && (
+            <div id="pokemon-cards-section">
+              <motion.h3
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="text-2xl font-bold text-white mb-6"
+              >
+                Pokemon Graded Cards
+              </motion.h3>
+
+              <div id="pokemon-cards-grid" className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {displayedPokemonCards.map((card, index) => (
+                  <motion.div
+                    id={`pokemon-card-${card.id}`}
+                    key={card.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.05 }}
+                    className="bg-gray-900 rounded-xl overflow-hidden border-2 border-gray-700 hover:border-blue-500 transition-all hover:scale-105"
+                  >
+                    <div id={`pokemon-card-content-${card.id}`} className="p-4">
+                      <Link href={`/card/${card.card_id}`}>
+                        <div className="aspect-[2.5/3.5] bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-lg mb-4 flex items-center justify-center cursor-pointer">
+                          {card.front_image ? (
+                            <img src={card.front_image} alt={card.card_name} className="w-full h-full object-cover rounded-lg" />
+                          ) : (
+                            <div className="text-6xl">🎴</div>
+                          )}
+                        </div>
+                      </Link>
+                      <div id={`pokemon-card-id-badge-${card.id}`} className="mb-2">
+                        <Link href={`/cert/${card.card_id}`}>
+                          <span className="inline-block px-2 py-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded text-xs font-bold hover:scale-105 transition-transform cursor-pointer">
+                            ID: {card.card_id}
+                          </span>
+                        </Link>
+                      </div>
+                      <Link href={`/card/${card.card_id}`}>
+                        <h4 id={`pokemon-card-name-${card.id}`} className="font-bold text-white mb-2 truncate cursor-pointer hover:text-blue-400 transition-colors">{card.card_name}</h4>
+                      </Link>
+                      <div id={`pokemon-card-details-${card.id}`} className="space-y-1 text-sm">
+                        <p className="text-gray-400">Grade: <span className="text-blue-400 font-bold">{card.card_grade}</span></p>
+                        <p className="text-gray-400">
+                          Graded: {new Date(card.year_graded, card.month_graded - 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                        </p>
+                        <p className="text-gray-400">Owner: <span className="text-white">{card.card_owner}</span></p>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              {pokemonCards.length > 8 && (
+                <div id="pokemon-show-more-container" className="text-center mt-8">
+                  <button
+                    id="pokemon-show-more-btn"
+                    onClick={() => setShowAllPokemon(!showAllPokemon)}
+                    className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:scale-105 transition-transform"
+                  >
+                    {showAllPokemon ? 'Show Less' : `Show All ${totalPokemon} Cards`}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {pokemonCards.length === 0 && (
+            <div id="no-pokemon-cards" className="text-center text-gray-400 py-12">
+              <p>No Pokemon cards available in the population report yet.</p>
+            </div>
+          )}
         </div>
       </section>
 
