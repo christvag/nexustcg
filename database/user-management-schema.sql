@@ -1,5 +1,29 @@
 -- User Management SQLite Database Schema
--- This database stores user accounts and order information
+-- This database stores user accounts, order information, and pricing packages
+
+-- Packages table
+CREATE TABLE IF NOT EXISTS packages (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    slug TEXT UNIQUE NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    description TEXT,
+    long_description TEXT,
+    features TEXT, -- JSON array of features
+    specifications TEXT, -- JSON array of specifications
+    trust_indicators TEXT, -- JSON array of trust indicators (e.g., [{label: "Secure Processing", icon: "shield"}, ...])
+    icon_name TEXT,
+    icon_url TEXT,
+    image_url TEXT,
+    processing_time TEXT,
+    min_cards INTEGER DEFAULT 1,
+    max_cards INTEGER,
+    is_active BOOLEAN DEFAULT 1,
+    is_popular BOOLEAN DEFAULT 0,
+    display_order INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
@@ -137,6 +161,9 @@ CREATE TABLE IF NOT EXISTS user_sessions (
 );
 
 -- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_packages_slug ON packages(slug);
+CREATE INDEX IF NOT EXISTS idx_packages_active ON packages(is_active);
+CREATE INDEX IF NOT EXISTS idx_packages_display_order ON packages(display_order);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
@@ -167,10 +194,16 @@ BEGIN
     UPDATE orders SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
 
-CREATE TRIGGER IF NOT EXISTS update_payments_updated_at 
+CREATE TRIGGER IF NOT EXISTS update_payments_updated_at
     AFTER UPDATE ON payments
 BEGIN
     UPDATE payments SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS update_packages_updated_at
+    AFTER UPDATE ON packages
+BEGIN
+    UPDATE packages SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
 
 -- Trigger to create order status history when order status changes

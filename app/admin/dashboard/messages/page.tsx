@@ -241,30 +241,31 @@ export default function MessagingSystem() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div id="messages-loading" className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading messages...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d83f0a] mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading messages...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-[calc(100vh-200px)] flex">
+    <div id="messages-system-container" className="h-[calc(100vh-200px)] flex">
       {/* Tickets Sidebar */}
-      <div className="w-1/3 border-r bg-white flex flex-col">
+      <div id="tickets-sidebar" className="w-1/3 border-r border-gray-800 bg-[#171717] flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Support Tickets</h3>
+        <div className="p-4 border-b border-gray-800">
+          <h3 className="text-lg font-semibold text-white mb-4">Support Tickets</h3>
           
           {/* Search */}
           <div className="relative mb-3">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
+              id="tickets-search-input"
               type="text"
               placeholder="Search tickets..."
-              className="w-full pl-9 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-9 pr-3 py-2 bg-[#0b0b0b] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -273,7 +274,8 @@ export default function MessagingSystem() {
           {/* Filters */}
           <div className="flex space-x-2">
             <select
-              className="flex-1 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              id="filter-ticket-status"
+              className="flex-1 px-2 py-1 bg-[#0b0b0b] border border-gray-700 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#d83f0a]"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
             >
@@ -283,9 +285,10 @@ export default function MessagingSystem() {
               <option value="waiting_customer">Waiting Customer</option>
               <option value="resolved">Resolved</option>
             </select>
-            
+
             <select
-              className="flex-1 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              id="filter-ticket-priority"
+              className="flex-1 px-2 py-1 bg-[#0b0b0b] border border-gray-700 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#d83f0a]"
               value={filterPriority}
               onChange={(e) => setFilterPriority(e.target.value)}
             >
@@ -303,10 +306,11 @@ export default function MessagingSystem() {
           {filteredTickets.map((ticket) => (
             <div
               key={ticket.id}
+              id={`ticket-item-${ticket.id}`}
               onClick={() => setSelectedTicket(ticket)}
-              className={`p-4 border-b cursor-pointer hover:bg-gray-50 ${
-                selectedTicket?.id === ticket.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
-              } ${ticket.isUnread ? 'bg-blue-25' : ''}`}
+              className={`p-4 border-b border-gray-800 cursor-pointer hover:bg-[#1f1f1f] ${
+                selectedTicket?.id === ticket.id ? 'bg-[#d83f0a]/10 border-l-4 border-l-[#d83f0a]' : ''
+              } ${ticket.isUnread ? 'bg-[#d83f0a]/5' : ''}`}
             >
               <div className="flex items-start justify-between mb-2">
                 <div className="flex-1 min-w-0">

@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
+const COLORS = ['#d83f0a', '#d66a0a', '#FF8042', '#FFBB28', '#8884d8', '#82ca9d'];
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -189,20 +189,20 @@ export default function AdminDashboard() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-        
+      <div id="admin-dashboard-loading" className="space-y-6">
+        <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
+
         {/* Loading Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div id="loading-stats-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="bg-white rounded-lg shadow p-6 animate-pulse">
+            <div key={i} id={`loading-stat-card-${i}`} className="bg-[#171717] border border-gray-800 rounded-lg shadow p-6 animate-pulse">
               <div className="flex items-center">
-                <div className="p-2 bg-gray-300 rounded-lg">
-                  <div className="h-6 w-6 bg-gray-400 rounded"></div>
+                <div className="p-2 bg-gray-800 rounded-lg">
+                  <div className="h-6 w-6 bg-gray-700 rounded"></div>
                 </div>
                 <div className="ml-4 flex-1">
-                  <div className="h-4 bg-gray-300 rounded w-16 mb-2"></div>
-                  <div className="h-8 bg-gray-300 rounded w-20"></div>
+                  <div className="h-4 bg-gray-800 rounded w-16 mb-2"></div>
+                  <div className="h-8 bg-gray-700 rounded w-20"></div>
                 </div>
               </div>
             </div>
@@ -210,14 +210,14 @@ export default function AdminDashboard() {
         </div>
 
         {/* Loading Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-lg shadow p-6 animate-pulse">
-            <div className="h-6 bg-gray-300 rounded w-32 mb-4"></div>
-            <div className="h-64 bg-gray-300 rounded"></div>
+        <div id="loading-charts-grid" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div id="loading-chart-1" className="bg-[#171717] border border-gray-800 rounded-lg shadow p-6 animate-pulse">
+            <div className="h-6 bg-gray-800 rounded w-32 mb-4"></div>
+            <div className="h-64 bg-gray-800 rounded"></div>
           </div>
-          <div className="bg-white rounded-lg shadow p-6 animate-pulse">
-            <div className="h-6 bg-gray-300 rounded w-32 mb-4"></div>
-            <div className="h-64 bg-gray-300 rounded"></div>
+          <div id="loading-chart-2" className="bg-[#171717] border border-gray-800 rounded-lg shadow p-6 animate-pulse">
+            <div className="h-6 bg-gray-800 rounded w-32 mb-4"></div>
+            <div className="h-64 bg-gray-800 rounded"></div>
           </div>
         </div>
       </div>
@@ -225,69 +225,69 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-        <div className="text-sm text-gray-500">
+    <div id="admin-dashboard-main" className="space-y-6">
+      <div id="dashboard-header" className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
+        <div className="text-sm text-gray-400">
           Last updated: {new Date().toLocaleString()}
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
+      <div id="stats-cards-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div id="stat-card-total-orders" className="bg-[#171717] border border-gray-800 rounded-lg shadow p-6">
           <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <ShoppingCart className="h-6 w-6 text-blue-600" />
+            <div className="p-2 bg-[#d83f0a]/20 rounded-lg">
+              <ShoppingCart className="h-6 w-6 text-[#d83f0a]" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Orders</p>
+              <p className="text-sm font-medium text-gray-400">Total Orders</p>
               <div className="flex items-center">
-                <p className="text-2xl font-semibold text-gray-900">{stats.totalOrders}</p>
+                <p className="text-2xl font-semibold text-white">{stats.totalOrders}</p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div id="stat-card-pending-orders" className="bg-[#171717] border border-gray-800 rounded-lg shadow p-6">
           <div className="flex items-center">
-            <div className="p-2 bg-yellow-100 rounded-lg">
-              <Clock className="h-6 w-6 text-yellow-600" />
+            <div className="p-2 bg-yellow-900/20 rounded-lg">
+              <Clock className="h-6 w-6 text-yellow-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Pending Orders</p>
+              <p className="text-sm font-medium text-gray-400">Pending Orders</p>
               <div className="flex items-center">
-                <p className="text-2xl font-semibold text-gray-900">{stats.pendingOrders}</p>
+                <p className="text-2xl font-semibold text-white">{stats.pendingOrders}</p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div id="stat-card-revenue" className="bg-[#171717] border border-gray-800 rounded-lg shadow p-6">
           <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <DollarSign className="h-6 w-6 text-green-600" />
+            <div className="p-2 bg-green-900/20 rounded-lg">
+              <DollarSign className="h-6 w-6 text-green-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+              <p className="text-sm font-medium text-gray-400">Total Revenue</p>
               <div className="flex items-center">
-                <p className="text-2xl font-semibold text-gray-900">${stats.totalRevenue.toFixed(2)}</p>
+                <p className="text-2xl font-semibold text-white">${stats.totalRevenue.toFixed(2)}</p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div id="stat-card-graded" className="bg-[#171717] border border-gray-800 rounded-lg shadow p-6">
           <div className="flex items-center">
-            <div className="p-2 bg-amber-100 rounded-lg">
-              <Award className="h-6 w-6 text-amber-600" />
+            <div className="p-2 bg-[#d66a0a]/20 rounded-lg">
+              <Award className="h-6 w-6 text-[#d66a0a]" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Cards Graded</p>
+              <p className="text-sm font-medium text-gray-400">Cards Graded</p>
               <div className="flex items-center">
-                <p className="text-2xl font-semibold text-gray-900">{stats.totalGraded}</p>
+                <p className="text-2xl font-semibold text-white">{stats.totalGraded}</p>
                 {stats.averageGrade > 0 && (
-                  <span className="text-sm text-blue-600 ml-2">Avg: {stats.averageGrade.toFixed(1)}</span>
+                  <span className="text-sm text-[#d83f0a] ml-2">Avg: {stats.averageGrade.toFixed(1)}</span>
                 )}
               </div>
             </div>
@@ -296,37 +296,37 @@ export default function AdminDashboard() {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div id="charts-section" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenue Chart */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Revenue & Orders</h3>
+        <div id="revenue-chart-container" className="bg-[#171717] border border-gray-800 rounded-lg shadow p-6">
+          <h3 className="text-lg font-medium text-white mb-4">Revenue & Orders</h3>
           {revenueData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={revenueData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis yAxisId="left" />
-                <YAxis yAxisId="right" orientation="right" />
-                <Tooltip />
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis dataKey="name" stroke="#9CA3AF" />
+                <YAxis yAxisId="left" stroke="#9CA3AF" />
+                <YAxis yAxisId="right" orientation="right" stroke="#9CA3AF" />
+                <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', color: '#F3F4F6' }} />
                 <Legend />
-                <Bar yAxisId="left" dataKey="revenue" fill="#3B82F6" name="Revenue ($)" />
-                <Line yAxisId="right" type="monotone" dataKey="orders" stroke="#EF4444" strokeWidth={2} name="Orders" />
+                <Bar yAxisId="left" dataKey="revenue" fill="#d83f0a" name="Revenue ($)" />
+                <Line yAxisId="right" type="monotone" dataKey="orders" stroke="#d66a0a" strokeWidth={2} name="Orders" />
               </LineChart>
             </ResponsiveContainer>
           ) : (
             <div className="h-64 flex items-center justify-center">
               <div className="text-center">
-                <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h4 className="text-lg font-medium text-gray-900 mb-2">No Revenue Data</h4>
-                <p className="text-gray-500">Revenue charts will appear once orders are placed</p>
+                <TrendingUp className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+                <h4 className="text-lg font-medium text-white mb-2">No Revenue Data</h4>
+                <p className="text-gray-400">Revenue charts will appear once orders are placed</p>
               </div>
             </div>
           )}
         </div>
 
         {/* Order Status Distribution */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Order Status Distribution</h3>
+        <div id="order-status-chart-container" className="bg-[#171717] border border-gray-800 rounded-lg shadow p-6">
+          <h3 className="text-lg font-medium text-white mb-4">Order Status Distribution</h3>
           {orderStatusData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
@@ -344,15 +344,15 @@ export default function AdminDashboard() {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', color: '#F3F4F6' }} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
             <div className="h-64 flex items-center justify-center">
               <div className="text-center">
-                <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h4 className="text-lg font-medium text-gray-900 mb-2">No Order Data</h4>
-                <p className="text-gray-500">Order status distribution will appear once orders are placed</p>
+                <Package className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+                <h4 className="text-lg font-medium text-white mb-2">No Order Data</h4>
+                <p className="text-gray-400">Order status distribution will appear once orders are placed</p>
               </div>
             </div>
           )}
@@ -360,32 +360,32 @@ export default function AdminDashboard() {
       </div>
 
       {/* Recent Orders */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Recent Orders</h3>
+      <div id="recent-orders-section" className="bg-[#171717] border border-gray-800 rounded-lg shadow">
+        <div className="px-6 py-4 border-b border-gray-800">
+          <h3 className="text-lg font-medium text-white">Recent Orders</h3>
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table id="recent-orders-table" className="min-w-full divide-y divide-gray-800">
+            <thead className="bg-[#0b0b0b]">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Order</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Customer</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Total</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-[#171717] divide-y divide-gray-800">
               {recentOrders.length > 0 ? (
                 recentOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <tr key={order.id} id={`order-row-${order.id}`} className="hover:bg-[#1f1f1f]">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
                       {order.id}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                       {order.customer}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                       ${order.total.toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -394,7 +394,7 @@ export default function AdminDashboard() {
                         <span className="ml-1">{order.status.charAt(0).toUpperCase() + order.status.slice(1).replace('_', ' ')}</span>
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                       {new Date(order.date).toLocaleDateString()}
                     </td>
                   </tr>
@@ -403,10 +403,10 @@ export default function AdminDashboard() {
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center">
-                      <ShoppingCart className="h-12 w-12 text-gray-400 mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No Orders Yet</h3>
-                      <p className="text-gray-500 mb-4">Orders will appear here once customers start placing them</p>
-                      <div className="text-sm text-gray-400">
+                      <ShoppingCart className="h-12 w-12 text-gray-600 mb-4" />
+                      <h3 className="text-lg font-medium text-white mb-2">No Orders Yet</h3>
+                      <p className="text-gray-400 mb-4">Orders will appear here once customers start placing them</p>
+                      <div className="text-sm text-gray-500">
                         Customers can browse packages and place orders through the website
                       </div>
                     </div>
@@ -419,57 +419,57 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
+      <div id="quick-actions-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div id="quick-action-grading" className="bg-[#171717] border border-gray-800 rounded-lg shadow p-6">
           <div className="flex items-center">
-            <div className="p-2 bg-amber-100 rounded-lg">
-              <svg className="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="p-2 bg-[#d66a0a]/20 rounded-lg">
+              <svg className="h-6 w-6 text-[#d66a0a]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div className="ml-4">
-              <h4 className="text-lg font-medium text-gray-900">Grading Report</h4>
-              <p className="text-sm text-gray-600">View all graded cards</p>
+              <h4 className="text-lg font-medium text-white">Grading Report</h4>
+              <p className="text-sm text-gray-400">View all graded cards</p>
             </div>
           </div>
           <div className="mt-4">
-            <a href="/admin/dashboard/grading-report" className="text-amber-600 hover:text-amber-700 font-medium text-sm">
+            <a href="/admin/dashboard/grading-report" className="text-[#d83f0a] hover:text-[#d66a0a] font-medium text-sm">
               View Grading Report →
             </a>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div id="quick-action-orders" className="bg-[#171717] border border-gray-800 rounded-lg shadow p-6">
           <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <Package className="h-6 w-6 text-green-600" />
+            <div className="p-2 bg-green-900/20 rounded-lg">
+              <Package className="h-6 w-6 text-green-500" />
             </div>
             <div className="ml-4">
-              <h4 className="text-lg font-medium text-gray-900">Manage Orders</h4>
-              <p className="text-sm text-gray-600">Process and track orders</p>
+              <h4 className="text-lg font-medium text-white">Manage Orders</h4>
+              <p className="text-sm text-gray-400">Process and track orders</p>
             </div>
           </div>
           <div className="mt-4">
-            <a href="/admin/dashboard/orders" className="text-green-600 hover:text-green-700 font-medium text-sm">
+            <a href="/admin/dashboard/orders" className="text-green-500 hover:text-green-400 font-medium text-sm">
               View Orders →
             </a>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div id="quick-action-population" className="bg-[#171717] border border-gray-800 rounded-lg shadow p-6">
           <div className="flex items-center">
-            <div className="p-2 bg-indigo-100 rounded-lg">
-              <svg className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="p-2 bg-[#d83f0a]/20 rounded-lg">
+              <svg className="h-6 w-6 text-[#d83f0a]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
               </svg>
             </div>
             <div className="ml-4">
-              <h4 className="text-lg font-medium text-gray-900">Population Report</h4>
-              <p className="text-sm text-gray-600">Notion integration</p>
+              <h4 className="text-lg font-medium text-white">Population Report</h4>
+              <p className="text-sm text-gray-400">Notion integration</p>
             </div>
           </div>
           <div className="mt-4">
-            <a href="/admin/dashboard/notion" className="text-indigo-600 hover:text-indigo-700 font-medium text-sm">
+            <a href="/admin/dashboard/notion" className="text-[#d83f0a] hover:text-[#d66a0a] font-medium text-sm">
               Manage Sync →
             </a>
           </div>
