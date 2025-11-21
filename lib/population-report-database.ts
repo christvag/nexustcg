@@ -225,19 +225,18 @@ class PopulationReportDatabase {
       }
 
       const sql = `UPDATE population_report_cards SET
-        card_type = ?,
+        card_game = ?,
         card_name = ?,
-        grade = ?,
+        card_grade = ?,
         grade_name = ?,
         year_card = ?,
         set_name = ?,
         edition = ?,
         card_info = ?,
-        author = ?,
         rarity = ?,
-        owner = ?,
-        front_image_path = ?,
-        back_image_path = ?,
+        card_owner = ?,
+        front_image = ?,
+        back_image = ?,
         updated_at = CURRENT_TIMESTAMP
         WHERE id = ?`
 
@@ -245,16 +244,15 @@ class PopulationReportDatabase {
         cardData.card_game,
         cardData.card_name,
         cardData.card_grade,
-        cardData.grade_name,
-        cardData.year_card,
+        cardData.grade_name || '',
+        cardData.year_card || '',
         cardData.set_name,
-        cardData.edition,
-        cardData.card_info,
-        cardData.card_owner, // This is mapped to 'author' in DB
+        cardData.edition || '',
+        cardData.card_info || '',
         cardData.rarity,
-        cardData.card_owner, // This is mapped to 'owner' in DB
-        cardData.front_image_path,
-        cardData.back_image_path,
+        cardData.card_owner,
+        cardData.front_image_path || '',
+        cardData.back_image_path || '',
         id
       ]
 

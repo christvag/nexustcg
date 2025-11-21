@@ -33,6 +33,7 @@ export default function CardCertificationPage() {
   const [card, setCard] = useState<CardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null)
 
   useEffect(() => {
     if (cardId) {
@@ -139,10 +140,11 @@ export default function CardCertificationPage() {
               {/* Front Image */}
               <div id="cert-front-image-section">
                 <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">Front</h3>
-                <div className="bg-gray-800 rounded-lg overflow-hidden aspect-[2.5/3.5] flex items-center justify-center border-2 border-gray-700">
+                <div className="bg-gray-800 rounded-lg overflow-hidden aspect-[2.5/3.5] flex items-center justify-center border-2 border-gray-700 cursor-zoom-in hover:border-[#d83f0a] transition-colors"
+                     onClick={() => card.front_image && setZoomedImage(card.front_image.startsWith('/') ? `/api/storage${card.front_image}` : `/api/storage/${card.front_image}`)}>
                   {card.front_image ? (
                     <img
-                      src={card.front_image.startsWith('/storage') ? `/api${card.front_image}` : card.front_image}
+                      src={card.front_image.startsWith('/') ? `/api/storage${card.front_image}` : `/api/storage/${card.front_image}`}
                       alt={`${card.card_name} - Front`}
                       className="w-full h-full object-contain"
                     />
@@ -158,10 +160,11 @@ export default function CardCertificationPage() {
               {/* Back Image */}
               <div id="cert-back-image-section">
                 <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">Back</h3>
-                <div className="bg-gray-800 rounded-lg overflow-hidden aspect-[2.5/3.5] flex items-center justify-center border-2 border-gray-700">
+                <div className="bg-gray-800 rounded-lg overflow-hidden aspect-[2.5/3.5] flex items-center justify-center border-2 border-gray-700 cursor-zoom-in hover:border-[#d83f0a] transition-colors"
+                     onClick={() => card.back_image && setZoomedImage(card.back_image.startsWith('/') ? `/api/storage${card.back_image}` : `/api/storage/${card.back_image}`)}>
                   {card.back_image ? (
                     <img
-                      src={card.back_image.startsWith('/storage') ? `/api${card.back_image}` : card.back_image}
+                      src={card.back_image.startsWith('/') ? `/api/storage${card.back_image}` : `/api/storage/${card.back_image}`}
                       alt={`${card.card_name} - Back`}
                       className="w-full h-full object-contain"
                     />
@@ -301,6 +304,38 @@ export default function CardCertificationPage() {
           </p>
         </motion.div>
       </main>
+
+      {/* Image Zoom Modal */}
+      {zoomedImage && (
+        <div
+          id="cert-zoom-modal"
+          className="fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center p-4 cursor-zoom-out"
+          onClick={() => setZoomedImage(null)}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="relative max-w-6xl max-h-[90vh] w-full h-full flex items-center justify-center"
+          >
+            <img
+              src={zoomedImage}
+              alt="Zoomed card image"
+              className="max-w-full max-h-full object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              id="cert-zoom-close-btn"
+              className="absolute top-4 right-4 bg-[#d83f0a] text-white rounded-full p-3 hover:bg-[#c13509] transition-colors"
+              onClick={() => setZoomedImage(null)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </motion.div>
+        </div>
+      )}
     </div>
   )
 }

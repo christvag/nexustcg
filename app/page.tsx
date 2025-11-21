@@ -396,7 +396,11 @@ export default function HomePage() {
                       <Link href={`/card/${card.card_id}`}>
                         <div className="aspect-[2.5/3.5] bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-lg mb-4 flex items-center justify-center cursor-pointer">
                           {card.front_image ? (
-                            <img src={card.front_image} alt={card.card_name} className="w-full h-full object-cover rounded-lg" />
+                            <img
+                              src={card.front_image.startsWith('/') ? `/api/storage${card.front_image}` : `/api/storage/${card.front_image}`}
+                              alt={card.card_name}
+                              className="w-full h-full object-cover rounded-lg"
+                            />
                           ) : (
                             <div className="text-6xl">🎴</div>
                           )}

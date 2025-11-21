@@ -140,12 +140,12 @@ export default function CardDetailPage() {
               </div>
 
               {/* Front Image */}
-              <div id="card-front-image-container" className="bg-gray-900 rounded-2xl p-8 mb-6 border-2 border-gray-800">
+              <div id="card-front-image-container" className="bg-gray-900 rounded-2xl p-8 mb-6 border-2 border-gray-800 w-fit mx-auto">
                 <div className="aspect-[2.5/3.5] bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl flex items-center justify-center overflow-hidden">
                   {card.front_image ? (
                     <img
                       id="card-front-image"
-                      src={card.front_image}
+                      src={card.front_image.startsWith('/') ? `/api/storage${card.front_image}` : `/api/storage/${card.front_image}`}
                       alt={`${card.card_name} - Front`}
                       className="w-full h-full object-contain"
                     />
@@ -160,12 +160,12 @@ export default function CardDetailPage() {
 
               {/* Back Image */}
               {card.back_image && (
-                <div id="card-back-image-container" className="bg-gray-900 rounded-2xl p-8 border-2 border-gray-800">
+                <div id="card-back-image-container" className="bg-gray-900 rounded-2xl p-8 border-2 border-gray-800 w-fit mx-auto">
                   <h3 className="text-lg font-bold text-white mb-4">Back Side</h3>
                   <div className="aspect-[2.5/3.5] bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl flex items-center justify-center overflow-hidden">
                     <img
                       id="card-back-image"
-                      src={card.back_image}
+                      src={card.back_image.startsWith('/') ? `/api/storage${card.back_image}` : `/api/storage/${card.back_image}`}
                       alt={`${card.card_name} - Back`}
                       className="w-full h-full object-contain"
                     />
