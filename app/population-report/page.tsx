@@ -105,14 +105,55 @@ export default function PopulationReportPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [supportedGames, setSupportedGames] = useState<Array<{
+    id: string
+    name: string
+    logo_path: string | null
+    icon: string
+  }>>([])
 
-  // Pre-defined games
-  const supportedGames = [
-    { id: 'pokemon', name: 'Pokemon TCG', color: 'bg-red-100 text-red-800', icon: '⚡' },
-    { id: 'yugioh', name: 'Yu-Gi-Oh!', color: 'bg-blue-100 text-blue-800', icon: '🔮' },
-    { id: 'mtg', name: 'Magic: The Gathering', color: 'bg-green-100 text-green-800', icon: '🌟' },
-    { id: 'onepiece', name: 'One Piece Cards', color: 'bg-orange-100 text-orange-800', icon: '🏴‍☠️' }
-  ]
+  // Fetch games from database on mount
+  useEffect(() => {
+    const fetchGames = async () => {
+      try {
+        const response = await fetch('/api/population-report/games')
+        if (response.ok) {
+          const result = await response.json()
+          if (result.success && result.games) {
+            const games = result.games.map((game: any) => {
+              // Fallback icons
+              const iconMap: { [key: string]: string } = {
+                'pokemon': '⚡',
+                'yugioh': '🔮',
+                'mtg': '🌟',
+                'magicthegathering': '🌟',
+                'onepiece': '🏴‍☠️',
+                'onepiececards': '🏴‍☠️'
+              }
+
+              return {
+                id: game.id,
+                name: game.name,
+                logo_path: game.logo_path,
+                icon: iconMap[game.id] || '🎮'
+              }
+            })
+            setSupportedGames(games)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching games:', error)
+        // Fallback to default games
+        setSupportedGames([
+          { id: 'pokemon', name: 'Pokemon', logo_path: null, icon: '⚡' },
+          { id: 'yugioh', name: 'Yu-Gi-Oh!', logo_path: null, icon: '🔮' },
+          { id: 'mtg', name: 'MTG', logo_path: null, icon: '🌟' },
+          { id: 'onepiece', name: 'One Piece', logo_path: null, icon: '🏴‍☠️' }
+        ])
+      }
+    }
+    fetchGames()
+  }, [])
 
   useEffect(() => {
     fetchGameStats()
@@ -584,19 +625,20 @@ export default function PopulationReportPage() {
                     key={game.id}
                     id={`population-game-card-${game.id}`}
                     onClick={() => handleGameSelect(game.id)}
-                    className="p-6 border-2 border-gray-700 rounded-lg hover:border-[#d83f0a] hover:bg-gray-700/50 transition-all text-left group bg-gray-800/50"
+                    className="p-6 border-2 border-gray-700 rounded-lg hover:border-[#d83f0a] hover:bg-gray-700/50 transition-all group bg-gray-800/50 flex flex-col items-center justify-center"
                   >
-                    <div className="flex items-center space-x-3">
-                      <span className="text-2xl">{game.icon}</span>
-                      <div>
-                        <h4 className="font-medium text-white group-hover:text-[#d83f0a]">
-                          {game.name}
-                        </h4>
-                        <p className="text-sm text-gray-400">
-                          View population report
-                        </p>
-                      </div>
-                    </div>
+                    {game.logo_path ? (
+                      <img
+                        src={`/api/storage/${game.logo_path}`}
+                        alt={game.name}
+                        className="h-[60px] object-contain mb-3"
+                      />
+                    ) : (
+                      <span className="text-4xl mb-3">{game.icon}</span>
+                    )}
+                    <p className="text-xs text-gray-400 group-hover:text-[#d83f0a] transition-colors">
+                      View population report
+                    </p>
                   </button>
                 ))}
               </div>
