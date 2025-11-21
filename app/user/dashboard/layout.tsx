@@ -125,8 +125,19 @@ export default function UserDashboardLayout({
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0`}
       >
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <h2 className="text-xl font-bold text-white">My Account</h2>
+        <div id="user-sidebar-header" className="flex items-center justify-between p-4 border-b border-gray-700">
+          <div className="flex items-center space-x-2">
+            <img
+              src="/storage/nexustcg_logo.png"
+              alt="Nexus TCG Logo"
+              className="h-8 w-8 object-contain"
+            />
+            <img
+              src="/storage/nexustcg_text_logo_white.png"
+              alt="Nexus TCGrading"
+              className="h-6 object-contain"
+            />
+          </div>
           <button
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden text-gray-400 hover:text-gray-300"

@@ -63,14 +63,17 @@ export function Header() {
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center">
-            <Link href="/" className="flex items-center space-x-2">
-              <motion.div
-                initial={{ rotate: 0 }}
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                className="h-8 w-8 rounded-lg bg-gradient-to-r from-gaming-primary to-gaming-secondary"
+            <Link href="/" className="flex items-center space-x-3">
+              <img
+                src="/storage/nexustcg_logo.png"
+                alt="Nexus TCG Logo"
+                className="h-10 w-10 object-contain"
               />
-              <span className="text-xl font-bold text-gradient">NEXUS TCGrading</span>
+              <img
+                src="/storage/nexustcg_text_logo_white.png"
+                alt="Nexus TCGrading"
+                className="h-8 object-contain"
+              />
             </Link>
           </div>
 
