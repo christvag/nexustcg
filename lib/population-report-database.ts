@@ -217,6 +217,58 @@ class PopulationReportDatabase {
     })
   }
 
+  async updateCard(id: number, cardData: any): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error('Database not connected'))
+        return
+      }
+
+      const sql = `UPDATE population_report_cards SET
+        card_type = ?,
+        card_name = ?,
+        grade = ?,
+        grade_name = ?,
+        year_card = ?,
+        set_name = ?,
+        edition = ?,
+        card_info = ?,
+        author = ?,
+        rarity = ?,
+        owner = ?,
+        front_image_path = ?,
+        back_image_path = ?,
+        updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?`
+
+      const params = [
+        cardData.card_game,
+        cardData.card_name,
+        cardData.card_grade,
+        cardData.grade_name,
+        cardData.year_card,
+        cardData.set_name,
+        cardData.edition,
+        cardData.card_info,
+        cardData.card_owner, // This is mapped to 'author' in DB
+        cardData.rarity,
+        cardData.card_owner, // This is mapped to 'owner' in DB
+        cardData.front_image_path,
+        cardData.back_image_path,
+        id
+      ]
+
+      this.db.run(sql, params, (err) => {
+        if (err) {
+          console.error('❌ Error updating card:', err.message)
+          reject(err)
+        } else {
+          resolve()
+        }
+      })
+    })
+  }
+
   async getAnalytics(): Promise<AnalyticsData> {
     const cards = await this.getAllCards()
     const totalCards = cards.length

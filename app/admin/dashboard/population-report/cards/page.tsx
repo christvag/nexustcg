@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Filter, Download, Edit2, Trash2, Eye, Calendar } from 'lucide-react';
+import { Search, Filter, Download, Edit2, Trash2, Eye, Calendar, X } from 'lucide-react';
 
 interface GradedCard {
   id: number;
@@ -17,6 +17,8 @@ interface GradedCard {
   card_info: string;
   card_owner: string;
   date_graded: string;
+  front_image_path?: string;
+  back_image_path?: string;
 }
 
 export default function PopulationReportCardsPage() {
@@ -31,6 +33,10 @@ export default function PopulationReportCardsPage() {
   const [filterDateTo, setFilterDateTo] = useState('');
   const [selectedCards, setSelectedCards] = useState<Set<number>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
+  const [editingCard, setEditingCard] = useState<GradedCard | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [uploadingFront, setUploadingFront] = useState(false);
+  const [uploadingBack, setUploadingBack] = useState(false);
 
   useEffect(() => {
     fetchCards();
@@ -142,6 +148,86 @@ export default function PopulationReportCardsPage() {
     } catch (error) {
       console.error('Failed to delete card:', error);
       alert('An error occurred while deleting the card');
+    }
+  };
+
+  const handleEdit = (card: GradedCard) => {
+    setEditingCard({ ...card });
+    setShowEditModal(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setEditingCard(null);
+    setUploadingFront(false);
+    setUploadingBack(false);
+  };
+
+  const handleUpdateCard = async () => {
+    if (!editingCard) return;
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/admin/population-report/cards/${editingCard.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(editingCard)
+      });
+
+      if (response.ok) {
+        alert('Card updated successfully');
+        handleCloseEditModal();
+        fetchCards();
+      } else {
+        const data = await response.json();
+        alert(`Failed to update card: ${data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Failed to update card:', error);
+      alert('An error occurred while updating the card');
+    }
+  };
+
+  const handleImageUpload = async (file: File, type: 'front' | 'back') => {
+    if (!editingCard) return;
+
+    try {
+      if (type === 'front') setUploadingFront(true);
+      else setUploadingBack(true);
+
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('card_id', editingCard.card_id);
+      formData.append('type', type);
+
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('/api/admin/population-report/upload-image', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setEditingCard({
+          ...editingCard,
+          [type === 'front' ? 'front_image_path' : 'back_image_path']: data.imagePath
+        });
+        alert('Image uploaded successfully');
+      } else {
+        alert('Failed to upload image');
+      }
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      alert('An error occurred while uploading the image');
+    } finally {
+      if (type === 'front') setUploadingFront(false);
+      else setUploadingBack(false);
     }
   };
 
@@ -494,9 +580,18 @@ export default function PopulationReportCardsPage() {
                     <td className="px-4 py-3 text-sm">
                       <div className="flex items-center space-x-2">
                         <button
+                          onClick={() => handleEdit(card)}
+                          className="p-1 text-blue-400 hover:text-blue-300 transition-colors"
+                          title="Edit"
+                          id={`edit-card-btn-${card.id}`}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
                           onClick={() => handleDelete(card.id)}
                           className="p-1 text-red-400 hover:text-red-300 transition-colors"
                           title="Delete"
+                          id={`delete-card-btn-${card.id}`}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -515,6 +610,215 @@ export default function PopulationReportCardsPage() {
           </table>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {showEditModal && editingCard && (
+        <div id="edit-card-modal" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-700 flex justify-between items-center sticky top-0 bg-gray-800 z-10">
+              <h2 className="text-2xl font-bold text-white">Edit Card</h2>
+              <button
+                onClick={handleCloseEditModal}
+                className="text-gray-400 hover:text-white"
+                id="close-edit-modal-btn"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Card Images */}
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Front Image */}
+                <div id="front-image-section">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Front Image
+                  </label>
+                  {editingCard.front_image_path && (
+                    <img
+                      src={`/api/storage/${editingCard.front_image_path}`}
+                      alt="Card Front"
+                      className="w-full h-48 object-contain bg-gray-900 rounded-lg mb-2"
+                    />
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'front')}
+                    disabled={uploadingFront}
+                    className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer disabled:opacity-50"
+                    id="front-image-upload"
+                  />
+                  {uploadingFront && <p className="text-sm text-blue-400 mt-2">Uploading...</p>}
+                </div>
+
+                {/* Back Image */}
+                <div id="back-image-section">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Back Image
+                  </label>
+                  {editingCard.back_image_path && (
+                    <img
+                      src={`/api/storage/${editingCard.back_image_path}`}
+                      alt="Card Back"
+                      className="w-full h-48 object-contain bg-gray-900 rounded-lg mb-2"
+                    />
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], 'back')}
+                    disabled={uploadingBack}
+                    className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer disabled:opacity-50"
+                    id="back-image-upload"
+                  />
+                  {uploadingBack && <p className="text-sm text-blue-400 mt-2">Uploading...</p>}
+                </div>
+              </div>
+
+              {/* Card Details Form */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Card ID</label>
+                  <input
+                    type="text"
+                    value={editingCard.card_id}
+                    disabled
+                    className="w-full px-3 py-2 bg-gray-700 text-gray-400 rounded-lg border border-gray-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Card Game</label>
+                  <input
+                    type="text"
+                    value={editingCard.card_game}
+                    onChange={(e) => setEditingCard({ ...editingCard, card_game: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                    id="edit-card-game"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Card Name</label>
+                  <input
+                    type="text"
+                    value={editingCard.card_name}
+                    onChange={(e) => setEditingCard({ ...editingCard, card_name: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                    id="edit-card-name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Grade</label>
+                  <input
+                    type="text"
+                    value={editingCard.card_grade}
+                    onChange={(e) => setEditingCard({ ...editingCard, card_grade: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                    id="edit-card-grade"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Grade Name</label>
+                  <input
+                    type="text"
+                    value={editingCard.grade_name}
+                    onChange={(e) => setEditingCard({ ...editingCard, grade_name: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                    id="edit-grade-name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Year</label>
+                  <input
+                    type="text"
+                    value={editingCard.year_card}
+                    onChange={(e) => setEditingCard({ ...editingCard, year_card: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                    id="edit-year"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Set Name</label>
+                  <input
+                    type="text"
+                    value={editingCard.set_name}
+                    onChange={(e) => setEditingCard({ ...editingCard, set_name: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                    id="edit-set-name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Edition</label>
+                  <input
+                    type="text"
+                    value={editingCard.edition}
+                    onChange={(e) => setEditingCard({ ...editingCard, edition: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                    id="edit-edition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Rarity</label>
+                  <input
+                    type="text"
+                    value={editingCard.rarity}
+                    onChange={(e) => setEditingCard({ ...editingCard, rarity: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                    id="edit-rarity"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Owner</label>
+                  <input
+                    type="text"
+                    value={editingCard.card_owner}
+                    onChange={(e) => setEditingCard({ ...editingCard, card_owner: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                    id="edit-owner"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Card Info</label>
+                  <textarea
+                    value={editingCard.card_info}
+                    onChange={(e) => setEditingCard({ ...editingCard, card_info: e.target.value })}
+                    rows={3}
+                    className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                    id="edit-card-info"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-700 flex justify-end space-x-4 sticky bottom-0 bg-gray-800">
+              <button
+                onClick={handleCloseEditModal}
+                className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                id="cancel-edit-btn"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateCard}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                id="save-edit-btn"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

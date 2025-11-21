@@ -19,6 +19,64 @@ function verifyToken(token: string): JWTPayload | null {
   }
 }
 
+// PUT - Update a graded card
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({
+        success: false,
+        error: 'No token provided'
+      }, { status: 401 })
+    }
+
+    const token = authHeader.substring(7)
+    const user = verifyToken(token)
+
+    if (!user) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid or expired token'
+      }, { status: 401 })
+    }
+
+    if (user.role.toLowerCase() !== 'admin') {
+      return NextResponse.json({
+        success: false,
+        error: 'Access denied. Admin role required.'
+      }, { status: 403 })
+    }
+
+    const cardId = parseInt(params.id)
+    if (isNaN(cardId)) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid card ID'
+      }, { status: 400 })
+    }
+
+    const body = await req.json()
+
+    await initializePopulationReportDatabase()
+    await populationReportDb.updateCard(cardId, body)
+
+    return NextResponse.json({
+      success: true,
+      message: 'Card updated successfully'
+    })
+  } catch (error: any) {
+    console.error('❌ Update card error:', error)
+    return NextResponse.json({
+      success: false,
+      error: 'Internal server error',
+      details: error.message
+    }, { status: 500 })
+  }
+}
+
 // DELETE - Delete a graded card
 export async function DELETE(
   req: NextRequest,
