@@ -148,9 +148,14 @@ export default function CardCertificationPage() {
       <header id="cert-header" className="bg-black/50 border-b border-gray-800 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="h-10 w-10 rounded-lg bg-gradient-to-r from-[#d83f0a] to-[#d66a0a]"></div>
-              <span className="text-2xl font-bold text-gradient">NEXUS TCGrading</span>
+            <Link href="/" className="flex flex-col items-start">
+              <img
+                src="/api/storage/nexustcg_textandlogo_white.png"
+                alt="Nexus TCGrading"
+                className="h-10 mb-1"
+                id="cert-header-logo"
+              />
+              <span className="text-xs text-gray-400">Official Grading Service</span>
             </Link>
             <div className="flex items-center space-x-2 text-green-400">
               <CheckCircle className="h-5 w-5" />

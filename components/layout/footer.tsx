@@ -3,8 +3,14 @@ export function Footer() {
     <footer className="border-t border-gray-800 bg-black/50 backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div>
-            <h3 className="text-lg font-semibold text-gradient mb-4">TCG Grading</h3>
+          <div id="footer-logo-section">
+            <img
+              src="/api/storage/nexustcg_textandlogo_white.png"
+              alt="Nexus TCGrading"
+              className="h-12 mb-3"
+              id="footer-logo-img"
+            />
+            <p className="text-xs text-gray-500 mb-3">Official Grading Service</p>
             <p className="text-sm text-gray-400">
               Professional trading card grading service for collectors and enthusiasts.
             </p>
