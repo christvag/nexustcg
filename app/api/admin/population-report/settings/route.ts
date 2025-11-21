@@ -15,6 +15,7 @@ interface JWTPayload {
 interface Settings {
   cardGames: string[]
   selectedGames: string[]
+  gameLogos?: { [key: string]: string }
 }
 
 function verifyToken(token: string): JWTPayload | null {
@@ -44,7 +45,8 @@ async function loadSettings(): Promise<Settings> {
     // Return default settings if file doesn't exist
     return {
       cardGames: ['Pokemon', 'Yu-Gi-Oh!', 'MTG', 'One Piece'],
-      selectedGames: ['Pokemon', 'Yu-Gi-Oh!', 'MTG', 'One Piece']
+      selectedGames: ['Pokemon', 'Yu-Gi-Oh!', 'MTG', 'One Piece'],
+      gameLogos: {}
     }
   }
 }
@@ -127,7 +129,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { cardGames, selectedGames } = body
+    const { cardGames, selectedGames, gameLogos } = body
 
     if (!Array.isArray(cardGames) || !Array.isArray(selectedGames)) {
       return NextResponse.json({
@@ -138,7 +140,8 @@ export async function POST(req: NextRequest) {
 
     const settings: Settings = {
       cardGames,
-      selectedGames
+      selectedGames,
+      gameLogos: gameLogos || {}
     }
 
     await saveSettings(settings)

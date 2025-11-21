@@ -1,14 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, Plus, X } from 'lucide-react';
+import { Save, Plus, X, Upload } from 'lucide-react';
 
 const DEFAULT_CARD_GAMES = ['Pokemon', 'Yu-Gi-Oh!', 'MTG', 'One Piece'];
+
+interface GameLogo {
+  [key: string]: string;
+}
 
 export default function PopulationReportSettingsPage() {
   const [selectedGames, setSelectedGames] = useState<string[]>([]);
   const [customGame, setCustomGame] = useState('');
   const [availableGames, setAvailableGames] = useState<string[]>(DEFAULT_CARD_GAMES);
+  const [gameLogos, setGameLogos] = useState<GameLogo>({});
+  const [uploadingLogo, setUploadingLogo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -34,9 +40,45 @@ export default function PopulationReportSettingsPage() {
         if (data.settings?.selectedGames) {
           setSelectedGames(data.settings.selectedGames);
         }
+        if (data.settings?.gameLogos) {
+          setGameLogos(data.settings.gameLogos);
+        }
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
+    }
+  };
+
+  const handleLogoUpload = async (game: string, file: File) => {
+    setUploadingLogo(game);
+    try {
+      const formData = new FormData();
+      formData.append('logo', file);
+      formData.append('game', game);
+
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('/api/admin/population-report/upload-game-logo', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setGameLogos(prev => ({
+          ...prev,
+          [game]: data.logoPath
+        }));
+      } else {
+        setError(data.error || 'Failed to upload logo');
+      }
+    } catch (error) {
+      console.error('Failed to upload logo:', error);
+      setError('An error occurred while uploading the logo');
+    } finally {
+      setUploadingLogo(null);
     }
   };
 
@@ -77,7 +119,8 @@ export default function PopulationReportSettingsPage() {
         },
         body: JSON.stringify({
           cardGames: availableGames,
-          selectedGames: selectedGames
+          selectedGames: selectedGames,
+          gameLogos: gameLogos
         })
       });
 
@@ -150,17 +193,46 @@ export default function PopulationReportSettingsPage() {
                         onChange={() => handleGameToggle(game)}
                         className="w-5 h-5 rounded border-gray-500 text-blue-600 focus:ring-2 focus:ring-blue-500 bg-gray-600"
                       />
+                      {gameLogos[game] ? (
+                        <img
+                          src={`/api/storage/${gameLogos[game]}`}
+                          alt={game}
+                          className="w-6 h-6 object-contain"
+                        />
+                      ) : null}
                       <span className="text-white">{game}</span>
                     </label>
-                    {!DEFAULT_CARD_GAMES.includes(game) && (
-                      <button
-                        onClick={() => handleRemoveGame(game)}
-                        className="ml-2 p-1 text-red-400 hover:text-red-300 transition-colors"
-                        title="Remove custom game"
+                    <div className="flex items-center space-x-2">
+                      <label
+                        className="cursor-pointer p-1 text-blue-400 hover:text-blue-300 transition-colors"
+                        title="Upload game logo"
                       >
-                        <X className="h-4 w-4" />
-                      </button>
-                    )}
+                        {uploadingLogo === game ? (
+                          <div className="animate-spin h-4 w-4 border-2 border-blue-400 border-t-transparent rounded-full" />
+                        ) : (
+                          <Upload className="h-4 w-4" />
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleLogoUpload(game, file);
+                          }}
+                          disabled={uploadingLogo === game}
+                        />
+                      </label>
+                      {!DEFAULT_CARD_GAMES.includes(game) && (
+                        <button
+                          onClick={() => handleRemoveGame(game)}
+                          className="p-1 text-red-400 hover:text-red-300 transition-colors"
+                          title="Remove custom game"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
