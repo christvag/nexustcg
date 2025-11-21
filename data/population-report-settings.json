@@ -1,0 +1,17 @@
+{
+  "cardGames": [
+    "Pokemon",
+    "Yu-Gi-Oh!",
+    "MTG",
+    "One Piece"
+  ],
+  "selectedGames": [
+    "Pokemon",
+    "Yu-Gi-Oh!",
+    "MTG",
+    "One Piece"
+  ],
+  "gameLogos": {
+    "Pokemon": "game_logos/pokemon.png"
+  }
+}

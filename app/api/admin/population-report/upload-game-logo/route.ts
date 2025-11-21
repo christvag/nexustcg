@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import fs from 'fs'
 import path from 'path'
+import { cardGamesDb, initializeCardGamesDatabase } from '@/lib/card-games-database'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'nexus-tcgrading-secret-key-2024'
 
@@ -78,6 +79,10 @@ export async function POST(req: NextRequest) {
 
     // Return the relative path for database storage
     const relativePath = `game_logos/${filename}`
+
+    // Update database with logo path
+    await initializeCardGamesDatabase()
+    await cardGamesDb.updateGame(game, { logo_path: relativePath })
 
     return NextResponse.json({
       success: true,
