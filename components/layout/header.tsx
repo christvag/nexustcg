@@ -65,12 +65,12 @@ export function Header() {
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-3">
               <img
-                src="/storage/nexustcg_logo.png"
+                src="/api/storage/nexustcg_logo.png"
                 alt="Nexus TCG Logo"
                 className="h-10 w-10 object-contain"
               />
               <img
-                src="/storage/nexustcg_text_logo_white.png"
+                src="/api/storage/nexustcg_text_logo_white.png"
                 alt="Nexus TCGrading"
                 className="h-8 object-contain"
               />
