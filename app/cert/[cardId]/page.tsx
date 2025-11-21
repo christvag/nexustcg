@@ -33,7 +33,10 @@ export default function CardCertificationPage() {
   const [card, setCard] = useState<CardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [zoomedImage, setZoomedImage] = useState<string | null>(null)
+  const [magnifierPos, setMagnifierPos] = useState({ x: 0, y: 0, imgX: 0, imgY: 0 })
+  const [showMagnifier, setShowMagnifier] = useState(false)
+  const [activeImage, setActiveImage] = useState<'front' | 'back' | null>(null)
+  const [imgDimensions, setImgDimensions] = useState({ width: 0, height: 0 })
 
   useEffect(() => {
     if (cardId) {
@@ -58,6 +61,55 @@ export default function CardCertificationPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>, imageType: 'front' | 'back') => {
+    const elem = e.currentTarget
+    const img = elem.querySelector('img') as HTMLImageElement
+    if (!img) return
+
+    const imgRect = img.getBoundingClientRect()
+
+    // Get natural image dimensions
+    const naturalWidth = img.naturalWidth
+    const naturalHeight = img.naturalHeight
+
+    // Calculate mouse position relative to container
+    const containerRect = elem.getBoundingClientRect()
+    const x = e.clientX - containerRect.left
+    const y = e.clientY - containerRect.top
+
+    // Calculate mouse position relative to the actual image (accounting for object-contain)
+    const imgX = e.clientX - imgRect.left
+    const imgY = e.clientY - imgRect.top
+
+    // Check if mouse is within the image bounds
+    if (imgX >= 0 && imgX <= imgRect.width && imgY >= 0 && imgY <= imgRect.height) {
+      // Calculate percentage position on the image
+      const percentX = imgX / imgRect.width
+      const percentY = imgY / imgRect.height
+
+      setMagnifierPos({
+        x,
+        y,
+        imgX: percentX * naturalWidth,
+        imgY: percentY * naturalHeight
+      })
+      setImgDimensions({ width: naturalWidth, height: naturalHeight })
+      setActiveImage(imageType)
+      setShowMagnifier(true)
+    } else {
+      setShowMagnifier(false)
+    }
+  }
+
+  const handleMouseEnter = () => {
+    // Magnifier will be shown in handleMouseMove when over image
+  }
+
+  const handleMouseLeave = () => {
+    setShowMagnifier(false)
+    setActiveImage(null)
   }
 
   if (loading) {
@@ -140,14 +192,45 @@ export default function CardCertificationPage() {
               {/* Front Image */}
               <div id="cert-front-image-section">
                 <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">Front</h3>
-                <div className="bg-gray-800 rounded-lg overflow-hidden aspect-[2.5/3.5] flex items-center justify-center border-2 border-gray-700 cursor-zoom-in hover:border-[#d83f0a] transition-colors"
-                     onClick={() => card.front_image && setZoomedImage(card.front_image.startsWith('/') ? `/api/storage${card.front_image}` : `/api/storage/${card.front_image}`)}>
+                <div
+                  className="relative bg-gray-800 rounded-lg overflow-hidden aspect-[2.5/3.5] flex items-center justify-center border-2 border-gray-700 hover:border-[#d83f0a] transition-colors"
+                  onMouseMove={(e) => handleMouseMove(e, 'front')}
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
+                >
                   {card.front_image ? (
-                    <img
-                      src={card.front_image.startsWith('/') ? `/api/storage${card.front_image}` : `/api/storage/${card.front_image}`}
-                      alt={`${card.card_name} - Front`}
-                      className="w-full h-full object-contain"
-                    />
+                    <>
+                      <img
+                        id="cert-front-image"
+                        src={card.front_image.startsWith('/') ? `/api/storage${card.front_image}` : `/api/storage/${card.front_image}`}
+                        alt={`${card.card_name} - Front`}
+                        className="w-full h-full object-contain"
+                      />
+                      {showMagnifier && activeImage === 'front' && imgDimensions.width > 0 && (
+                        <div
+                          id="cert-front-magnifier"
+                          className="absolute pointer-events-none border-4 border-[#d83f0a] rounded-full shadow-2xl overflow-hidden z-50"
+                          style={{
+                            width: '250px',
+                            height: '250px',
+                            left: `${magnifierPos.x - 125}px`,
+                            top: `${magnifierPos.y - 125}px`,
+                            backgroundColor: 'rgba(0, 0, 0, 0.1)'
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              backgroundImage: `url(${card.front_image.startsWith('/') ? `/api/storage${card.front_image}` : `/api/storage/${card.front_image}`})`,
+                              backgroundSize: `${imgDimensions.width * 2}px ${imgDimensions.height * 2}px`,
+                              backgroundPosition: `-${magnifierPos.imgX * 2 - 125}px -${magnifierPos.imgY * 2 - 125}px`,
+                              backgroundRepeat: 'no-repeat'
+                            }}
+                          />
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div className="text-center p-8">
                       <Package className="h-16 w-16 text-gray-600 mx-auto mb-2" />
@@ -160,14 +243,45 @@ export default function CardCertificationPage() {
               {/* Back Image */}
               <div id="cert-back-image-section">
                 <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">Back</h3>
-                <div className="bg-gray-800 rounded-lg overflow-hidden aspect-[2.5/3.5] flex items-center justify-center border-2 border-gray-700 cursor-zoom-in hover:border-[#d83f0a] transition-colors"
-                     onClick={() => card.back_image && setZoomedImage(card.back_image.startsWith('/') ? `/api/storage${card.back_image}` : `/api/storage/${card.back_image}`)}>
+                <div
+                  className="relative bg-gray-800 rounded-lg overflow-hidden aspect-[2.5/3.5] flex items-center justify-center border-2 border-gray-700 hover:border-[#d83f0a] transition-colors"
+                  onMouseMove={(e) => handleMouseMove(e, 'back')}
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
+                >
                   {card.back_image ? (
-                    <img
-                      src={card.back_image.startsWith('/') ? `/api/storage${card.back_image}` : `/api/storage/${card.back_image}`}
-                      alt={`${card.card_name} - Back`}
-                      className="w-full h-full object-contain"
-                    />
+                    <>
+                      <img
+                        id="cert-back-image"
+                        src={card.back_image.startsWith('/') ? `/api/storage${card.back_image}` : `/api/storage/${card.back_image}`}
+                        alt={`${card.card_name} - Back`}
+                        className="w-full h-full object-contain"
+                      />
+                      {showMagnifier && activeImage === 'back' && imgDimensions.width > 0 && (
+                        <div
+                          id="cert-back-magnifier"
+                          className="absolute pointer-events-none border-4 border-[#d83f0a] rounded-full shadow-2xl overflow-hidden z-50"
+                          style={{
+                            width: '250px',
+                            height: '250px',
+                            left: `${magnifierPos.x - 125}px`,
+                            top: `${magnifierPos.y - 125}px`,
+                            backgroundColor: 'rgba(0, 0, 0, 0.1)'
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              backgroundImage: `url(${card.back_image.startsWith('/') ? `/api/storage${card.back_image}` : `/api/storage/${card.back_image}`})`,
+                              backgroundSize: `${imgDimensions.width * 2}px ${imgDimensions.height * 2}px`,
+                              backgroundPosition: `-${magnifierPos.imgX * 2 - 125}px -${magnifierPos.imgY * 2 - 125}px`,
+                              backgroundRepeat: 'no-repeat'
+                            }}
+                          />
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div className="text-center p-8">
                       <Package className="h-16 w-16 text-gray-600 mx-auto mb-2" />
@@ -304,38 +418,6 @@ export default function CardCertificationPage() {
           </p>
         </motion.div>
       </main>
-
-      {/* Image Zoom Modal */}
-      {zoomedImage && (
-        <div
-          id="cert-zoom-modal"
-          className="fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center p-4 cursor-zoom-out"
-          onClick={() => setZoomedImage(null)}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            className="relative max-w-6xl max-h-[90vh] w-full h-full flex items-center justify-center"
-          >
-            <img
-              src={zoomedImage}
-              alt="Zoomed card image"
-              className="max-w-full max-h-full object-contain"
-              onClick={(e) => e.stopPropagation()}
-            />
-            <button
-              id="cert-zoom-close-btn"
-              className="absolute top-4 right-4 bg-[#d83f0a] text-white rounded-full p-3 hover:bg-[#c13509] transition-colors"
-              onClick={() => setZoomedImage(null)}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </motion.div>
-        </div>
-      )}
     </div>
   )
 }
