@@ -833,13 +833,6 @@ export default function UsersManagement() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <div className="flex items-center space-x-2">
                       <button
-                        id={`user-view-btn-${user.id}`}
-                        className="text-blue-600 hover:text-blue-900"
-                        title="View"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button
                         id={`user-edit-btn-${user.id}`}
                         type="button"
                         onClick={(e) => {
