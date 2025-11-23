@@ -136,16 +136,22 @@ export default function PopulationReportPage() {
     try {
       setIsLoading(true)
       const params = searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : ''
-      const response = await fetch(`/api/admin/population-report${params}`)
+      const token = localStorage.getItem('authToken')
+      const response = await fetch(`/api/admin/population-report${params}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
       if (response.ok) {
         const result = await response.json()
-        if (result.success) {
-          setGameStats(result.data.games || [])
-          const totalCards = result.data.games.reduce((sum: number, game: ApiGameData) => sum + game.total_cards, 0)
+        if (result.success && result.data?.games) {
+          const games = result.data.games || []
+          setGameStats(games)
+          const totalCards = games.reduce((sum: number, game: ApiGameData) => sum + game.total_cards, 0)
           setTotalStats({
             totalCards,
-            totalGames: result.data.games.length,
-            avgGrade: result.data.games.reduce((sum: number, game: ApiGameData) => sum + game.avg_grade, 0) / (result.data.games.length || 1)
+            totalGames: games.length,
+            avgGrade: games.length > 0 ? games.reduce((sum: number, game: ApiGameData) => sum + game.avg_grade, 0) / games.length : 0
           })
         }
       }
@@ -163,10 +169,15 @@ export default function PopulationReportPage() {
         game: selectedGame || '',
         ...(searchTerm && { search: searchTerm })
       })
-      const response = await fetch(`/api/admin/population-report?${params}`)
+      const token = localStorage.getItem('authToken')
+      const response = await fetch(`/api/admin/population-report?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
       if (response.ok) {
         const result = await response.json()
-        if (result.success) {
+        if (result.success && result.data) {
           setYearData(result.data.years || [])
         }
       }
@@ -185,10 +196,15 @@ export default function PopulationReportPage() {
         year: selectedYear || '',
         ...(searchTerm && { search: searchTerm })
       })
-      const response = await fetch(`/api/admin/population-report?${params}`)
+      const token = localStorage.getItem('authToken')
+      const response = await fetch(`/api/admin/population-report?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
       if (response.ok) {
         const result = await response.json()
-        if (result.success) {
+        if (result.success && result.data) {
           setSetData(result.data.sets || [])
         }
       }
@@ -208,10 +224,15 @@ export default function PopulationReportPage() {
         set: selectedSet || '',
         ...(searchTerm && { search: searchTerm })
       })
-      const response = await fetch(`/api/admin/population-report?${params}`)
+      const token = localStorage.getItem('authToken')
+      const response = await fetch(`/api/admin/population-report?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
       if (response.ok) {
         const result = await response.json()
-        if (result.success) {
+        if (result.success && result.data) {
           setCardData(result.data.cards || [])
         }
       }
@@ -231,10 +252,15 @@ export default function PopulationReportPage() {
         ...(selectedYear && { year: selectedYear }),
         ...(selectedSet && { set: selectedSet })
       })
-      const response = await fetch(`/api/admin/population-report/details?${params}`)
+      const token = localStorage.getItem('authToken')
+      const response = await fetch(`/api/admin/population-report/details?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
       if (response.ok) {
         const result = await response.json()
-        if (result.success) {
+        if (result.success && result.data) {
           setCardDetails(result.data)
         }
       }
@@ -308,8 +334,9 @@ export default function PopulationReportPage() {
   }
 
   const getGradeColor = (grade: string) => {
+    if (grade === '10+') return 'text-pink-600'
     const numGrade = parseFloat(grade)
-    if (numGrade === 10) return 'text-green-600'
+    if (numGrade >= 10) return 'text-green-600'
     if (numGrade >= 9) return 'text-blue-600'
     if (numGrade >= 8) return 'text-yellow-600'
     if (numGrade >= 7) return 'text-orange-600'
