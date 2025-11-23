@@ -53,8 +53,9 @@ function saveBase64Image(base64Data: string, cardId: string, side: 'front' | 'ba
     // Save the file
     fs.writeFileSync(filePath, buffer)
 
-    // Return the relative path to store in database
-    return `/storage/card_image/${folderName}/${fileName}`
+    // Return the relative path to store in database (without /storage/ prefix)
+    // Frontend will prepend /api/storage/ when displaying
+    return `card_image/${folderName}/${fileName}`
   } catch (error) {
     console.error(`Error saving ${side} image:`, error)
     return null
@@ -138,7 +139,7 @@ export async function POST(req: NextRequest) {
     const { cardId, cardGame, cardName, cardGrade, gradeName, yearCard, setName, edition, rarity, cardInfo, cardOwner, frontImage, backImage } = body
 
     // Validate required fields
-    if (!cardId || !cardGame || !cardName || !cardGrade || !gradeName || !yearCard || !setName || !rarity || !cardOwner) {
+    if (!cardId || !cardGame || !cardName || !cardGrade || !gradeName || !yearCard || !setName || !rarity) {
       return NextResponse.json({
         success: false,
         error: 'Missing required fields'
@@ -165,7 +166,7 @@ export async function POST(req: NextRequest) {
       edition: edition || '',
       rarity: rarity,
       card_info: cardInfo || '',
-      card_owner: cardOwner,
+      card_owner: cardOwner || 'Nexus TCG Grading',
       date_graded: new Date().toISOString(),
       front_image: frontImagePath || '',
       back_image: backImagePath || ''

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { populationReportDb, initializePopulationReportDatabase } from '@/lib/population-report-database'
+import fs from 'fs'
+import path from 'path'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'nexus-tcgrading-secret-key-2024'
 
@@ -17,6 +19,37 @@ function verifyToken(token: string): JWTPayload | null {
   } catch (error) {
     return null
   }
+}
+
+// Helper function to delete card images from storage
+function deleteCardImages(frontImage?: string, backImage?: string): void {
+  const deleteImage = (imagePath?: string) => {
+    if (!imagePath) return
+
+    try {
+      // Image paths are stored like: /storage/card_image/front_cards/filename.jpg
+      // or card_image/front_cards/filename.jpg
+      const relativePath = imagePath.startsWith('/storage/')
+        ? imagePath.substring(9) // Remove '/storage/'
+        : imagePath.startsWith('storage/')
+        ? imagePath.substring(8) // Remove 'storage/'
+        : imagePath
+
+      const fullPath = path.join(process.cwd(), 'storage', relativePath)
+
+      if (fs.existsSync(fullPath)) {
+        fs.unlinkSync(fullPath)
+        console.log(`✅ Deleted image: ${fullPath}`)
+      } else {
+        console.log(`⚠️ Image not found (already deleted?): ${fullPath}`)
+      }
+    } catch (error) {
+      console.error(`❌ Error deleting image ${imagePath}:`, error)
+    }
+  }
+
+  deleteImage(frontImage)
+  deleteImage(backImage)
 }
 
 // PUT - Update a graded card
@@ -117,11 +150,26 @@ export async function DELETE(
     }
 
     await initializePopulationReportDatabase()
+
+    // Fetch card data to get image paths before deletion
+    const card = await populationReportDb.getCardById(cardId)
+
+    if (!card) {
+      return NextResponse.json({
+        success: false,
+        error: 'Card not found'
+      }, { status: 404 })
+    }
+
+    // Delete associated images from storage
+    deleteCardImages(card.front_image, card.back_image)
+
+    // Delete card from database
     await populationReportDb.deleteCard(cardId)
 
     return NextResponse.json({
       success: true,
-      message: 'Card deleted successfully'
+      message: 'Card and associated images deleted successfully'
     })
   } catch (error: any) {
     console.error('❌ Delete card error:', error)

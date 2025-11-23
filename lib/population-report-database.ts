@@ -15,7 +15,7 @@ interface PopulationReportCard {
   edition?: string
   rarity: string
   card_info?: string
-  card_owner: string
+  card_owner?: string
   date_graded: string
   front_image?: string
   back_image?: string
@@ -32,7 +32,6 @@ interface AnalyticsData {
   } | null
   byGame: { game: string; count: number }[]
   byRarity: { rarity: string; count: number }[]
-  byOwner: { owner: string; count: number }[]
   byMonth: { month: string; count: number }[]
 }
 
@@ -73,7 +72,6 @@ class PopulationReportDatabase {
           edition TEXT,
           rarity TEXT NOT NULL,
           card_info TEXT,
-          card_owner TEXT NOT NULL,
           date_graded TEXT NOT NULL,
           front_image TEXT,
           back_image TEXT,
@@ -155,7 +153,7 @@ class PopulationReportDatabase {
         card.edition || '',
         card.rarity,
         card.card_info || '',
-        card.card_owner,
+        card.card_owner || 'Nexus TCG Grading',
         card.date_graded,
         card.front_image || '',
         card.back_image || ''
@@ -178,6 +176,12 @@ class PopulationReportDatabase {
   async getCardByCardId(cardId: string): Promise<PopulationReportCard | null> {
     const sql = 'SELECT * FROM population_report_cards WHERE card_id = ?'
     const results = await this.runQuery(sql, [cardId])
+    return results.length > 0 ? results[0] : null
+  }
+
+  async getCardById(id: number): Promise<PopulationReportCard | null> {
+    const sql = 'SELECT * FROM population_report_cards WHERE id = ?'
+    const results = await this.runQuery(sql, [id])
     return results.length > 0 ? results[0] : null
   }
 
@@ -234,7 +238,6 @@ class PopulationReportDatabase {
         edition = ?,
         card_info = ?,
         rarity = ?,
-        card_owner = ?,
         front_image = ?,
         back_image = ?,
         updated_at = CURRENT_TIMESTAMP
@@ -250,7 +253,6 @@ class PopulationReportDatabase {
         cardData.edition || '',
         cardData.card_info || '',
         cardData.rarity,
-        cardData.card_owner,
         cardData.front_image_path || '',
         cardData.back_image_path || '',
         id
@@ -296,15 +298,6 @@ class PopulationReportDatabase {
       .map(([rarity, count]) => ({ rarity, count }))
       .sort((a, b) => b.count - a.count)
 
-    // By Owner
-    const ownerMap = new Map<string, number>()
-    cards.forEach(card => {
-      ownerMap.set(card.card_owner, (ownerMap.get(card.card_owner) || 0) + 1)
-    })
-    const byOwner = Array.from(ownerMap.entries())
-      .map(([owner, count]) => ({ owner, count }))
-      .sort((a, b) => b.count - a.count)
-
     // By Month
     const monthMap = new Map<string, number>()
     cards.forEach(card => {
@@ -322,7 +315,6 @@ class PopulationReportDatabase {
       lastSubmission,
       byGame,
       byRarity,
-      byOwner,
       byMonth
     }
   }
