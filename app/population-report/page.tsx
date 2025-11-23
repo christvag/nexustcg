@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { 
+import {
   Search,
   TrendingUp,
   ChevronRight,
@@ -12,7 +12,8 @@ import {
   Trophy,
   BarChart3,
   ArrowLeft,
-  Home
+  Home,
+  Star
 } from 'lucide-react'
 
 interface ApiGameData {
@@ -86,6 +87,20 @@ interface CardDetails {
   }>
 }
 
+interface FeaturedCard {
+  id: number
+  card_id: string
+  card_name: string
+  card_game: string
+  card_grade: string
+  grade_name?: string
+  set_name: string
+  rarity: string
+  year_card?: string
+  front_image?: string
+  date_graded: string
+}
+
 export default function PopulationReportPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedGame, setSelectedGame] = useState<string | null>(null)
@@ -97,6 +112,7 @@ export default function PopulationReportPage() {
   const [setData, setSetData] = useState<ApiSetData[]>([])
   const [cardData, setCardData] = useState<ApiCardData[]>([])
   const [cardDetails, setCardDetails] = useState<CardDetails | null>(null)
+  const [featuredCards, setFeaturedCards] = useState<FeaturedCard[]>([])
   const [totalStats, setTotalStats] = useState({
     totalCards: 0,
     totalGames: 0,
@@ -157,7 +173,20 @@ export default function PopulationReportPage() {
 
   useEffect(() => {
     fetchGameStats()
+    fetchFeaturedCards()
   }, [])
+
+  const fetchFeaturedCards = async () => {
+    try {
+      const response = await fetch('/api/public/population-report/featured?limit=4')
+      const result = await response.json()
+      if (result.success) {
+        setFeaturedCards(result.data)
+      }
+    } catch (error) {
+      console.error('Error fetching featured cards:', error)
+    }
+  }
 
   useEffect(() => {
     if (selectedGame && !selectedYear) {
@@ -569,6 +598,53 @@ export default function PopulationReportPage() {
             </div>
           </div>
         </div>
+
+        {/* Featured Cards Section */}
+        {featuredCards.length > 0 && !selectedGame && (
+          <div id="population-featured-cards" className="bg-gray-900/50 border border-gray-800 rounded-lg shadow-lg p-6 mb-6 backdrop-blur-md">
+            <div className="flex items-center mb-6">
+              <Star className="h-6 w-6 text-yellow-400 fill-current mr-2" />
+              <h3 className="text-lg font-medium text-white">Featured Graded Cards</h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {featuredCards.map((card) => (
+                <Link
+                  key={card.id}
+                  href={`/cert/${card.card_id}`}
+                  id={`featured-card-${card.id}`}
+                  className="block bg-gray-800/50 border border-gray-700 rounded-lg p-4 hover:border-yellow-500/50 hover:bg-gray-700/50 transition-all group"
+                >
+                  <div className="aspect-[2.5/3.5] bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                    {card.front_image ? (
+                      <img
+                        src={card.front_image.startsWith('/') ? `/api/storage${card.front_image}` : `/api/storage/${card.front_image}`}
+                        alt={card.card_name}
+                        className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform"
+                      />
+                    ) : (
+                      <div className="text-5xl">🎴</div>
+                    )}
+                  </div>
+                  <div className="mb-2">
+                    <span className="inline-block px-2 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded text-xs font-bold">
+                      ID: {card.card_id}
+                    </span>
+                  </div>
+                  <h4 className="font-bold text-white mb-1 truncate group-hover:text-yellow-400 transition-colors">
+                    {card.card_name}
+                  </h4>
+                  <p className="text-xs text-gray-400 mb-1">{card.card_game}</p>
+                  <div className="flex items-center justify-between">
+                    <span className={`text-sm font-bold ${getGradeColor(card.card_grade)}`}>
+                      Grade: {card.card_grade}
+                    </span>
+                    <span className="text-xs text-gray-500">{card.set_name}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Navigation Breadcrumbs */}
         {(selectedGame || selectedYear || selectedSet || selectedCard) && (

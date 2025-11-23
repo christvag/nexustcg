@@ -2,15 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { 
-  Database, 
-  Sync, 
-  AlertCircle, 
-  CheckCircle, 
-  ExternalLink, 
+import {
+  Database,
+  RefreshCw,
+  AlertCircle,
+  CheckCircle,
+  ExternalLink,
   Settings,
   TrendingUp,
-  Eye,
   RefreshCcw,
   Loader2
 } from 'lucide-react'
@@ -279,7 +278,7 @@ NOTION_PARENT_PAGE_ID=your_parent_page_id  # optional`}
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center mb-4">
             <div className="p-2 bg-green-100 rounded-lg">
-              <Sync className="h-6 w-6 text-green-600" />
+              <RefreshCw className="h-6 w-6 text-green-600" />
             </div>
             <div className="ml-4">
               <h3 className="font-medium text-gray-900">Sync Population Report</h3>

@@ -9,14 +9,14 @@ const JWT_SECRET = process.env.JWT_SECRET || 'nexus-tcgrading-secret-key-2024'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { first_name, last_name, email, phone, password, username } = body
+    const { first_name, last_name, email, phone, password } = body
 
     console.log('[Register API] Starting registration for:', email)
 
-    // Validation
-    if (!email || !password || !first_name || !last_name || !username) {
+    // Validation - username is no longer required
+    if (!email || !password || !first_name || !last_name) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields (email, password, first_name, last_name)' },
         { status: 400 }
       )
     }
@@ -24,13 +24,6 @@ export async function POST(request: NextRequest) {
     if (password.length < 6) {
       return NextResponse.json(
         { error: 'Password must be at least 6 characters' },
-        { status: 400 }
-      )
-    }
-
-    if (username.length < 3) {
-      return NextResponse.json(
-        { error: 'Username must be at least 3 characters' },
         { status: 400 }
       )
     }
@@ -52,18 +45,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if username already exists
-    const checkUsernameSql = 'SELECT * FROM users WHERE username = ?'
-    const existingUsername = db.prepare(checkUsernameSql).get(username) as any
-
-    if (existingUsername) {
-      db.close()
-      return NextResponse.json(
-        { error: 'Username is already taken' },
-        { status: 409 }
-      )
-    }
-
     console.log('[Register API] User does not exist, creating new user')
     console.log('[Register API] Database path:', dbPath)
 
@@ -72,8 +53,8 @@ export async function POST(request: NextRequest) {
     console.log('[Register API] Password hashed')
 
     const insertSql = `
-      INSERT INTO users (email, password_hash, first_name, last_name, phone, username, role)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO users (email, password_hash, first_name, last_name, phone, role)
+      VALUES (?, ?, ?, ?, ?, ?)
     `
 
     const result = db.prepare(insertSql).run(
@@ -82,7 +63,6 @@ export async function POST(request: NextRequest) {
       first_name,
       last_name,
       phone || null,
-      username,
       'user'
     )
 

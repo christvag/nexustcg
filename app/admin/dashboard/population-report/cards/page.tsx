@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Filter, Download, Edit2, Trash2, Eye, Calendar, X } from 'lucide-react';
+import { Search, Filter, Download, Edit2, Trash2, Eye, Calendar, X, Star } from 'lucide-react';
 
 interface GradedCard {
   id: number;
@@ -15,10 +15,10 @@ interface GradedCard {
   edition: string;
   rarity: string;
   card_info: string;
-  card_owner: string;
   date_graded: string;
   front_image_path?: string;
   back_image_path?: string;
+  is_featured?: number;
 }
 
 export default function PopulationReportCardsPage() {
@@ -82,7 +82,6 @@ export default function PopulationReportCardsPage() {
       filtered = filtered.filter(card =>
         card.card_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         card.card_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        card.card_owner.toLowerCase().includes(searchTerm.toLowerCase()) ||
         card.set_name.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
@@ -260,6 +259,33 @@ export default function PopulationReportCardsPage() {
     }
   };
 
+  const handleToggleFeatured = async (id: number) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/admin/population-report/cards/${id}/featured`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Update local state
+        setCards(prevCards =>
+          prevCards.map(card =>
+            card.id === id ? { ...card, is_featured: data.is_featured ? 1 : 0 } : card
+          )
+        );
+      } else {
+        alert('Failed to update featured status');
+      }
+    } catch (error) {
+      console.error('Failed to toggle featured status:', error);
+      alert('An error occurred while updating featured status');
+    }
+  };
+
   const formatDateToYYYYMMDD = (dateString: string): string => {
     const date = new Date(dateString);
     const year = date.getFullYear();
@@ -276,7 +302,7 @@ export default function PopulationReportCardsPage() {
 
     const selectedCardsData = filteredCards.filter(card => selectedCards.has(card.id));
     const csvContent = [
-      ['id', 'type', 'name_card', 'grade', 'grade_name', 'year_card', 'set_name', 'edition', 'card_info', 'author', 'rarity', 'date_graded'],
+      ['id', 'type', 'name_card', 'grade', 'grade_name', 'year_card', 'set_name', 'edition', 'card_info', 'rarity', 'date_graded'],
       ...selectedCardsData.map(card => [
         card.card_id,
         card.card_game,
@@ -287,7 +313,6 @@ export default function PopulationReportCardsPage() {
         card.set_name,
         card.edition || '',
         card.card_info || '',
-        card.card_owner,
         card.rarity,
         formatDateToYYYYMMDD(card.date_graded)
       ])
@@ -304,7 +329,7 @@ export default function PopulationReportCardsPage() {
 
   const handleExport = () => {
     const csvContent = [
-      ['id', 'type', 'name_card', 'grade', 'grade_name', 'year_card', 'set_name', 'edition', 'card_info', 'author', 'rarity', 'date_graded'],
+      ['id', 'type', 'name_card', 'grade', 'grade_name', 'year_card', 'set_name', 'edition', 'card_info', 'rarity', 'date_graded'],
       ...filteredCards.map(card => [
         card.card_id,
         card.card_game,
@@ -315,7 +340,6 @@ export default function PopulationReportCardsPage() {
         card.set_name,
         card.edition || '',
         card.card_info || '',
-        card.card_owner,
         card.rarity,
         formatDateToYYYYMMDD(card.date_graded)
       ])
@@ -353,7 +377,7 @@ export default function PopulationReportCardsPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search by card name, ID, owner, or set..."
+                placeholder="Search by card name, ID, or set..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -516,9 +540,6 @@ export default function PopulationReportCardsPage() {
                   Rarity
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                  Owner
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Date Graded
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
@@ -571,14 +592,23 @@ export default function PopulationReportCardsPage() {
                     <td className="px-4 py-3 text-sm text-gray-300">
                       {card.rarity}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-300">
-                      {card.card_owner}
-                    </td>
                     <td className="px-4 py-3 text-sm text-gray-400">
                       {new Date(card.date_graded).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleToggleFeatured(card.id)}
+                          className={`p-1 transition-colors ${
+                            card.is_featured
+                              ? 'text-yellow-400 hover:text-yellow-300'
+                              : 'text-gray-500 hover:text-yellow-400'
+                          }`}
+                          title={card.is_featured ? 'Remove from featured' : 'Add to featured'}
+                          id={`featured-card-btn-${card.id}`}
+                        >
+                          <Star className={`h-4 w-4 ${card.is_featured ? 'fill-current' : ''}`} />
+                        </button>
                         <button
                           onClick={() => handleEdit(card)}
                           className="p-1 text-blue-400 hover:text-blue-300 transition-colors"
@@ -601,7 +631,7 @@ export default function PopulationReportCardsPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={12} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={11} className="px-4 py-8 text-center text-gray-500">
                     No cards found
                   </td>
                 </tr>
@@ -773,17 +803,6 @@ export default function PopulationReportCardsPage() {
                     onChange={(e) => setEditingCard({ ...editingCard, rarity: e.target.value })}
                     className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
                     id="edit-rarity"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Owner</label>
-                  <input
-                    type="text"
-                    value={editingCard.card_owner}
-                    onChange={(e) => setEditingCard({ ...editingCard, card_owner: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
-                    id="edit-owner"
                   />
                 </div>
 

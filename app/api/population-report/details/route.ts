@@ -47,8 +47,7 @@ export async function GET(req: NextRequest) {
         edition,
         card_grade as grade,
         card_grade as grade_name,
-        date_graded as graded_date,
-        card_owner as author
+        date_graded as graded_date
       FROM population_report_cards
       ${whereClause}
       ORDER BY card_grade DESC, created_at DESC

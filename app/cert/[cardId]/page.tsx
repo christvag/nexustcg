@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { CheckCircle, Calendar, Hash, User, Award, Star, Package, Info } from 'lucide-react'
+import { CheckCircle, Calendar, Hash, Award, Star, Package, Info } from 'lucide-react'
 
 interface CardData {
   id: number
@@ -18,7 +18,6 @@ interface CardData {
   edition?: string
   rarity: string
   card_info?: string
-  card_owner: string
   date_graded: string
   front_image?: string
   back_image?: string
@@ -372,14 +371,6 @@ export default function CardCertificationPage() {
                     <p className="text-white font-medium mt-1">{card.card_info}</p>
                   </div>
                 )}
-
-                <div id="cert-owner" className="border-b border-gray-800 pb-3">
-                  <label className="text-gray-400 text-sm uppercase tracking-wider flex items-center">
-                    <User className="h-4 w-4 mr-1" />
-                    Card Owner
-                  </label>
-                  <p className="text-white font-medium mt-1">{card.card_owner}</p>
-                </div>
 
                 <div id="cert-date-graded">
                   <label className="text-gray-400 text-sm uppercase tracking-wider flex items-center">

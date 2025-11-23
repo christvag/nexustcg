@@ -84,8 +84,27 @@ export default function CartPage() {
       return
     }
 
-    // TODO: Redirect to actual checkout page
-    router.push('/checkout')
+    // Create paymentData for payment page
+    const paymentData = {
+      packageId: cart.map(item => item.packageId).join(','),
+      packageName: cart.map(item => item.packageName).join(', '),
+      packagePrice: cart.length > 0 ? cart[0].price : 0,
+      cards: cart.map(item => ({
+        packageId: item.packageId,
+        packageName: item.packageName,
+        quantity: item.quantity,
+        price: item.price
+      })),
+      totalCards: cart.reduce((sum, item) => sum + item.quantity, 0),
+      subtotal: subtotal,
+      tax: tax,
+      shipping: 0,
+      total: total
+    }
+
+    localStorage.setItem('paymentData', JSON.stringify(paymentData))
+
+    router.push('/packages/payment')
   }
 
   if (loading) {

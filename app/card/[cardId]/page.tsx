@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Calendar, Award, User, Package, Sparkles } from 'lucide-react'
+import { ArrowLeft, Calendar, Award, Package, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 
 interface CardDetail {
@@ -18,7 +18,6 @@ interface CardDetail {
   edition?: string
   rarity: string
   card_info?: string
-  card_owner: string
   date_graded: string
   front_image?: string
   back_image?: string
@@ -57,8 +56,9 @@ export default function CardDetailPage() {
   }
 
   const getGradeColor = (grade: string) => {
+    if (grade === '10+') return 'from-pink-400 to-pink-600'
     const gradeNum = parseFloat(grade)
-    if (gradeNum >= 9.5) return 'from-yellow-400 to-yellow-600'
+    if (gradeNum >= 10) return 'from-yellow-400 to-yellow-600'
     if (gradeNum >= 9) return 'from-blue-400 to-blue-600'
     if (gradeNum >= 8) return 'from-green-400 to-green-600'
     if (gradeNum >= 7) return 'from-purple-400 to-purple-600'
@@ -66,14 +66,18 @@ export default function CardDetailPage() {
   }
 
   const getGradeName = (grade: string) => {
+    if (grade === '10+') return 'Pristine'
     const gradeNum = parseFloat(grade)
     if (gradeNum >= 10) return 'Gem Mint'
-    if (gradeNum >= 9.5) return 'Mint+'
-    if (gradeNum >= 9) return 'Mint'
-    if (gradeNum >= 8) return 'Near Mint-Mint'
-    if (gradeNum >= 7) return 'Near Mint'
-    if (gradeNum >= 6) return 'Excellent-Mint'
-    return 'Good'
+    if (gradeNum >= 9) return 'Mint+'
+    if (gradeNum >= 8) return 'Mint'
+    if (gradeNum >= 7) return 'Near Mint+'
+    if (gradeNum >= 6) return 'Near Mint'
+    if (gradeNum >= 5) return 'Excellent'
+    if (gradeNum >= 4) return 'Very Good'
+    if (gradeNum >= 3) return 'Good'
+    if (gradeNum >= 2) return 'Fair'
+    return 'Poor'
   }
 
   if (loading) {
@@ -244,14 +248,6 @@ export default function CardDetailPage() {
                     </div>
                   </div>
                 )}
-
-                <div id="card-owner-info" className="flex items-start">
-                  <User className="h-5 w-5 text-pink-400 mr-3 mt-1" />
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-500">Owner</p>
-                    <p className="text-white font-medium">{card.card_owner}</p>
-                  </div>
-                </div>
 
                 <div id="card-graded-date-info" className="flex items-start">
                   <Calendar className="h-5 w-5 text-blue-400 mr-3 mt-1" />

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyToken } from '@/lib/auth-prisma'
+import { verifyToken } from '@/lib/middleware/auth'
 
 export async function POST(req: NextRequest) {
   try {
     const authHeader = req.headers.get('Authorization')
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({
         success: false,
@@ -16,8 +16,8 @@ export async function POST(req: NextRequest) {
     }
 
     const token = authHeader.substring(7)
-    const user = verifyToken(token)
-    
+    const user = await verifyToken(token)
+
     if (!user) {
       return NextResponse.json({
         success: false,

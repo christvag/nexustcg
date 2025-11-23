@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Save, Upload, X, Image as ImageIcon, Search } from 'lucide-react';
+import { Save, Upload, X, Image as ImageIcon } from 'lucide-react';
 
 interface FormData {
   cardId: string;
@@ -14,16 +14,6 @@ interface FormData {
   edition: string;
   rarity: string;
   cardInfo: string;
-  cardOwner: string;
-}
-
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  role: string;
 }
 
 const CARD_GAMES = ['Pokemon', 'Yu-Gi-Oh!', 'MTG', 'One Piece'];
@@ -39,7 +29,8 @@ const CARD_GRADES = [
   { value: '7', label: '7', name: 'Near Mint+' },
   { value: '8', label: '8', name: 'Mint' },
   { value: '9', label: '9', name: 'Mint+' },
-  { value: '10', label: '10', name: 'Pristine' },
+  { value: '10', label: '10', name: 'Gem Mint' },
+  { value: '10+', label: '10+', name: 'Pristine' },
 ];
 
 export default function AddCardPage() {
@@ -54,7 +45,6 @@ export default function AddCardPage() {
     edition: '',
     rarity: '',
     cardInfo: '',
-    cardOwner: '',
   });
   const [frontImage, setFrontImage] = useState<File | null>(null);
   const [backImage, setBackImage] = useState<File | null>(null);
@@ -65,44 +55,12 @@ export default function AddCardPage() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
 
-  // User search state
-  const [userSearchQuery, setUserSearchQuery] = useState('');
-  const [userSearchResults, setUserSearchResults] = useState<User[]>([]);
-  const [showUserDropdown, setShowUserDropdown] = useState(false);
-  const [searchingUsers, setSearchingUsers] = useState(false);
-
   const frontInputRef = useRef<HTMLInputElement>(null);
   const backInputRef = useRef<HTMLInputElement>(null);
-  const userSearchRef = useRef<HTMLDivElement>(null);
 
   // Fetch next card ID on mount
   useEffect(() => {
     fetchNextCardId();
-  }, []);
-
-  // Handle user search
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (userSearchQuery.length >= 2) {
-        searchUsers();
-      } else {
-        setUserSearchResults([]);
-      }
-    }, 300);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [userSearchQuery]);
-
-  // Click outside handler for dropdown
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (userSearchRef.current && !userSearchRef.current.contains(event.target as Node)) {
-        setShowUserDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const fetchNextCardId = async () => {
@@ -124,36 +82,6 @@ export default function AddCardPage() {
     } finally {
       setLoadingCardId(false);
     }
-  };
-
-  const searchUsers = async () => {
-    try {
-      setSearchingUsers(true);
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`/api/users/search?q=${encodeURIComponent(userSearchQuery)}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setUserSearchResults(data.users);
-        setShowUserDropdown(true);
-      }
-    } catch (err) {
-      console.error('Error searching users:', err);
-    } finally {
-      setSearchingUsers(false);
-    }
-  };
-
-  const selectUser = (user: User) => {
-    const displayName = user.username || `${user.first_name} ${user.last_name}`;
-    setFormData(prev => ({ ...prev, cardOwner: displayName }));
-    setUserSearchQuery(displayName);
-    setShowUserDropdown(false);
-    setUserSearchResults([]);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -255,9 +183,7 @@ export default function AddCardPage() {
           edition: '',
           rarity: '',
           cardInfo: '',
-          cardOwner: '',
         }));
-        setUserSearchQuery('');
         removeFrontImage();
         removeBackImage();
 
@@ -441,60 +367,6 @@ export default function AddCardPage() {
             className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
             placeholder="e.g., Rare Holo"
           />
-        </div>
-
-        {/* Card Owner with Search */}
-        <div id="card-owner-field" ref={userSearchRef} className="relative">
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Card Owner <span className="text-red-500">*</span>
-          </label>
-          <div className="relative">
-            <input
-              type="text"
-              value={userSearchQuery}
-              onChange={(e) => {
-                setUserSearchQuery(e.target.value);
-                setFormData(prev => ({ ...prev, cardOwner: e.target.value }));
-              }}
-              onFocus={() => userSearchResults.length > 0 && setShowUserDropdown(true)}
-              required
-              className="w-full px-4 py-2 pr-10 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
-              placeholder="Search by username, email, or name..."
-            />
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-          </div>
-          <p className="text-xs text-gray-500 mt-1">Type to search for users in the database</p>
-
-          {/* User Dropdown */}
-          {showUserDropdown && userSearchResults.length > 0 && (
-            <div id="user-search-dropdown" className="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-              {searchingUsers ? (
-                <div className="p-4 text-center text-gray-400">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#d83f0a] mx-auto"></div>
-                </div>
-              ) : (
-                userSearchResults.map(user => (
-                  <div
-                    key={user.id}
-                    onClick={() => selectUser(user)}
-                    className="px-4 py-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700 last:border-b-0"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-white font-medium">
-                          {user.username || `${user.first_name} ${user.last_name}`}
-                        </p>
-                        <p className="text-sm text-gray-400">{user.email}</p>
-                      </div>
-                      <span className="text-xs text-gray-500 bg-gray-700 px-2 py-1 rounded">
-                        {user.role}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
         </div>
 
         {/* Additional Info */}

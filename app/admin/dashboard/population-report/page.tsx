@@ -13,7 +13,6 @@ interface AnalyticsData {
   } | null;
   byGame: { game: string; count: number }[];
   byRarity: { rarity: string; count: number }[];
-  byOwner: { owner: string; count: number }[];
   byMonth: { month: string; count: number }[];
 }
 
@@ -23,7 +22,6 @@ export default function PopulationReportOverview() {
     lastSubmission: null,
     byGame: [],
     byRarity: [],
-    byOwner: [],
     byMonth: []
   });
   const [loading, setLoading] = useState(true);
@@ -114,11 +112,11 @@ export default function PopulationReportOverview() {
           </div>
         </div>
 
-        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700" id="pr-stat-unique-owners">
+        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700" id="pr-stat-unique-rarities">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Unique Owners</p>
-              <p className="text-3xl font-bold text-white mt-2">{analytics.byOwner.length}</p>
+              <p className="text-gray-400 text-sm">Unique Rarities</p>
+              <p className="text-3xl font-bold text-white mt-2">{analytics.byRarity.length}</p>
             </div>
             <div className="bg-yellow-900/20 p-3 rounded-lg">
               <Users className="h-8 w-8 text-yellow-400" />
@@ -168,33 +166,6 @@ export default function PopulationReportOverview() {
                     <div className="w-32 bg-gray-700 rounded-full h-2">
                       <div
                         className="bg-purple-500 h-2 rounded-full"
-                        style={{
-                          width: `${(item.count / analytics.totalCards) * 100}%`
-                        }}
-                      />
-                    </div>
-                    <span className="text-white font-semibold w-12 text-right">{item.count}</span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-500 text-center py-4">No data available</p>
-            )}
-          </div>
-        </div>
-
-        {/* By Owner */}
-        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700" id="pr-chart-by-owner">
-          <h3 className="text-lg font-semibold text-white mb-4">Cards by Owner</h3>
-          <div className="space-y-3 max-h-64 overflow-y-auto">
-            {analytics.byOwner.length > 0 ? (
-              analytics.byOwner.map((item, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <span className="text-gray-300">{item.owner}</span>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-32 bg-gray-700 rounded-full h-2">
-                      <div
-                        className="bg-green-500 h-2 rounded-full"
                         style={{
                           width: `${(item.count / analytics.totalCards) * 100}%`
                         }}

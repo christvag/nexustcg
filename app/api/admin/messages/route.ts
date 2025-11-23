@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verify } from 'jsonwebtoken';
-import { getDB } from '@/lib/user-database';
+import { runQuery } from '@/lib/user-database';
 
 export async function GET(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    
+
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const decoded = verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
-    
+
     if (decoded.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
@@ -21,8 +21,6 @@ export async function GET(request: NextRequest) {
     const priority = searchParams.get('priority');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
-
-    const db = await getDB();
 
     // Build query
     let query = `
@@ -61,12 +59,7 @@ export async function GET(request: NextRequest) {
 
     query += ' ORDER BY sm.created_at DESC';
 
-    const allTickets = await new Promise<any[]>((resolve, reject) => {
-      db.all(query, params, (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows || []);
-      });
-    });
+    const allTickets = await runQuery(query, params);
 
     // Map database results to API format
     const tickets = allTickets.map((row: any) => ({

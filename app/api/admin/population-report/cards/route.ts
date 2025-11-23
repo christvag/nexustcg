@@ -93,9 +93,28 @@ export async function GET(req: NextRequest) {
     await initializePopulationReportDatabase()
     const cards = await populationReportDb.getAllCards()
 
+    // Transform cards to include is_featured and map database fields to expected format
+    const transformedCards = cards.map(card => ({
+      id: card.id,
+      card_id: card.card_id,
+      card_game: card.card_game,
+      card_name: card.card_name,
+      card_grade: card.card_grade,
+      grade_name: card.grade_name,
+      year_card: card.year_card,
+      set_name: card.set_name,
+      edition: card.edition,
+      rarity: card.rarity,
+      card_info: card.card_info,
+      date_graded: card.date_graded,
+      front_image_path: card.front_image,
+      back_image_path: card.back_image,
+      is_featured: card.is_featured || 0
+    }))
+
     return NextResponse.json({
       success: true,
-      cards
+      cards: transformedCards
     })
   } catch (error: any) {
     console.error('❌ Get cards error:', error)

@@ -13,23 +13,34 @@ interface PopulationCard {
   card_grade: string
   set_name: string
   rarity: string
-  card_owner: string
   month_graded: number
   year_graded: number
   front_image?: string
 }
 
+interface FeaturedCard {
+  id: number
+  card_id: string
+  card_name: string
+  card_game: string
+  card_grade: string
+  grade_name?: string
+  set_name: string
+  rarity: string
+  year_card?: string
+  front_image?: string
+  date_graded: string
+}
+
 export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [searchResults, setSearchResults] = useState<PopulationCard[]>([])
-  const [pokemonCards, setPokemonCards] = useState<PopulationCard[]>([])
+  const [featuredCards, setFeaturedCards] = useState<FeaturedCard[]>([])
   const [isSearching, setIsSearching] = useState(false)
-  const [totalPokemon, setTotalPokemon] = useState(0)
-  const [showAllPokemon, setShowAllPokemon] = useState(false)
 
-  // Fetch Pokemon cards on mount
+  // Fetch featured cards on mount
   useEffect(() => {
-    fetchPokemonCards()
+    fetchFeaturedCards()
   }, [])
 
   // Debounced search
@@ -46,16 +57,15 @@ export default function HomePage() {
     return () => clearTimeout(timer)
   }, [searchTerm])
 
-  const fetchPokemonCards = async () => {
+  const fetchFeaturedCards = async () => {
     try {
-      const response = await fetch('/api/public/population-report/pokemon?limit=20')
+      const response = await fetch('/api/public/population-report/featured?limit=4')
       const result = await response.json()
       if (result.success) {
-        setPokemonCards(result.data.cards)
-        setTotalPokemon(result.data.total)
+        setFeaturedCards(result.data)
       }
     } catch (error) {
-      console.error('Error fetching Pokemon cards:', error)
+      console.error('Error fetching featured cards:', error)
     }
   }
 
@@ -76,7 +86,6 @@ export default function HomePage() {
     }
   }
 
-  const displayedPokemonCards = showAllPokemon ? pokemonCards : pokemonCards.slice(0, 8)
 
   return (
     <div className="relative overflow-hidden">
@@ -319,11 +328,10 @@ export default function HomePage() {
                               </span>
                             </Link>
                           </div>
-                          <Link href={`/card/${card.card_id}`}>
+                          <Link href={`/cert/${card.card_id}`}>
                             <h3 className="font-bold text-white hover:text-blue-400 transition-colors cursor-pointer">{card.card_name}</h3>
                           </Link>
                           <p className="text-sm text-gray-400">{card.card_game} - {card.set_name}</p>
-                          <p className="text-sm text-gray-500">Owner: {card.card_owner}</p>
                         </div>
                         <div className="text-right">
                           <div className="text-lg font-bold text-blue-400">Grade: {card.card_grade}</div>
@@ -363,38 +371,38 @@ export default function HomePage() {
                 <div className="text-4xl mb-2">{game.logo}</div>
                 <h3 className="font-bold text-white">{game.name}</h3>
                 {game.active && (
-                  <p className="text-sm text-blue-400 mt-2">{totalPokemon} cards graded</p>
+                  <p className="text-sm text-blue-400 mt-2">Available</p>
                 )}
               </motion.div>
             ))}
           </div>
 
-          {/* Pokemon Cards Display */}
-          {pokemonCards.length > 0 && (
-            <div id="pokemon-cards-section">
+          {/* Featured Cards Display */}
+          {featuredCards.length > 0 && (
+            <div id="featured-cards-pop-section">
               <motion.h3
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 className="text-2xl font-bold text-white mb-6"
               >
-                Pokemon Graded Cards
+                Featured Cards
               </motion.h3>
 
-              <div id="pokemon-cards-grid" className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {displayedPokemonCards.map((card, index) => (
+              <div id="featured-cards-pop-grid" className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {featuredCards.map((card, index) => (
                   <motion.div
-                    id={`pokemon-card-${card.id}`}
+                    id={`featured-pop-card-${card.id}`}
                     key={card.id}
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ delay: index * 0.05 }}
-                    className="bg-gray-900 rounded-xl overflow-hidden border-2 border-gray-700 hover:border-blue-500 transition-all hover:scale-105"
+                    className="bg-gray-900 rounded-xl overflow-hidden border-2 border-yellow-500/50 hover:border-yellow-400 transition-all hover:scale-105"
                   >
-                    <div id={`pokemon-card-content-${card.id}`} className="p-4">
-                      <Link href={`/card/${card.card_id}`}>
-                        <div className="aspect-[2.5/3.5] bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-lg mb-4 flex items-center justify-center cursor-pointer">
+                    <div id={`featured-pop-card-content-${card.id}`} className="p-4">
+                      <Link href={`/cert/${card.card_id}`}>
+                        <div className="aspect-[2.5/3.5] bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-lg mb-4 flex items-center justify-center cursor-pointer">
                           {card.front_image ? (
                             <img
                               src={card.front_image.startsWith('/') ? `/api/storage${card.front_image}` : `/api/storage/${card.front_image}`}
@@ -406,45 +414,31 @@ export default function HomePage() {
                           )}
                         </div>
                       </Link>
-                      <div id={`pokemon-card-id-badge-${card.id}`} className="mb-2">
+                      <div id={`featured-pop-card-id-badge-${card.id}`} className="mb-2">
                         <Link href={`/cert/${card.card_id}`}>
-                          <span className="inline-block px-2 py-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded text-xs font-bold hover:scale-105 transition-transform cursor-pointer">
+                          <span className="inline-block px-2 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded text-xs font-bold hover:scale-105 transition-transform cursor-pointer">
                             ID: {card.card_id}
                           </span>
                         </Link>
                       </div>
-                      <Link href={`/card/${card.card_id}`}>
-                        <h4 id={`pokemon-card-name-${card.id}`} className="font-bold text-white mb-2 truncate cursor-pointer hover:text-blue-400 transition-colors">{card.card_name}</h4>
+                      <Link href={`/cert/${card.card_id}`}>
+                        <h4 id={`featured-pop-card-name-${card.id}`} className="font-bold text-white mb-2 truncate cursor-pointer hover:text-yellow-400 transition-colors">{card.card_name}</h4>
                       </Link>
-                      <div id={`pokemon-card-details-${card.id}`} className="space-y-1 text-sm">
-                        <p className="text-gray-400">Grade: <span className="text-blue-400 font-bold">{card.card_grade}</span></p>
-                        <p className="text-gray-400">
-                          Graded: {new Date(card.year_graded, card.month_graded - 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                        </p>
-                        <p className="text-gray-400">Owner: <span className="text-white">{card.card_owner}</span></p>
+                      <div id={`featured-pop-card-details-${card.id}`} className="space-y-1 text-sm">
+                        <p className="text-gray-400">{card.card_game}</p>
+                        <p className="text-gray-400">Grade: <span className="text-yellow-400 font-bold">{card.card_grade}</span></p>
+                        <p className="text-gray-400 text-xs">{card.set_name}</p>
                       </div>
                     </div>
                   </motion.div>
                 ))}
               </div>
-
-              {pokemonCards.length > 8 && (
-                <div id="pokemon-show-more-container" className="text-center mt-8">
-                  <button
-                    id="pokemon-show-more-btn"
-                    onClick={() => setShowAllPokemon(!showAllPokemon)}
-                    className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:scale-105 transition-transform"
-                  >
-                    {showAllPokemon ? 'Show Less' : `Show All ${totalPokemon} Cards`}
-                  </button>
-                </div>
-              )}
             </div>
           )}
 
-          {pokemonCards.length === 0 && (
-            <div id="no-pokemon-cards" className="text-center text-gray-400 py-12">
-              <p>No Pokemon cards available in the population report yet.</p>
+          {featuredCards.length === 0 && (
+            <div id="no-featured-cards" className="text-center text-gray-400 py-12">
+              <p>No featured cards available yet. Star cards in the admin panel to feature them here.</p>
             </div>
           )}
         </div>

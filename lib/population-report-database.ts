@@ -19,6 +19,7 @@ interface PopulationReportCard {
   date_graded: string
   front_image?: string
   back_image?: string
+  is_featured?: number
   created_at?: string
   updated_at?: string
 }
@@ -75,6 +76,7 @@ class PopulationReportDatabase {
           date_graded TEXT NOT NULL,
           front_image TEXT,
           back_image TEXT,
+          is_featured INTEGER DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -85,8 +87,15 @@ class PopulationReportDatabase {
           console.error('❌ Error creating table:', err.message)
           reject(err)
         } else {
-          console.log('✅ Population report table ready')
-          resolve()
+          // Add is_featured column if it doesn't exist (for existing databases)
+          this.db!.run(`ALTER TABLE population_report_cards ADD COLUMN is_featured INTEGER DEFAULT 0`, (alterErr) => {
+            // Ignore error if column already exists
+            if (alterErr && !alterErr.message.includes('duplicate column')) {
+              console.log('ℹ️ is_featured column may already exist:', alterErr.message)
+            }
+            console.log('✅ Population report table ready')
+            resolve()
+          })
         }
       })
     })
@@ -267,6 +276,44 @@ class PopulationReportDatabase {
         }
       })
     })
+  }
+
+  async toggleFeatured(id: number): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error('Database not connected'))
+        return
+      }
+
+      // First get current featured status
+      this.db.get('SELECT is_featured FROM population_report_cards WHERE id = ?', [id], (err, row: any) => {
+        if (err) {
+          console.error('❌ Error getting featured status:', err.message)
+          reject(err)
+          return
+        }
+
+        const newFeaturedStatus = row?.is_featured ? 0 : 1
+
+        this.db!.run(
+          'UPDATE population_report_cards SET is_featured = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+          [newFeaturedStatus, id],
+          (updateErr) => {
+            if (updateErr) {
+              console.error('❌ Error toggling featured status:', updateErr.message)
+              reject(updateErr)
+            } else {
+              resolve(newFeaturedStatus === 1)
+            }
+          }
+        )
+      })
+    })
+  }
+
+  async getFeaturedCards(limit: number = 4): Promise<PopulationReportCard[]> {
+    const sql = 'SELECT * FROM population_report_cards WHERE is_featured = 1 ORDER BY updated_at DESC LIMIT ?'
+    return await this.runQuery(sql, [limit])
   }
 
   async getAnalytics(): Promise<AnalyticsData> {

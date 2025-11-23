@@ -124,3 +124,4 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=<stripe-public-key>
 3. Use consistent layout from `layout.tsx`
 4. Follow existing dark mode theming patterns
 - make sure after the task is done, compose down and up the docker containers for a fresh updates
+- For API configurations that needed to changed or modified, make sure to test the API with a dummy data and delete afterwards if successful

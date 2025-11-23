@@ -39,3 +39,11 @@
     @apply backdrop-blur-md bg-black/10;
   }
 }
+
+/* Stripe Elements - Light background with dark text */
+#card-number-container .StripeElement,
+#card-expiry-container .StripeElement,
+#card-cvc-container .StripeElement {
+  width: 100%;
+  padding: 0;
+}

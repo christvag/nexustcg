@@ -113,16 +113,65 @@ export default function PackageDetailPage() {
     // Save to localStorage
     localStorage.setItem('cart', JSON.stringify(cart))
 
+    // Dispatch event to update cart badge in header
+    window.dispatchEvent(new Event('cartUpdated'))
+
     // Show success message
     setAddedToCart(true)
     setTimeout(() => setAddedToCart(false), 3000)
   }
 
   const handleProceedToCheckout = () => {
-    handleAddToCart()
-    setTimeout(() => {
-      router.push('/cart')
-    }, 500)
+    if (!packageData) return
+
+    // Get existing cart from localStorage
+    const existingCart = localStorage.getItem('cart')
+    let cart: CartItem[] = existingCart ? JSON.parse(existingCart) : []
+
+    // Check if package already in cart
+    const existingItemIndex = cart.findIndex(item => item.packageId === packageData.id)
+
+    if (existingItemIndex === -1) {
+      // Only add if not already in cart
+      cart.push({
+        packageId: packageData.id,
+        packageName: packageData.name,
+        price: packageData.price,
+        quantity: quantity
+      })
+      localStorage.setItem('cart', JSON.stringify(cart))
+      // Dispatch event to update cart badge
+      window.dispatchEvent(new Event('cartUpdated'))
+    }
+
+    // Calculate totals from cart
+    const updatedCart = existingItemIndex === -1 ? cart : cart
+    const subtotal = updatedCart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+    const tax = subtotal * 0.08
+    const totalCards = updatedCart.reduce((sum, item) => sum + item.quantity, 0)
+
+    // Create paymentData for payment page
+    const paymentData = {
+      packageId: updatedCart.map(item => item.packageId).join(','),
+      packageName: updatedCart.map(item => item.packageName).join(', '),
+      packagePrice: updatedCart.length > 0 ? updatedCart[0].price : 0,
+      cards: updatedCart.map(item => ({
+        packageId: item.packageId,
+        packageName: item.packageName,
+        quantity: item.quantity,
+        price: item.price
+      })),
+      totalCards: totalCards,
+      subtotal: subtotal,
+      tax: tax,
+      shipping: 0,
+      total: subtotal + tax
+    }
+
+    localStorage.setItem('paymentData', JSON.stringify(paymentData))
+
+    // Navigate to payment page
+    router.push('/packages/payment')
   }
 
   if (loading) {
