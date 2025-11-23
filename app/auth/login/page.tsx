@@ -38,7 +38,7 @@ export default function LoginPage() {
         
         // Redirect based on user role
         if (data.user.role.toLowerCase() === 'admin') {
-          router.push('/admin/dashboard/analytics')
+          router.push('/admin/dashboard')
         } else {
           router.push('/user/dashboard/my-orders')
         }

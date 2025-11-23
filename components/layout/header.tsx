@@ -92,7 +92,7 @@ export function Header() {
 
   const getDashboardLink = () => {
     if (!user) return '/auth/login'
-    return user.role === 'admin' ? '/admin/dashboard/analytics' : '/user/dashboard/my-orders'
+    return user.role === 'admin' ? '/admin/dashboard' : '/user/dashboard/my-orders'
   }
 
   return (
