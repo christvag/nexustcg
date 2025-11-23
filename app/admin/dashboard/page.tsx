@@ -465,12 +465,12 @@ export default function AdminDashboard() {
             </div>
             <div className="ml-4">
               <h4 className="text-lg font-medium text-white">Population Report</h4>
-              <p className="text-sm text-gray-400">Notion integration</p>
+              <p className="text-sm text-gray-400">Manage graded cards database</p>
             </div>
           </div>
           <div className="mt-4">
-            <a href="/admin/dashboard/notion" className="text-[#d83f0a] hover:text-[#d66a0a] font-medium text-sm">
-              Manage Sync →
+            <a href="/admin/dashboard/population-report" className="text-[#d83f0a] hover:text-[#d66a0a] font-medium text-sm">
+              Manage Cards →
             </a>
           </div>
         </div>

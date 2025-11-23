@@ -105,12 +105,12 @@ export function Header() {
                 <img
                   src="/api/storage/nexustcg_logo.png"
                   alt="Nexus TCG Logo"
-                  className="h-10 w-10 object-contain"
+                  className="h-11 w-11 object-contain"
                 />
                 <img
                   src="/api/storage/nexustcg_text_logo_white.png"
                   alt="Nexus TCGrading"
-                  className="h-8 object-contain"
+                  className="h-9 object-contain"
                 />
               </Link>
             </div>

@@ -26,7 +26,6 @@ const sidebarItems = [
   { href: '/admin/dashboard/population-report', label: 'Population Report', icon: BarChart3 },
   { href: '/admin/dashboard/packages', label: 'Packages', icon: Package },
   { href: '/admin/dashboard/messages', label: 'Messages', icon: MessageSquare },
-  { href: '/admin/dashboard/payment', label: 'Payment Config', icon: CreditCard },
   { href: '/admin/dashboard/settings', label: 'Settings', icon: Settings },
 ];
 
@@ -91,7 +90,7 @@ export default function AdminLayout({
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d83f0a]"></div>
       </div>
     );
   }
@@ -178,7 +177,7 @@ export default function AdminLayout({
                     href={item.href}
                     className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
                       isActive
-                        ? 'bg-blue-900/20 text-blue-400 font-medium'
+                        ? 'bg-[#d83f0a]/20 text-[#d83f0a] font-medium'
                         : 'text-gray-300 hover:bg-gray-700'
                     }`}
                   >
@@ -244,10 +243,10 @@ export default function AdminLayout({
                   <div className="bg-gray-800 rounded-lg shadow-lg border border-gray-700">
                     <Link
                       id="admin-profile-link"
-                      href="/admin/profile"
+                      href="/admin/dashboard/settings"
                       className="block px-4 py-2 text-gray-300 hover:bg-gray-700 rounded-t-lg"
                     >
-                      Profile
+                      Settings
                     </Link>
                     <hr className="my-1 border-gray-700" />
                     <button
