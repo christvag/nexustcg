@@ -184,13 +184,14 @@ export default function PopulationReportPage() {
       const response = await fetch(`/api/population-report${params}`)
       if (response.ok) {
         const result = await response.json()
-        if (result.success) {
-          setGameStats(result.data.games || [])
-          const totalCards = result.data.games.reduce((sum: number, game: ApiGameData) => sum + game.total_cards, 0)
+        if (result.success && result.data?.games) {
+          const games = result.data.games || []
+          setGameStats(games)
+          const totalCards = games.reduce((sum: number, game: ApiGameData) => sum + game.total_cards, 0)
           setTotalStats({
             totalCards,
-            totalGames: result.data.games.length,
-            avgGrade: result.data.games.reduce((sum: number, game: ApiGameData) => sum + game.avg_grade, 0) / (result.data.games.length || 1)
+            totalGames: games.length,
+            avgGrade: games.length > 0 ? games.reduce((sum: number, game: ApiGameData) => sum + game.avg_grade, 0) / games.length : 0
           })
         }
       }
@@ -211,7 +212,7 @@ export default function PopulationReportPage() {
       const response = await fetch(`/api/population-report?${params}`)
       if (response.ok) {
         const result = await response.json()
-        if (result.success) {
+        if (result.success && result.data) {
           setYearData(result.data.years || [])
         }
       }
@@ -233,7 +234,7 @@ export default function PopulationReportPage() {
       const response = await fetch(`/api/population-report?${params}`)
       if (response.ok) {
         const result = await response.json()
-        if (result.success) {
+        if (result.success && result.data) {
           setSetData(result.data.sets || [])
         }
       }
@@ -256,7 +257,7 @@ export default function PopulationReportPage() {
       const response = await fetch(`/api/population-report?${params}`)
       if (response.ok) {
         const result = await response.json()
-        if (result.success) {
+        if (result.success && result.data) {
           setCardData(result.data.cards || [])
         }
       }
@@ -279,7 +280,7 @@ export default function PopulationReportPage() {
       const response = await fetch(`/api/population-report/details?${params}`)
       if (response.ok) {
         const result = await response.json()
-        if (result.success) {
+        if (result.success && result.data) {
           setCardDetails(result.data)
         }
       }
@@ -375,12 +376,13 @@ export default function PopulationReportPage() {
   }
 
   const getGradeColor = (grade: string) => {
+    if (grade === '10+') return 'text-pink-500'
     const numGrade = parseFloat(grade)
-    if (numGrade === 10) return 'text-green-600'
-    if (numGrade >= 9) return 'text-blue-600'
-    if (numGrade >= 8) return 'text-yellow-600'
-    if (numGrade >= 7) return 'text-orange-600'
-    return 'text-red-600'
+    if (numGrade >= 10) return 'text-green-500'
+    if (numGrade >= 9) return 'text-blue-500'
+    if (numGrade >= 8) return 'text-yellow-500'
+    if (numGrade >= 7) return 'text-orange-500'
+    return 'text-red-500'
   }
 
   if (isLoading && gameStats.length === 0) {
@@ -478,7 +480,6 @@ export default function PopulationReportPage() {
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Card Name</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Game</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Grade</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Owner</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-700">
@@ -501,9 +502,6 @@ export default function PopulationReportPage() {
                           <span className={`px-2 py-1 rounded text-xs font-medium bg-gray-900 ${getGradeColor(card.card_grade)}`}>
                             {card.card_grade}
                           </span>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">
-                          {card.card_owner}
                         </td>
                       </tr>
                     ))}
