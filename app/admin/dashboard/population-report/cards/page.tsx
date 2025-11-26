@@ -713,8 +713,9 @@ export default function PopulationReportCardsPage() {
                   <input
                     type="text"
                     value={editingCard.card_id}
-                    disabled
-                    className="w-full px-3 py-2 bg-gray-700 text-gray-400 rounded-lg border border-gray-600"
+                    onChange={(e) => setEditingCard({ ...editingCard, card_id: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                    id="edit-card-id"
                   />
                 </div>
 

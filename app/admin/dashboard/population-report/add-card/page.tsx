@@ -228,12 +228,13 @@ export default function AddCardPage() {
             type="text"
             name="cardId"
             value={formData.cardId}
-            readOnly
+            onChange={handleChange}
             disabled={loadingCardId}
-            className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white font-mono text-lg cursor-not-allowed opacity-75"
+            required
+            className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white font-mono text-lg focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
             placeholder="Auto-generated"
           />
-          <p className="text-xs text-gray-500 mt-1">Automatically generated 8-digit card number</p>
+          <p className="text-xs text-gray-500 mt-1">8-digit card number (auto-generated, but editable)</p>
         </div>
 
         {/* Card Game & Card Name */}

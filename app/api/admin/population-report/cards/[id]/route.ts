@@ -104,7 +104,9 @@ export async function PUT(
     console.error('❌ Update card error:', error)
     return NextResponse.json({
       success: false,
-      error: 'Internal server error',
+      error: error.message.includes('UNIQUE constraint')
+        ? 'Card ID already exists'
+        : 'Internal server error',
       details: error.message
     }, { status: 500 })
   }

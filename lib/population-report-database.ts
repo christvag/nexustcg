@@ -238,6 +238,7 @@ class PopulationReportDatabase {
       }
 
       const sql = `UPDATE population_report_cards SET
+        card_id = ?,
         card_game = ?,
         card_name = ?,
         card_grade = ?,
@@ -253,6 +254,7 @@ class PopulationReportDatabase {
         WHERE id = ?`
 
       const params = [
+        cardData.card_id,
         cardData.card_game,
         cardData.card_name,
         cardData.card_grade,
