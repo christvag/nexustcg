@@ -38,10 +38,24 @@ export default function PopulationReportCardsPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [uploadingFront, setUploadingFront] = useState(false);
   const [uploadingBack, setUploadingBack] = useState(false);
+  const [availableGames, setAvailableGames] = useState<string[]>([]);
 
   useEffect(() => {
     fetchCards();
+    fetchAvailableGames();
   }, []);
+
+  const fetchAvailableGames = async () => {
+    try {
+      const response = await fetch('/api/population-report/games');
+      const data = await response.json();
+      if (data.success && data.games) {
+        setAvailableGames(data.games.map((game: { name: string }) => game.name));
+      }
+    } catch (err) {
+      console.error('Failed to fetch games:', err);
+    }
+  };
 
   useEffect(() => {
     filterCards();
@@ -730,13 +744,22 @@ export default function PopulationReportCardsPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Card Game</label>
-                  <input
-                    type="text"
+                  <select
                     value={editingCard.card_game}
                     onChange={(e) => setEditingCard({ ...editingCard, card_game: e.target.value })}
                     className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
                     id="edit-card-game"
-                  />
+                  >
+                    <option value="">Select a game</option>
+                    {availableGames.length > 0 ? (
+                      availableGames.map(game => (
+                        <option key={game} value={game}>{game}</option>
+                      ))
+                    ) : (
+                      // Fallback: include the current game if availableGames is empty
+                      <option value={editingCard.card_game}>{editingCard.card_game}</option>
+                    )}
+                  </select>
                 </div>
 
                 <div>

@@ -17,7 +17,13 @@ interface FormData {
   cardInfo: string;
 }
 
-const CARD_GAMES = ['Pokemon', 'Yu-Gi-Oh!', 'MTG', 'One Piece'];
+interface GameOption {
+  id: string;
+  name: string;
+  logo_path?: string;
+}
+
+const DEFAULT_CARD_GAMES = ['Pokemon', 'Yu-Gi-Oh!', 'MTG', 'One Piece'];
 
 const CARD_GRADES = [
   { value: 'Auth', label: 'Auth - Authentication', name: 'Authentic' },
@@ -56,14 +62,29 @@ export default function AddCardPage() {
   const [loadingCardId, setLoadingCardId] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [cardGames, setCardGames] = useState<string[]>(DEFAULT_CARD_GAMES);
 
   const frontInputRef = useRef<HTMLInputElement>(null);
   const backInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch next card ID on mount
+  // Fetch next card ID and games on mount
   useEffect(() => {
     fetchNextCardId();
+    fetchCardGames();
   }, []);
+
+  const fetchCardGames = async () => {
+    try {
+      const response = await fetch('/api/population-report/games');
+      const data = await response.json();
+      if (data.success && data.games && data.games.length > 0) {
+        setCardGames(data.games.map((game: GameOption) => game.name));
+      }
+    } catch (err) {
+      console.error('Failed to fetch card games:', err);
+      // Keep default games on error
+    }
+  };
 
   const fetchNextCardId = async () => {
     try {
@@ -254,7 +275,7 @@ export default function AddCardPage() {
               className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
             >
               <option value="">Select a game</option>
-              {CARD_GAMES.map(game => (
+              {cardGames.map(game => (
                 <option key={game} value={game}>{game}</option>
               ))}
             </select>
