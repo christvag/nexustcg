@@ -591,7 +591,7 @@ export default function PopulationReportPage() {
                 <Calendar className="h-6 w-6 text-white" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-400">Gem Mint</p>
+                <p className="text-sm font-medium text-gray-400">GEM MINT</p>
                 <p className="text-2xl font-semibold text-white">{gameStats.reduce((sum, game) => sum + game.gem_mint_cards, 0).toLocaleString()}</p>
                 <p className="text-xs text-gray-500">Grade 9-10</p>
               </div>

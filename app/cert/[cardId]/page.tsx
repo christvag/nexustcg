@@ -17,6 +17,7 @@ interface CardData {
   set_name: string
   edition?: string
   rarity: string
+  card_number?: string
   card_info?: string
   date_graded: string
   front_image?: string
@@ -364,6 +365,16 @@ export default function CardCertificationPage() {
                   </label>
                   <p className="text-white font-medium mt-1">{card.rarity}</p>
                 </div>
+
+                {card.card_number && (
+                  <div id="cert-card-number" className="border-b border-gray-800 pb-3">
+                    <label className="text-gray-400 text-sm uppercase tracking-wider flex items-center">
+                      <Hash className="h-4 w-4 mr-1" />
+                      Card Number
+                    </label>
+                    <p className="text-white font-medium mt-1">{card.card_number}</p>
+                  </div>
+                )}
 
                 {card.card_info && (
                   <div id="cert-card-info" className="border-b border-gray-800 pb-3">

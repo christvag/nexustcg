@@ -11,9 +11,10 @@ interface PopulationReportCard {
   card_grade: string
   grade_name?: string
   year_card?: string
-  set_name: string
+  set_name?: string
   edition?: string
   rarity: string
+  card_number?: string
   card_info?: string
   card_owner?: string
   date_graded: string
@@ -72,6 +73,7 @@ class PopulationReportDatabase {
           set_name TEXT NOT NULL,
           edition TEXT,
           rarity TEXT NOT NULL,
+          card_number TEXT,
           card_info TEXT,
           date_graded TEXT NOT NULL,
           front_image TEXT,
@@ -93,8 +95,14 @@ class PopulationReportDatabase {
             if (alterErr && !alterErr.message.includes('duplicate column')) {
               console.log('ℹ️ is_featured column may already exist:', alterErr.message)
             }
-            console.log('✅ Population report table ready')
-            resolve()
+            // Add card_number column if it doesn't exist (for existing databases)
+            this.db!.run(`ALTER TABLE population_report_cards ADD COLUMN card_number TEXT`, (cardNumErr) => {
+              if (cardNumErr && !cardNumErr.message.includes('duplicate column')) {
+                console.log('ℹ️ card_number column may already exist:', cardNumErr.message)
+              }
+              console.log('✅ Population report table ready')
+              resolve()
+            })
           })
         }
       })
@@ -146,9 +154,9 @@ class PopulationReportDatabase {
       const sql = `
         INSERT INTO population_report_cards (
           card_id, card_game, card_name, card_grade, grade_name, year_card,
-          set_name, edition, rarity, card_info, card_owner, date_graded,
+          set_name, edition, rarity, card_number, card_info, card_owner, date_graded,
           front_image, back_image
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `
 
       this.db.run(sql, [
@@ -158,9 +166,10 @@ class PopulationReportDatabase {
         card.card_grade,
         card.grade_name || '',
         card.year_card || '',
-        card.set_name,
+        card.set_name || '',
         card.edition || '',
         card.rarity,
+        card.card_number || '',
         card.card_info || '',
         card.card_owner || 'Nexus TCG Grading',
         card.date_graded,
@@ -246,6 +255,7 @@ class PopulationReportDatabase {
         year_card = ?,
         set_name = ?,
         edition = ?,
+        card_number = ?,
         card_info = ?,
         rarity = ?,
         front_image = ?,
@@ -262,6 +272,7 @@ class PopulationReportDatabase {
         cardData.year_card || '',
         cardData.set_name,
         cardData.edition || '',
+        cardData.card_number || '',
         cardData.card_info || '',
         cardData.rarity,
         cardData.front_image_path || '',

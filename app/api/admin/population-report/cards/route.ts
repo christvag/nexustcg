@@ -105,6 +105,7 @@ export async function GET(req: NextRequest) {
       set_name: card.set_name,
       edition: card.edition,
       rarity: card.rarity,
+      card_number: card.card_number,
       card_info: card.card_info,
       date_graded: card.date_graded,
       front_image_path: card.front_image,
@@ -155,10 +156,10 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { cardId, cardGame, cardName, cardGrade, gradeName, yearCard, setName, edition, rarity, cardInfo, cardOwner, frontImage, backImage } = body
+    const { cardId, cardGame, cardName, cardGrade, gradeName, yearCard, setName, edition, rarity, cardNumber, cardInfo, cardOwner, frontImage, backImage } = body
 
-    // Validate required fields
-    if (!cardId || !cardGame || !cardName || !cardGrade || !gradeName || !yearCard || !setName || !rarity) {
+    // Validate required fields (Serial Number, Card Game, Card Name, Card Grade, Rarity)
+    if (!cardId || !cardGame || !cardName || !cardGrade || !rarity) {
       return NextResponse.json({
         success: false,
         error: 'Missing required fields'
@@ -184,6 +185,7 @@ export async function POST(req: NextRequest) {
       set_name: setName,
       edition: edition || '',
       rarity: rarity,
+      card_number: cardNumber || '',
       card_info: cardInfo || '',
       card_owner: cardOwner || 'Nexus TCG Grading',
       date_graded: new Date().toISOString(),

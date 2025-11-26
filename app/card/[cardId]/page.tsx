@@ -66,18 +66,18 @@ export default function CardDetailPage() {
   }
 
   const getGradeName = (grade: string) => {
-    if (grade === '10+') return 'Pristine'
+    if (grade === '10+') return 'PRISTINE'
     const gradeNum = parseFloat(grade)
-    if (gradeNum >= 10) return 'Gem Mint'
-    if (gradeNum >= 9) return 'Mint+'
-    if (gradeNum >= 8) return 'Mint'
-    if (gradeNum >= 7) return 'Near Mint+'
-    if (gradeNum >= 6) return 'Near Mint'
-    if (gradeNum >= 5) return 'Excellent'
-    if (gradeNum >= 4) return 'Very Good'
-    if (gradeNum >= 3) return 'Good'
-    if (gradeNum >= 2) return 'Fair'
-    return 'Poor'
+    if (gradeNum >= 10) return 'GEM MINT'
+    if (gradeNum >= 9) return 'MINT'
+    if (gradeNum >= 8) return 'NM-MT'
+    if (gradeNum >= 7) return 'NM'
+    if (gradeNum >= 6) return 'EX/NM'
+    if (gradeNum >= 5) return 'EX'
+    if (gradeNum >= 4) return 'VG'
+    if (gradeNum >= 3) return 'GOOD'
+    if (gradeNum >= 2) return 'FAIR'
+    return 'POOR'
   }
 
   if (loading) {

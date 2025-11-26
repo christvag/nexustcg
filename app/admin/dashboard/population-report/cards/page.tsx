@@ -14,6 +14,7 @@ interface GradedCard {
   set_name: string;
   edition: string;
   rarity: string;
+  card_number: string;
   card_info: string;
   date_graded: string;
   front_image_path?: string;
@@ -302,7 +303,7 @@ export default function PopulationReportCardsPage() {
 
     const selectedCardsData = filteredCards.filter(card => selectedCards.has(card.id));
     const csvContent = [
-      ['id', 'type', 'name_card', 'grade', 'grade_name', 'year_card', 'set_name', 'edition', 'card_info', 'rarity', 'date_graded'],
+      ['serial_number', 'type', 'name_card', 'grade', 'grade_name', 'year_card', 'set_name', 'edition', 'card_info', 'rarity', 'card_number', 'date_graded'],
       ...selectedCardsData.map(card => [
         card.card_id,
         card.card_game,
@@ -314,6 +315,7 @@ export default function PopulationReportCardsPage() {
         card.edition || '',
         card.card_info || '',
         card.rarity,
+        card.card_number || '',
         formatDateToYYYYMMDD(card.date_graded)
       ])
     ].map(row => row.join(',')).join('\n');
@@ -329,7 +331,7 @@ export default function PopulationReportCardsPage() {
 
   const handleExport = () => {
     const csvContent = [
-      ['id', 'type', 'name_card', 'grade', 'grade_name', 'year_card', 'set_name', 'edition', 'card_info', 'rarity', 'date_graded'],
+      ['serial_number', 'type', 'name_card', 'grade', 'grade_name', 'year_card', 'set_name', 'edition', 'card_info', 'rarity', 'card_number', 'date_graded'],
       ...filteredCards.map(card => [
         card.card_id,
         card.card_game,
@@ -341,6 +343,7 @@ export default function PopulationReportCardsPage() {
         card.edition || '',
         card.card_info || '',
         card.rarity,
+        card.card_number || '',
         formatDateToYYYYMMDD(card.date_graded)
       ])
     ].map(row => row.join(',')).join('\n');
@@ -515,34 +518,37 @@ export default function PopulationReportCardsPage() {
                     title="Select All"
                   />
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                  Card ID
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider" id="pr-th-serial-number">
+                  Serial Number
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider" id="pr-th-game">
                   Game
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider" id="pr-th-card-name">
                   Card Name
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider" id="pr-th-grade">
                   Grade
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider" id="pr-th-grade-name">
                   Grade Name
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider" id="pr-th-year">
                   Year
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider" id="pr-th-set">
                   Set
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider" id="pr-th-rarity">
                   Rarity
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider" id="pr-th-card-number">
+                  Card Number
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider" id="pr-th-date-graded">
                   Date Graded
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider" id="pr-th-actions">
                   Actions
                 </th>
               </tr>
@@ -592,6 +598,9 @@ export default function PopulationReportCardsPage() {
                     <td className="px-4 py-3 text-sm text-gray-300">
                       {card.rarity}
                     </td>
+                    <td className="px-4 py-3 text-sm text-gray-300" id={`pr-td-card-number-${card.id}`}>
+                      {card.card_number || '-'}
+                    </td>
                     <td className="px-4 py-3 text-sm text-gray-400">
                       {new Date(card.date_graded).toLocaleDateString()}
                     </td>
@@ -631,7 +640,7 @@ export default function PopulationReportCardsPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={11} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={12} className="px-4 py-8 text-center text-gray-500">
                     No cards found
                   </td>
                 </tr>
@@ -709,13 +718,13 @@ export default function PopulationReportCardsPage() {
               {/* Card Details Form */}
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Card ID</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Serial Number</label>
                   <input
                     type="text"
                     value={editingCard.card_id}
                     onChange={(e) => setEditingCard({ ...editingCard, card_id: e.target.value })}
                     className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
-                    id="edit-card-id"
+                    id="edit-serial-number"
                   />
                 </div>
 
@@ -804,6 +813,18 @@ export default function PopulationReportCardsPage() {
                     onChange={(e) => setEditingCard({ ...editingCard, rarity: e.target.value })}
                     className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
                     id="edit-rarity"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Card Number</label>
+                  <input
+                    type="text"
+                    value={editingCard.card_number || ''}
+                    onChange={(e) => setEditingCard({ ...editingCard, card_number: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                    id="edit-card-number"
+                    placeholder="e.g., 4/102"
                   />
                 </div>
 

@@ -13,6 +13,7 @@ interface FormData {
   setName: string;
   edition: string;
   rarity: string;
+  cardNumber: string;
   cardInfo: string;
 }
 
@@ -20,17 +21,17 @@ const CARD_GAMES = ['Pokemon', 'Yu-Gi-Oh!', 'MTG', 'One Piece'];
 
 const CARD_GRADES = [
   { value: 'Auth', label: 'Auth - Authentication', name: 'Authentic' },
-  { value: '1', label: '1', name: 'Poor' },
-  { value: '2', label: '2', name: 'Fair' },
-  { value: '3', label: '3', name: 'Good' },
-  { value: '4', label: '4', name: 'Very Good' },
-  { value: '5', label: '5', name: 'Excellent' },
-  { value: '6', label: '6', name: 'Near Mint' },
-  { value: '7', label: '7', name: 'Near Mint+' },
-  { value: '8', label: '8', name: 'Mint' },
-  { value: '9', label: '9', name: 'Mint+' },
-  { value: '10', label: '10', name: 'Gem Mint' },
-  { value: '10+', label: '10+', name: 'Pristine' },
+  { value: '1', label: '1', name: 'POOR' },
+  { value: '2', label: '2', name: 'FAIR' },
+  { value: '3', label: '3', name: 'GOOD' },
+  { value: '4', label: '4', name: 'VG' },
+  { value: '5', label: '5', name: 'EX' },
+  { value: '6', label: '6', name: 'EX/NM' },
+  { value: '7', label: '7', name: 'NM' },
+  { value: '8', label: '8', name: 'NM-MT' },
+  { value: '9', label: '9', name: 'MINT' },
+  { value: '10', label: '10', name: 'GEM MINT' },
+  { value: '10+', label: '10+', name: 'PRISTINE' },
 ];
 
 export default function AddCardPage() {
@@ -44,6 +45,7 @@ export default function AddCardPage() {
     setName: '',
     edition: '',
     rarity: '',
+    cardNumber: '',
     cardInfo: '',
   });
   const [frontImage, setFrontImage] = useState<File | null>(null);
@@ -182,6 +184,7 @@ export default function AddCardPage() {
           setName: '',
           edition: '',
           rarity: '',
+          cardNumber: '',
           cardInfo: '',
         }));
         removeFrontImage();
@@ -219,10 +222,10 @@ export default function AddCardPage() {
       )}
 
       <form id="add-card-form" onSubmit={handleSubmit} className="space-y-6">
-        {/* Card ID */}
-        <div id="card-id-field">
+        {/* Serial Number */}
+        <div id="serial-number-field">
           <label className="block text-sm font-medium text-gray-300 mb-2">
-            Card No. <span className="text-red-500">*</span>
+            Serial Number <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -234,7 +237,7 @@ export default function AddCardPage() {
             className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white font-mono text-lg focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
             placeholder="Auto-generated"
           />
-          <p className="text-xs text-gray-500 mt-1">8-digit card number (auto-generated, but editable)</p>
+          <p className="text-xs text-gray-500 mt-1">8-digit serial number (auto-generated, but editable)</p>
         </div>
 
         {/* Card Game & Card Name */}
@@ -326,14 +329,13 @@ export default function AddCardPage() {
 
           <div id="set-name-field">
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Set Name <span className="text-red-500">*</span>
+              Set Name
             </label>
             <input
               type="text"
               name="setName"
               value={formData.setName}
               onChange={handleChange}
-              required
               className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
               placeholder="e.g., Base Set"
             />
@@ -354,20 +356,36 @@ export default function AddCardPage() {
           </div>
         </div>
 
-        {/* Rarity */}
-        <div id="rarity-field">
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Rarity <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            name="rarity"
-            value={formData.rarity}
-            onChange={handleChange}
-            required
-            className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
-            placeholder="e.g., Rare Holo"
-          />
+        {/* Rarity & Card Number */}
+        <div id="rarity-cardnumber-fields" className="grid grid-cols-2 gap-4">
+          <div id="rarity-field">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Rarity <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="rarity"
+              value={formData.rarity}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
+              placeholder="e.g., Rare Holo"
+            />
+          </div>
+
+          <div id="card-number-field">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Card Number
+            </label>
+            <input
+              type="text"
+              name="cardNumber"
+              value={formData.cardNumber}
+              onChange={handleChange}
+              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
+              placeholder="e.g., 4/102"
+            />
+          </div>
         </div>
 
         {/* Additional Info */}
