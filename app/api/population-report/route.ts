@@ -1,6 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { populationReportDb, initializePopulationReportDatabase } from '@/lib/population-report-database'
 
+// Helper function to get game filter with parameterized query support
+function getGameFilter(game: string): { sql: string; params: string[] } {
+  const gameLower = game.toLowerCase()
+
+  // Handle common game variations with known aliases (no params needed for these)
+  switch (gameLower) {
+    case 'pokemon':
+      return { sql: "UPPER(card_game) LIKE '%POKEMON%'", params: [] }
+    case 'yugioh':
+    case 'yu-gi-oh':
+    case 'yu-gi-oh!':
+      return { sql: "(UPPER(card_game) LIKE '%YU-GI-OH%' OR UPPER(card_game) LIKE '%YUGIOH%')", params: [] }
+    case 'mtg':
+    case 'magic':
+    case 'magicthegathering':
+    case 'magic: the gathering':
+      return { sql: "(UPPER(card_game) LIKE '%MAGIC%' OR UPPER(card_game) LIKE '%MTG%')", params: [] }
+    case 'onepiece':
+    case 'one piece':
+    case 'onepiececards':
+      return { sql: "(UPPER(card_game) LIKE '%ONE PIECE%' OR UPPER(card_game) LIKE '%ONEPIECE%')", params: [] }
+    default:
+      // For dynamically added games, use parameterized query
+      // Convert game ID back to name format (e.g., "disneylorcana" -> "disney lorcana")
+      const gameName = game.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ')
+      return { sql: "UPPER(card_game) LIKE UPPER(?)", params: [`%${gameName}%`] }
+  }
+}
+
 export async function GET(req: NextRequest) {
   try {
     await initializePopulationReportDatabase()
@@ -51,12 +80,12 @@ export async function GET(req: NextRequest) {
           0 as avg_grade,
           COUNT(DISTINCT set_name) as total_sets
         FROM population_report_cards
-        WHERE (${gameFilter})`
+        WHERE (${gameFilter.sql})`
 
-      let params: string[] = []
+      let params: string[] = [...gameFilter.params]
       if (search) {
         sql += ` AND (UPPER(card_name) LIKE UPPER(?) OR UPPER(card_game) LIKE UPPER(?))`
-        params = [`%${search}%`, `%${search}%`]
+        params.push(`%${search}%`, `%${search}%`)
       }
 
       sql += `
@@ -88,10 +117,10 @@ export async function GET(req: NextRequest) {
           0 as avg_grade,
           COUNT(DISTINCT card_name) as unique_cards
         FROM population_report_cards
-        WHERE (${gameFilter})
+        WHERE (${gameFilter.sql})
           AND strftime('%Y', date_graded) = ?`
 
-      let params: any[] = [year]
+      let params: any[] = [...gameFilter.params, year]
       if (search) {
         sql += ` AND (UPPER(card_name) LIKE UPPER(?) OR UPPER(set_name) LIKE UPPER(?))`
         params.push(`%${search}%`, `%${search}%`)
@@ -133,11 +162,11 @@ export async function GET(req: NextRequest) {
         MAX(card_grade) as highest_grade,
         MIN(card_grade) as lowest_grade
       FROM population_report_cards
-      WHERE (${gameFilter})
+      WHERE (${gameFilter.sql})
         AND strftime('%Y', date_graded) = ?
         AND set_name = ?`
 
-    let params: any[] = [year, set]
+    let params: any[] = [...gameFilter.params, year, set]
     if (search) {
       sql += ` AND (UPPER(card_name) LIKE UPPER(?) OR UPPER(card_id) LIKE UPPER(?))`
       params.push(`%${search}%`, `%${search}%`)
@@ -168,20 +197,5 @@ export async function GET(req: NextRequest) {
       error: 'Internal server error',
       details: error.message
     }, { status: 500 })
-  }
-}
-
-function getGameFilter(game: string): string {
-  switch (game) {
-    case 'pokemon':
-      return "UPPER(card_game) LIKE '%POKEMON%'"
-    case 'yugioh':
-      return "(UPPER(card_game) LIKE '%YU-GI-OH%' OR UPPER(card_game) LIKE '%YUGIOH%')"
-    case 'mtg':
-      return "(UPPER(card_game) LIKE '%MAGIC%' OR UPPER(card_game) LIKE '%MTG%')"
-    case 'onepiece':
-      return "(UPPER(card_game) LIKE '%ONE PIECE%' OR UPPER(card_game) LIKE '%ONEPIECE%')"
-    default:
-      return "1=1"
   }
 }
