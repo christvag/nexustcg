@@ -845,6 +845,7 @@ export default function PopulationReportPage() {
                   <thead className="bg-gray-800/50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Card Name</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Rarity</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Total Graded</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Grade Distribution</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Action</th>
@@ -855,6 +856,9 @@ export default function PopulationReportPage() {
                       <tr key={`${card.card_name}-${card.card_id}`} id={`population-card-row-${card.card_id}`} className="hover:bg-gray-700/50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
                           {card.card_name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                          {card.card_rarity || '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                           {card.total_graded.toLocaleString()}
