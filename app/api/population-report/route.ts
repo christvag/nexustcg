@@ -126,12 +126,12 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    if (!set) {
-      // Return sets for the selected game and year
+    if (set === null) {
+      // Return sets for the selected game and year (set parameter not provided)
       const gameFilter = getGameFilter(game, actualGameName)
       let sql = `
         SELECT
-          COALESCE(set_name, 'Unknown Set') as set_name,
+          CASE WHEN set_name IS NULL OR set_name = '' THEN 'Unknown Set' ELSE set_name END as set_name,
           COUNT(*) as total_cards,
           COUNT(CASE WHEN card_grade IN ('9', '10') THEN 1 END) as gem_mint_cards,
           COUNT(CASE WHEN card_grade IN ('8', '9', '10') THEN 1 END) as near_mint_plus,
@@ -148,7 +148,7 @@ export async function GET(req: NextRequest) {
       }
 
       sql += `
-        GROUP BY set_name
+        GROUP BY CASE WHEN set_name IS NULL OR set_name = '' THEN 'Unknown Set' ELSE set_name END
         ORDER BY total_cards DESC
       `
 
@@ -167,6 +167,12 @@ export async function GET(req: NextRequest) {
 
     // Return cards for the selected game, year, and set
     const gameFilter = getGameFilter(game, actualGameName)
+
+    // Handle "Unknown Set" which represents empty/null set_name in the database
+    const setCondition = set === 'Unknown Set'
+      ? "(set_name IS NULL OR set_name = '')"
+      : "set_name = ?"
+
     let sql = `
       SELECT
         card_name,
@@ -185,9 +191,11 @@ export async function GET(req: NextRequest) {
       FROM population_report_cards
       WHERE (${gameFilter.sql})
         AND strftime('%Y', date_graded) = ?
-        AND set_name = ?`
+        AND ${setCondition}`
 
-    let params: any[] = [...gameFilter.params, year, set]
+    let params: any[] = set === 'Unknown Set'
+      ? [...gameFilter.params, year]
+      : [...gameFilter.params, year, set]
     if (search) {
       sql += ` AND (UPPER(card_name) LIKE UPPER(?) OR UPPER(card_id) LIKE UPPER(?))`
       params.push(`%${search}%`, `%${search}%`)
