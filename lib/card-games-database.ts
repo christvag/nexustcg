@@ -1,5 +1,6 @@
 import sqlite3 from 'sqlite3'
 import path from 'path'
+import fs from 'fs'
 
 const DATABASE_PATH = path.join(process.cwd(), 'database', 'graded-cards.db')
 
@@ -152,21 +153,45 @@ class CardGamesDatabase {
   }
 
   async deleteGame(gameName: string): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       if (!this.db) {
         reject(new Error('Database not connected'))
         return
       }
 
-      const sql = 'DELETE FROM card_games WHERE game_name = ?'
-      this.db.run(sql, [gameName], (err) => {
-        if (err) {
-          console.error('❌ Error deleting game:', err.message)
-          reject(err)
-        } else {
-          resolve()
+      try {
+        // First, get the game to find the logo path
+        const game = await this.getGameByName(gameName)
+
+        // Delete the logo file if it exists
+        if (game && game.logo_path) {
+          // Logo path is stored as "game_logos/filename.ext", actual file is in "storage/game_logos/"
+          const logoFullPath = path.join(process.cwd(), 'storage', game.logo_path)
+          if (fs.existsSync(logoFullPath)) {
+            try {
+              fs.unlinkSync(logoFullPath)
+              console.log(`✅ Deleted logo file: ${logoFullPath}`)
+            } catch (fileErr) {
+              console.error(`⚠️ Could not delete logo file: ${logoFullPath}`, fileErr)
+              // Continue with database deletion even if file deletion fails
+            }
+          }
         }
-      })
+
+        // Delete the game from database
+        const sql = 'DELETE FROM card_games WHERE game_name = ?'
+        this.db.run(sql, [gameName], (err) => {
+          if (err) {
+            console.error('❌ Error deleting game:', err.message)
+            reject(err)
+          } else {
+            console.log(`✅ Deleted game from database: ${gameName}`)
+            resolve()
+          }
+        })
+      } catch (error) {
+        reject(error)
+      }
     })
   }
 }
