@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { populationReportDb, initializePopulationReportDatabase } from '@/lib/population-report-database'
+import { cardGamesDb, initializeCardGamesDatabase } from '@/lib/card-games-database'
 
 // Helper function to get game filter with parameterized query support
-function getGameFilter(game: string): { sql: string; params: string[] } {
+function getGameFilter(game: string, actualGameName?: string): { sql: string; params: string[] } {
   const gameLower = game.toLowerCase()
 
   // Handle common game variations with known aliases (no params needed for these)
@@ -23,10 +24,27 @@ function getGameFilter(game: string): { sql: string; params: string[] } {
     case 'onepiececards':
       return { sql: "(UPPER(card_game) LIKE '%ONE PIECE%' OR UPPER(card_game) LIKE '%ONEPIECE%')", params: [] }
     default:
-      // For dynamically added games, use parameterized query
-      // Convert game ID back to name format (e.g., "disneylorcana" -> "disney lorcana")
-      const gameName = game.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ')
+      // For dynamically added games, use the actual game name if provided
+      // Otherwise fall back to the game ID
+      const gameName = actualGameName || game
       return { sql: "UPPER(card_game) LIKE UPPER(?)", params: [`%${gameName}%`] }
+  }
+}
+
+// Helper to look up actual game name from database by game ID
+async function getActualGameName(gameId: string): Promise<string | undefined> {
+  try {
+    await initializeCardGamesDatabase()
+    const games = await cardGamesDb.getAllGames()
+    // Game ID is generated as: name.toLowerCase().replace(/[^a-z0-9]/g, '')
+    const matchingGame = games.find(g => {
+      const generatedId = g.game_name.toLowerCase().replace(/[^a-z0-9]/g, '')
+      return generatedId === gameId.toLowerCase()
+    })
+    return matchingGame?.game_name
+  } catch (error) {
+    console.error('Error looking up game name:', error)
+    return undefined
   }
 }
 
@@ -69,9 +87,12 @@ export async function GET(req: NextRequest) {
       })
     }
 
+    // Look up the actual game name for dynamically added games
+    const actualGameName = await getActualGameName(game)
+
     if (!year) {
       // Return years for the selected game
-      const gameFilter = getGameFilter(game)
+      const gameFilter = getGameFilter(game, actualGameName)
       let sql = `
         SELECT
           strftime('%Y', date_graded) as year,
@@ -107,7 +128,7 @@ export async function GET(req: NextRequest) {
 
     if (!set) {
       // Return sets for the selected game and year
-      const gameFilter = getGameFilter(game)
+      const gameFilter = getGameFilter(game, actualGameName)
       let sql = `
         SELECT
           COALESCE(set_name, 'Unknown Set') as set_name,
@@ -145,7 +166,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Return cards for the selected game, year, and set
-    const gameFilter = getGameFilter(game)
+    const gameFilter = getGameFilter(game, actualGameName)
     let sql = `
       SELECT
         card_name,
