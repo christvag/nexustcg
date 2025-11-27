@@ -13,6 +13,8 @@ services:
     volumes:
       # Mount database directory for SQLite persistence
       - ./database:/app/database
+      # Mount storage directory for card images persistence
+      - ./storage:/app/storage
     restart: unless-stopped
 
   # SQLite Viewer - Population Report (graded-cards.db)

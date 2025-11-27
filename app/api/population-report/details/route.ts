@@ -31,8 +31,13 @@ export async function GET(req: NextRequest) {
       params.push(year)
     }
     if (set) {
-      whereClause += ` AND set_name = ?`
-      params.push(set)
+      // Handle "Unknown Set" which represents empty/null set_name in the database
+      if (set === 'Unknown Set') {
+        whereClause += ` AND (set_name IS NULL OR set_name = '')`
+      } else {
+        whereClause += ` AND set_name = ?`
+        params.push(set)
+      }
     }
 
     // Get detailed grading information for a specific card
@@ -46,7 +51,7 @@ export async function GET(req: NextRequest) {
         rarity,
         edition,
         card_grade as grade,
-        card_grade as grade_name,
+        grade_name,
         date_graded as graded_date
       FROM population_report_cards
       ${whereClause}
@@ -79,6 +84,19 @@ export async function GET(req: NextRequest) {
     }))
 
     // Get popularity rank (how rare this card is)
+    // Build the set condition for the subquery
+    const setConditionForRank = set
+      ? (set === 'Unknown Set' ? "AND (set_name IS NULL OR set_name = '')" : 'AND set_name = ?')
+      : ''
+
+    // Build params for popularity rank query - only add set param if it's not "Unknown Set"
+    const rankParams = [...params]
+    if (set && set !== 'Unknown Set') {
+      // The set param is already in params from whereClause, we need it again for the subquery
+      rankParams.push(set)
+    }
+    rankParams.push(cardName)
+
     const popularityRank = await populationReportDb.runQuery(`
       SELECT
         card_name,
@@ -90,7 +108,7 @@ export async function GET(req: NextRequest) {
             FROM population_report_cards
             ${game ? `WHERE (${gameFilter})` : 'WHERE 1=1'}
             ${year ? 'AND strftime(\'%Y\', date_graded) = ?' : ''}
-            ${set ? 'AND set_name = ?' : ''}
+            ${setConditionForRank}
             GROUP BY card_name
             HAVING cnt > (SELECT COUNT(*) FROM population_report_cards WHERE card_name = ?)
           ) ranked
@@ -98,7 +116,7 @@ export async function GET(req: NextRequest) {
       FROM population_report_cards
       ${whereClause}
       GROUP BY card_name
-    `, [...params, cardName])
+    `, rankParams)
 
     const popularityResult = popularityRank.length > 0 ? popularityRank[0] : null
 

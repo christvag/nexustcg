@@ -80,9 +80,9 @@ interface CardDetails {
     card_id: string
     card_name: string
     card_game: string
-    card_rarity: string
+    rarity: string
     grade: number
-    grade_notes: string
+    grade_name: string
     gradedDate: string
   }>
 }
@@ -973,10 +973,10 @@ export default function PopulationReportPage() {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                            {detail.grade_notes || '-'}
+                            {detail.grade_name || '-'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                            {detail.card_rarity || '-'}
+                            {detail.rarity || '-'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                             {detail.gradedDate}
