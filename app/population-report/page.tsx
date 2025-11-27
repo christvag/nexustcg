@@ -395,13 +395,21 @@ export default function PopulationReportPage() {
   }
 
   const getGameDisplayName = (gameId: string) => {
+    // First check the hardcoded map for common games
     const gameMap: { [key: string]: string } = {
       'pokemon': 'Pokemon TCG',
       'yugioh': 'Yu-Gi-Oh!',
       'mtg': 'Magic: The Gathering',
       'onepiece': 'One Piece Cards'
     }
-    return gameMap[gameId] || gameId
+    if (gameMap[gameId]) return gameMap[gameId]
+
+    // Then check supportedGames for dynamically added games
+    const dynamicGame = supportedGames.find(g => g.id === gameId)
+    if (dynamicGame) return dynamicGame.name
+
+    // Fallback: convert camelCase/lowercase to Title Case
+    return gameId.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, str => str.toUpperCase())
   }
 
   const getGradeColor = (grade: string) => {
@@ -725,41 +733,64 @@ export default function PopulationReportPage() {
               <h3 className="text-lg font-medium text-white mb-6">
                 {getGameDisplayName(selectedGame)} - Cards Graded by Year
               </h3>
-              <div className="overflow-x-auto">
-                <table id="population-year-table" className="min-w-full divide-y divide-gray-700">
-                  <thead className="bg-gray-800/50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Year</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Total Cards</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Sets</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-gray-900/30 divide-y divide-gray-700">
-                    {yearData.map((year) => (
-                      <tr key={year.year} id={`population-year-row-${year.year}`} className="hover:bg-gray-700/50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
-                          {year.year}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                          {year.total_cards.toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                          {year.total_sets} sets
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <button
-                            onClick={() => handleYearSelect(year.year)}
-                            className="text-[#d83f0a] hover:text-[#d66a0a] font-medium"
-                          >
-                            View Sets →
-                          </button>
-                        </td>
+              {yearData.length === 0 && !isLoading ? (
+                /* Empty State - No cards for this game */
+                <div id="population-empty-state" className="text-center py-16">
+                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-800/50 border border-gray-700 mb-6">
+                    <Package className="h-10 w-10 text-gray-500" />
+                  </div>
+                  <h4 className="text-xl font-semibold text-white mb-3">
+                    No Cards Found for {getGameDisplayName(selectedGame)}
+                  </h4>
+                  <p className="text-gray-400 mb-6 max-w-md mx-auto">
+                    There are no graded cards for this game in our population report yet. Be the first one to submit your cards for grading!
+                  </p>
+                  <Link
+                    href="/packages"
+                    id="population-empty-state-cta"
+                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#d83f0a] to-[#d66a0a] text-white font-semibold rounded-lg hover:opacity-90 transition-opacity"
+                  >
+                    <Trophy className="h-5 w-5 mr-2" />
+                    Submit Your Cards
+                  </Link>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table id="population-year-table" className="min-w-full divide-y divide-gray-700">
+                    <thead className="bg-gray-800/50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Year</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Total Cards</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Sets</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="bg-gray-900/30 divide-y divide-gray-700">
+                      {yearData.map((year) => (
+                        <tr key={year.year} id={`population-year-row-${year.year}`} className="hover:bg-gray-700/50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+                            {year.year}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                            {year.total_cards.toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                            {year.total_sets} sets
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <button
+                              onClick={() => handleYearSelect(year.year)}
+                              className="text-[#d83f0a] hover:text-[#d66a0a] font-medium"
+                            >
+                              View Sets →
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 
