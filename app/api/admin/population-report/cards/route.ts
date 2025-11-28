@@ -4,6 +4,9 @@ import { populationReportDb, initializePopulationReportDatabase } from '@/lib/po
 import fs from 'fs'
 import path from 'path'
 
+// Disable caching for this route
+export const dynamic = 'force-dynamic'
+
 const JWT_SECRET = process.env.JWT_SECRET || 'nexus-tcgrading-secret-key-2024'
 
 interface JWTPayload {

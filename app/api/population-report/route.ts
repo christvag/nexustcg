@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { populationReportDb, initializePopulationReportDatabase } from '@/lib/population-report-database'
 import { cardGamesDb, initializeCardGamesDatabase } from '@/lib/card-games-database'
 
+// Disable caching for this route
+export const dynamic = 'force-dynamic'
+
 // Helper function to get game filter with parameterized query support
 function getGameFilter(game: string, actualGameName?: string): { sql: string; params: string[] } {
   const gameLower = game.toLowerCase()

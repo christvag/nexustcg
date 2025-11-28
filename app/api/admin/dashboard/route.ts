@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDashboardStats } from '@/lib/tcgrading-database'
 
+// Disable caching for this route
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     // TODO: Add authentication middleware to check if user is admin

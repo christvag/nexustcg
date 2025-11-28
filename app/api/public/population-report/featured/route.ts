@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { populationReportDb, initializePopulationReportDatabase } from '@/lib/population-report-database'
 
+// Disable caching for this route
+export const dynamic = 'force-dynamic'
+
 // GET - Get featured cards for public display
 export async function GET(req: NextRequest) {
   try {

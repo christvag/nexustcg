@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { populationReportDb, initializePopulationReportDatabase } from '@/lib/population-report-database'
 
+// Disable caching for this route
+export const dynamic = 'force-dynamic'
+
 const JWT_SECRET = process.env.JWT_SECRET || 'nexus-tcgrading-secret-key-2024'
 
 interface JWTPayload {
