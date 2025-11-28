@@ -47,7 +47,7 @@ export default function PopulationReportCardsPage() {
 
   const fetchAvailableGames = async () => {
     try {
-      const response = await fetch('/api/population-report/games');
+      const response = await fetch('/api/population-report/games', { cache: 'no-store' });
       const data = await response.json();
       if (data.success && data.games) {
         setAvailableGames(data.games.map((game: { name: string }) => game.name));

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cardGamesDb, initializeCardGamesDatabase } from '@/lib/card-games-database'
 
+// Disable caching for this route - games list should always be fresh
+export const dynamic = 'force-dynamic'
+
 // GET - Get active games (public endpoint)
 export async function GET(req: NextRequest) {
   try {

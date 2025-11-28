@@ -75,7 +75,7 @@ export default function AddCardPage() {
 
   const fetchCardGames = async () => {
     try {
-      const response = await fetch('/api/population-report/games');
+      const response = await fetch('/api/population-report/games', { cache: 'no-store' });
       const data = await response.json();
       if (data.success && data.games && data.games.length > 0) {
         setCardGames(data.games.map((game: GameOption) => game.name));

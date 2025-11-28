@@ -132,7 +132,7 @@ export default function PopulationReportPage() {
   useEffect(() => {
     const fetchGames = async () => {
       try {
-        const response = await fetch('/api/population-report/games')
+        const response = await fetch('/api/population-report/games', { cache: 'no-store' })
         if (response.ok) {
           const result = await response.json()
           if (result.success && result.games) {
