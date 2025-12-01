@@ -19,6 +19,7 @@ interface CardData {
   rarity: string
   card_number?: string
   card_info?: string
+  language?: string
   date_graded: string
   front_image?: string
   back_image?: string
@@ -325,7 +326,7 @@ export default function CardCertificationPage() {
               <div className="space-y-4">
                 <div id="cert-card-name" className="border-b border-gray-800 pb-3">
                   <label className="text-gray-400 text-sm uppercase tracking-wider">Card Name</label>
-                  <p className="text-white text-lg font-semibold mt-1">{card.card_name}</p>
+                  <p className="text-white text-lg font-semibold mt-1">{card.card_name} - {card.language || 'English'}</p>
                 </div>
 
                 <div id="cert-card-game" className="border-b border-gray-800 pb-3">
@@ -364,6 +365,11 @@ export default function CardCertificationPage() {
                     Rarity
                   </label>
                   <p className="text-white font-medium mt-1">{card.rarity}</p>
+                </div>
+
+                <div id="cert-language" className="border-b border-gray-800 pb-3">
+                  <label className="text-gray-400 text-sm uppercase tracking-wider">Language</label>
+                  <p className="text-white font-medium mt-1">{card.language || 'English'}</p>
                 </div>
 
                 {card.card_number && (

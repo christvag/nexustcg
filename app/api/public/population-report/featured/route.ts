@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
       set_name: card.set_name,
       rarity: card.rarity,
       year_card: card.year_card,
+      language: card.language || 'English',
       front_image: card.front_image,
       date_graded: card.date_graded
     }))

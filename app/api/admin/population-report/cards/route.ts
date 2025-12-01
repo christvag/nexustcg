@@ -110,6 +110,7 @@ export async function GET(req: NextRequest) {
       rarity: card.rarity,
       card_number: card.card_number,
       card_info: card.card_info,
+      language: card.language || 'English',
       date_graded: card.date_graded,
       front_image_path: card.front_image,
       back_image_path: card.back_image,
@@ -159,7 +160,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { cardId, cardGame, cardName, cardGrade, gradeName, yearCard, setName, edition, rarity, cardNumber, cardInfo, cardOwner, frontImage, backImage } = body
+    const { cardId, cardGame, cardName, cardGrade, gradeName, yearCard, setName, edition, rarity, cardNumber, cardInfo, cardOwner, language, frontImage, backImage } = body
 
     // Validate required fields (Serial Number, Card Game, Card Name, Card Grade, Rarity)
     if (!cardId || !cardGame || !cardName || !cardGrade || !rarity) {
@@ -191,6 +192,7 @@ export async function POST(req: NextRequest) {
       card_number: cardNumber || '',
       card_info: cardInfo || '',
       card_owner: cardOwner || 'Nexus TCG Grading',
+      language: language || 'English',
       date_graded: new Date().toISOString(),
       front_image: frontImagePath || '',
       back_image: backImagePath || ''

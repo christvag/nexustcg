@@ -16,11 +16,26 @@ interface GradedCard {
   rarity: string;
   card_number: string;
   card_info: string;
+  language: string;
   date_graded: string;
   front_image_path?: string;
   back_image_path?: string;
   is_featured?: number;
 }
+
+const CARD_LANGUAGES = [
+  'English',
+  'Japanese',
+  'Korean',
+  'Traditional Chinese',
+  'Simplified Chinese',
+  'German',
+  'French',
+  'Italian',
+  'Spanish',
+  'Portuguese',
+  'Other',
+];
 
 export default function PopulationReportCardsPage() {
   const [cards, setCards] = useState<GradedCard[]>([]);
@@ -30,6 +45,7 @@ export default function PopulationReportCardsPage() {
   const [filterGame, setFilterGame] = useState('');
   const [filterGrade, setFilterGrade] = useState('');
   const [filterRarity, setFilterRarity] = useState('');
+  const [filterLanguage, setFilterLanguage] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   const [selectedCards, setSelectedCards] = useState<Set<number>>(new Set());
@@ -59,7 +75,7 @@ export default function PopulationReportCardsPage() {
 
   useEffect(() => {
     filterCards();
-  }, [searchTerm, filterGame, filterGrade, filterRarity, filterDateFrom, filterDateTo, cards]);
+  }, [searchTerm, filterGame, filterGrade, filterRarity, filterLanguage, filterDateFrom, filterDateTo, cards]);
 
   useEffect(() => {
     // Update select all checkbox state
@@ -111,6 +127,10 @@ export default function PopulationReportCardsPage() {
 
     if (filterRarity) {
       filtered = filtered.filter(card => card.rarity === filterRarity);
+    }
+
+    if (filterLanguage) {
+      filtered = filtered.filter(card => (card.language || 'English') === filterLanguage);
     }
 
     if (filterDateFrom) {
@@ -317,7 +337,7 @@ export default function PopulationReportCardsPage() {
 
     const selectedCardsData = filteredCards.filter(card => selectedCards.has(card.id));
     const csvContent = [
-      ['serial_number', 'type', 'name_card', 'grade', 'grade_name', 'year_card', 'set_name', 'edition', 'card_info', 'rarity', 'card_number', 'date_graded'],
+      ['serial_number', 'type', 'name_card', 'grade', 'grade_name', 'year_card', 'set_name', 'edition', 'card_info', 'rarity', 'card_number', 'language', 'date_graded'],
       ...selectedCardsData.map(card => [
         card.card_id,
         card.card_game,
@@ -330,6 +350,7 @@ export default function PopulationReportCardsPage() {
         card.card_info || '',
         card.rarity,
         card.card_number || '',
+        card.language || 'English',
         formatDateToYYYYMMDD(card.date_graded)
       ])
     ].map(row => row.join(',')).join('\n');
@@ -345,7 +366,7 @@ export default function PopulationReportCardsPage() {
 
   const handleExport = () => {
     const csvContent = [
-      ['serial_number', 'type', 'name_card', 'grade', 'grade_name', 'year_card', 'set_name', 'edition', 'card_info', 'rarity', 'card_number', 'date_graded'],
+      ['serial_number', 'type', 'name_card', 'grade', 'grade_name', 'year_card', 'set_name', 'edition', 'card_info', 'rarity', 'card_number', 'language', 'date_graded'],
       ...filteredCards.map(card => [
         card.card_id,
         card.card_game,
@@ -358,6 +379,7 @@ export default function PopulationReportCardsPage() {
         card.card_info || '',
         card.rarity,
         card.card_number || '',
+        card.language || 'English',
         formatDateToYYYYMMDD(card.date_graded)
       ])
     ].map(row => row.join(',')).join('\n');
@@ -440,6 +462,20 @@ export default function PopulationReportCardsPage() {
               <option value="">All Rarities</option>
               {uniqueRarities.map(rarity => (
                 <option key={rarity} value={rarity}>{rarity}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filter by Language */}
+          <div id="pr-filter-language">
+            <select
+              value={filterLanguage}
+              onChange={(e) => setFilterLanguage(e.target.value)}
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Languages</option>
+              {CARD_LANGUAGES.filter(lang => lang !== 'Other').map(lang => (
+                <option key={lang} value={lang}>{lang}</option>
               ))}
             </select>
           </div>
@@ -559,6 +595,9 @@ export default function PopulationReportCardsPage() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider" id="pr-th-card-number">
                   Card Number
                 </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider" id="pr-th-language">
+                  Language
+                </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider" id="pr-th-date-graded">
                   Date Graded
                 </th>
@@ -615,6 +654,9 @@ export default function PopulationReportCardsPage() {
                     <td className="px-4 py-3 text-sm text-gray-300" id={`pr-td-card-number-${card.id}`}>
                       {card.card_number || '-'}
                     </td>
+                    <td className="px-4 py-3 text-sm text-gray-300" id={`pr-td-language-${card.id}`}>
+                      {card.language || 'English'}
+                    </td>
                     <td className="px-4 py-3 text-sm text-gray-400">
                       {new Date(card.date_graded).toLocaleDateString()}
                     </td>
@@ -654,7 +696,7 @@ export default function PopulationReportCardsPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={12} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={13} className="px-4 py-8 text-center text-gray-500">
                     No cards found
                   </td>
                 </tr>
@@ -850,6 +892,43 @@ export default function PopulationReportCardsPage() {
                     placeholder="e.g., 4/102"
                   />
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Language</label>
+                  <select
+                    value={CARD_LANGUAGES.includes(editingCard.language || 'English') ? (editingCard.language || 'English') : 'Other'}
+                    onChange={(e) => {
+                      if (e.target.value === 'Other') {
+                        setEditingCard({ ...editingCard, language: '' });
+                      } else {
+                        setEditingCard({ ...editingCard, language: e.target.value });
+                      }
+                    }}
+                    className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                    id="edit-language"
+                  >
+                    {CARD_LANGUAGES.map(lang => (
+                      <option key={lang} value={lang}>{lang}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Custom Language Input - shows when language is not in the predefined list or is empty */}
+                {(!CARD_LANGUAGES.includes(editingCard.language || '') || editingCard.language === '') && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Specify Language <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={editingCard.language || ''}
+                      onChange={(e) => setEditingCard({ ...editingCard, language: e.target.value })}
+                      className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                      id="edit-custom-language"
+                      placeholder="e.g., Thai, Dutch, etc."
+                    />
+                  </div>
+                )}
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-300 mb-2">Card Info</label>

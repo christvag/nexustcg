@@ -17,6 +17,7 @@ interface PopulationReportCard {
   card_number?: string
   card_info?: string
   card_owner?: string
+  language?: string
   date_graded: string
   front_image?: string
   back_image?: string
@@ -100,8 +101,14 @@ class PopulationReportDatabase {
               if (cardNumErr && !cardNumErr.message.includes('duplicate column')) {
                 console.log('ℹ️ card_number column may already exist:', cardNumErr.message)
               }
-              console.log('✅ Population report table ready')
-              resolve()
+              // Add language column if it doesn't exist (for existing databases)
+              this.db!.run(`ALTER TABLE population_report_cards ADD COLUMN language TEXT DEFAULT 'English'`, (langErr) => {
+                if (langErr && !langErr.message.includes('duplicate column')) {
+                  console.log('ℹ️ language column may already exist:', langErr.message)
+                }
+                console.log('✅ Population report table ready')
+                resolve()
+              })
             })
           })
         }
@@ -154,9 +161,9 @@ class PopulationReportDatabase {
       const sql = `
         INSERT INTO population_report_cards (
           card_id, card_game, card_name, card_grade, grade_name, year_card,
-          set_name, edition, rarity, card_number, card_info, card_owner, date_graded,
+          set_name, edition, rarity, card_number, card_info, card_owner, language, date_graded,
           front_image, back_image
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `
 
       this.db.run(sql, [
@@ -172,6 +179,7 @@ class PopulationReportDatabase {
         card.card_number || '',
         card.card_info || '',
         card.card_owner || 'Nexus TCG Grading',
+        card.language || 'English',
         card.date_graded,
         card.front_image || '',
         card.back_image || ''
@@ -258,6 +266,7 @@ class PopulationReportDatabase {
         card_number = ?,
         card_info = ?,
         rarity = ?,
+        language = ?,
         front_image = ?,
         back_image = ?,
         updated_at = CURRENT_TIMESTAMP
@@ -275,6 +284,7 @@ class PopulationReportDatabase {
         cardData.card_number || '',
         cardData.card_info || '',
         cardData.rarity,
+        cardData.language || 'English',
         cardData.front_image_path || '',
         cardData.back_image_path || '',
         id

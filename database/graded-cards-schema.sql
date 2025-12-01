@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS graded_cards (
     card_info TEXT,                                -- Additional card information
     author TEXT,                                   -- Card artist/author
     rarity TEXT,                                   -- Card rarity
+    language TEXT DEFAULT 'English',               -- Card language (English, Japanese, Korean, etc.)
     owner TEXT,                                    -- Card owner name
     front_image_path TEXT,                         -- Path to front image
     back_image_path TEXT,                          -- Path to back image
