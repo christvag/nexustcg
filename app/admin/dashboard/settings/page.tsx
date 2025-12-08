@@ -104,6 +104,10 @@ export default function SettingsManagement() {
   const [showPasswords, setShowPasswords] = useState({
     smtpPassword: false
   });
+  const [showTestEmailModal, setShowTestEmailModal] = useState(false);
+  const [testEmailAddress, setTestEmailAddress] = useState('');
+  const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
+  const [isLoadingEmailSettings, setIsLoadingEmailSettings] = useState(false);
 
   // Payment Gateway State
   const [gateways, setGateways] = useState<PaymentGateway[]>([
@@ -173,9 +177,121 @@ export default function SettingsManagement() {
   const [editingGateway, setEditingGateway] = useState<string | null>(null);
   const [testingGateway, setTestingGateway] = useState<string | null>(null);
 
-  const handleSave = async (section: string) => {
+  // Load email settings on component mount
+  useEffect(() => {
+    loadEmailSettings();
+  }, []);
+
+  const loadEmailSettings = async () => {
+    setIsLoadingEmailSettings(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('/api/admin/settings/email', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.settings) {
+          setEmailSettings({
+            smtpHost: data.settings.smtp_host || '',
+            smtpPort: data.settings.smtp_port?.toString() || '587',
+            smtpUsername: data.settings.smtp_username || '',
+            smtpPassword: data.settings.smtp_password || '',
+            fromName: data.settings.from_name || 'Nexus TCGrading',
+            fromEmail: data.settings.from_email || '',
+            enableSsl: data.settings.enable_ssl !== false
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error loading email settings:', error);
+    } finally {
+      setIsLoadingEmailSettings(false);
+    }
+  };
+
+  const handleSaveEmailSettings = async () => {
     setIsSaving(true);
-    // Simulate API call
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('/api/admin/settings/email', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          smtp_host: emailSettings.smtpHost,
+          smtp_port: emailSettings.smtpPort,
+          smtp_username: emailSettings.smtpUsername,
+          smtp_password: emailSettings.smtpPassword,
+          from_name: emailSettings.fromName,
+          from_email: emailSettings.fromEmail,
+          enable_ssl: emailSettings.enableSsl
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert('Email settings saved successfully!');
+      } else {
+        alert(`Failed to save: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error saving email settings:', error);
+      alert('Failed to save email settings');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleTestEmail = async () => {
+    if (!testEmailAddress) {
+      alert('Please enter a test email address');
+      return;
+    }
+
+    setIsSendingTestEmail(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('/api/admin/settings/email/test', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          test_email: testEmailAddress
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert(data.message);
+        setShowTestEmailModal(false);
+        setTestEmailAddress('');
+      } else {
+        alert(`Test failed: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error sending test email:', error);
+      alert('Failed to send test email');
+    } finally {
+      setIsSendingTestEmail(false);
+    }
+  };
+
+  const handleSave = async (section: string) => {
+    if (section === 'Email') {
+      await handleSaveEmailSettings();
+      return;
+    }
+
+    setIsSaving(true);
+    // Simulate API call for other sections
     await new Promise(resolve => setTimeout(resolve, 1000));
     setIsSaving(false);
     alert(`${section} settings saved successfully!`);
@@ -918,16 +1034,78 @@ End of Log File
                   onClick={() => handleSave('Email')}
                   disabled={isSaving}
                   className="bg-[#d83f0a] text-white px-6 py-2 rounded-lg hover:bg-[#b8350a] disabled:opacity-50 flex items-center space-x-2"
+                  id="save-email-settings-btn"
                 >
                   <Save className="h-4 w-4" />
                   <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
                 </button>
 
-                <button className="border border-gray-600 text-gray-300 px-6 py-2 rounded-lg hover:bg-gray-700 flex items-center space-x-2">
+                <button
+                  onClick={() => setShowTestEmailModal(true)}
+                  className="border border-gray-600 text-gray-300 px-6 py-2 rounded-lg hover:bg-gray-700 flex items-center space-x-2"
+                  id="open-test-email-modal-btn"
+                >
                   <Mail className="h-4 w-4" />
                   <span>Test Email</span>
                 </button>
               </div>
+
+              {/* Test Email Modal */}
+              {showTestEmailModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" id="test-email-modal-overlay">
+                  <div className="bg-gray-800 rounded-lg w-full max-w-md border border-gray-700" id="test-email-modal-container">
+                    <div className="p-6 border-b border-gray-700 flex justify-between items-center">
+                      <h3 className="text-lg font-bold text-white">Send Test Email</h3>
+                      <button
+                        onClick={() => setShowTestEmailModal(false)}
+                        className="text-gray-400 hover:text-white p-2"
+                        id="close-test-email-modal-btn"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+
+                    <div className="p-6 space-y-4">
+                      <p className="text-gray-400 text-sm">
+                        Enter an email address to receive a test email. Make sure to save your SMTP settings first.
+                      </p>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1">
+                          Test Email Address
+                        </label>
+                        <input
+                          type="email"
+                          value={testEmailAddress}
+                          onChange={(e) => setTestEmailAddress(e.target.value)}
+                          placeholder="test@example.com"
+                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#d83f0a]"
+                          id="test-email-address-input"
+                        />
+                      </div>
+
+                      <div className="flex justify-end space-x-3 pt-4">
+                        <button
+                          onClick={() => setShowTestEmailModal(false)}
+                          className="px-4 py-2 border border-gray-600 rounded-lg hover:bg-gray-700 text-gray-300"
+                          id="cancel-test-email-btn"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleTestEmail}
+                          disabled={isSendingTestEmail || !testEmailAddress}
+                          className="px-4 py-2 bg-[#d83f0a] text-white rounded-lg hover:bg-[#b8350a] disabled:opacity-50 flex items-center space-x-2"
+                          id="send-test-email-btn"
+                        >
+                          <Mail className="h-4 w-4" />
+                          <span>{isSendingTestEmail ? 'Sending...' : 'Send Test Email'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

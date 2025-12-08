@@ -91,39 +91,6 @@ export interface OrderTracking {
   createdAt: Date;
 }
 
-export interface SupportTicket {
-  id: number;
-  ticketNumber: string;
-  userId: number;
-  orderId?: number;
-  category?: string;
-  priority: 'low' | 'normal' | 'high' | 'urgent';
-  status: 'open' | 'in_progress' | 'waiting_customer' | 'waiting_admin' | 'resolved' | 'closed';
-  subject: string;
-  assignedTo?: number;
-  resolvedAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
-  messages?: Message[];
-  user?: User;
-  assignedUser?: User;
-}
-
-export interface Message {
-  id: number;
-  ticketId?: number;
-  senderId: number;
-  recipientId?: number;
-  messageType: 'text' | 'image' | 'file';
-  content: string;
-  attachmentUrl?: string;
-  isRead: boolean;
-  readAt?: Date;
-  createdAt: Date;
-  sender?: User;
-  recipient?: User;
-}
-
 export interface PopulationReport {
   id: number;
   productId: number;
@@ -196,7 +163,5 @@ export interface DashboardStats {
   activeUsers: number;
   totalProducts: number;
   lowStockProducts: number;
-  openTickets: number;
   recentOrders: Order[];
-  recentTickets: SupportTicket[];
 }

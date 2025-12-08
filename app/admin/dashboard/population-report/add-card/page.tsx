@@ -15,6 +15,7 @@ interface FormData {
   rarity: string;
   cardNumber: string;
   cardInfo: string;
+  cardOwner: string;
   language: string;
   customLanguage: string;
 }
@@ -69,6 +70,7 @@ export default function AddCardPage() {
     rarity: '',
     cardNumber: '',
     cardInfo: '',
+    cardOwner: '',
     language: 'English',
     customLanguage: '',
   });
@@ -228,6 +230,7 @@ export default function AddCardPage() {
           rarity: '',
           cardNumber: '',
           cardInfo: '',
+          cardOwner: '',
           language: 'English',
           customLanguage: '',
         }));
@@ -466,6 +469,22 @@ export default function AddCardPage() {
               />
             </div>
           )}
+        </div>
+
+        {/* Card Owner */}
+        <div id="card-owner-field">
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Card Owner (Email)
+          </label>
+          <input
+            type="email"
+            name="cardOwner"
+            value={formData.cardOwner}
+            onChange={handleChange}
+            className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
+            placeholder="owner@email.com"
+          />
+          <p className="text-xs text-gray-500 mt-1">Enter the owner's email to link this card to their account. Leave empty for "Nexus TCG Grading".</p>
         </div>
 
         {/* Additional Info */}

@@ -160,6 +160,29 @@ CREATE TABLE IF NOT EXISTS user_sessions (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- System settings table
+CREATE TABLE IF NOT EXISTS system_settings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    setting_key TEXT UNIQUE NOT NULL,
+    setting_value TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Email settings table
+CREATE TABLE IF NOT EXISTS email_settings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    smtp_host TEXT NOT NULL,
+    smtp_port INTEGER DEFAULT 587,
+    smtp_username TEXT NOT NULL,
+    smtp_password TEXT NOT NULL,
+    from_name TEXT DEFAULT 'Nexus TCGrading',
+    from_email TEXT NOT NULL,
+    enable_ssl INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_packages_slug ON packages(slug);
 CREATE INDEX IF NOT EXISTS idx_packages_active ON packages(is_active);
@@ -174,6 +197,8 @@ CREATE INDEX IF NOT EXISTS idx_chat_messages_order_id ON chat_messages(order_id)
 CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments(order_id);
 CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_sessions_token ON user_sessions(session_token);
+CREATE INDEX IF NOT EXISTS idx_system_settings_key ON system_settings(setting_key);
+CREATE INDEX IF NOT EXISTS idx_email_settings_id ON email_settings(id);
 
 -- Triggers to update updated_at timestamps
 CREATE TRIGGER IF NOT EXISTS update_users_updated_at 

@@ -11,7 +11,26 @@ export interface AuthenticatedRequest extends NextRequest {
 export async function verifyToken(token: string): Promise<User | null> {
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
-    return decoded.user;
+
+    // Handle both token formats:
+    // Format 1: { user: { id, email, role, ... } } - from middleware/auth.ts generateToken
+    // Format 2: { userId, email, role } - from login/register routes
+    if (decoded.user) {
+      return decoded.user;
+    }
+
+    // Convert Format 2 to User object
+    if (decoded.userId || decoded.id) {
+      return {
+        id: decoded.userId || decoded.id,
+        email: decoded.email,
+        role: decoded.role || 'user',
+        firstName: decoded.firstName || decoded.first_name || '',
+        lastName: decoded.lastName || decoded.last_name || ''
+      } as User;
+    }
+
+    return null;
   } catch (error) {
     return null;
   }

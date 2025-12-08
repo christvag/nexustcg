@@ -98,63 +98,10 @@ async function addDummyData() {
       });
     }
 
-    console.log('\n💬 Adding 5 dummy support messages...');
-
-    // 3. Check if support_messages table exists, if not create it
-    await new Promise((resolve, reject) => {
-      const createTableSql = `
-        CREATE TABLE IF NOT EXISTS support_messages (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          user_id INTEGER NOT NULL,
-          subject TEXT NOT NULL,
-          message TEXT NOT NULL,
-          status TEXT DEFAULT 'open',
-          priority TEXT DEFAULT 'normal',
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (user_id) REFERENCES users(id)
-        )
-      `;
-
-      db.run(createTableSql, (err) => {
-        if (err) reject(err);
-        else {
-          console.log('  📋 Support messages table ready');
-          resolve();
-        }
-      });
-    });
-
-    // Add 5 support messages
-    const messages = [
-      { userId: userIds[0].id, subject: 'Question about grading turnaround', message: 'How long does standard grading usually take?', status: 'open', priority: 'normal' },
-      { userId: userIds[1].id, subject: 'Issue with my order', message: 'I haven\'t received tracking information yet.', status: 'in_progress', priority: 'high' },
-      { userId: userIds[2].id, subject: 'Bulk grading inquiry', message: 'I have 100+ cards to grade. Do you offer volume discounts?', status: 'open', priority: 'normal' },
-      { userId: userIds[3].id, subject: 'Card condition clarification', message: 'What\'s the difference between PSA 9 and PSA 10?', status: 'resolved', priority: 'low' },
-      { userId: userIds[4].id, subject: 'Return shipping question', message: 'What shipping method do you use for returns?', status: 'open', priority: 'normal' }
-    ];
-
-    for (const msg of messages) {
-      await new Promise((resolve, reject) => {
-        const sql = `INSERT INTO support_messages (user_id, subject, message, status, priority, created_at, updated_at)
-                     VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))`;
-
-        db.run(sql, [msg.userId, msg.subject, msg.message, msg.status, msg.priority], function(err) {
-          if (err) {
-            reject(err);
-          } else {
-            console.log(`  ✅ Created message: "${msg.subject}" (${msg.status})`);
-            resolve();
-          }
-        });
-      });
-    }
-
     console.log('\n🎉 All dummy data added successfully!\n');
     console.log('Summary:');
     console.log('  ✅ 5 dummy users');
-    console.log('  ✅ 5 dummy orders with items');
-    console.log('  ✅ 5 dummy support messages\n');
+    console.log('  ✅ 5 dummy orders with items\n');
 
   } catch (error) {
     console.error('❌ Error adding dummy data:', error);

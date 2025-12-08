@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 
 interface FeaturedCard {
   id: number
@@ -20,6 +20,24 @@ interface FeaturedCard {
 
 export default function HomePage() {
   const [featuredCards, setFeaturedCards] = useState<FeaturedCard[]>([])
+  const [isMounted, setIsMounted] = useState(false)
+
+  // Generate stable random values for floating cards (only on client)
+  const floatingCardPositions = useMemo(() => {
+    if (!isMounted) return []
+    return [...Array(5)].map((_, i) => ({
+      x: Math.random() * (window.innerWidth - 128),
+      y: window.innerHeight + 200,
+      initialRotate: Math.random() * 360,
+      animateRotate: Math.random() * 360,
+      duration: 20 + Math.random() * 10,
+    }))
+  }, [isMounted])
+
+  // Set mounted state on client
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   // Fetch featured cards on mount
   useEffect(() => {
@@ -98,34 +116,36 @@ export default function HomePage() {
           </motion.div>
         </div>
 
-        {/* Floating Cards Animation */}
-        <div className="absolute inset-0 pointer-events-none">
-          {[...Array(5)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute w-32 h-44 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 border-2 border-transparent bg-clip-border opacity-30"
-              style={{
-                background: 'linear-gradient(#1f2937, #1f2937) padding-box, linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) border-box',
-                border: '2px solid transparent'
-              }}
-              initial={{
-                x: typeof window !== 'undefined' ? Math.random() * (window.innerWidth - 128) : Math.random() * 800,
-                y: -200,
-                rotate: Math.random() * 360,
-              }}
-              animate={{
-                y: typeof window !== 'undefined' ? window.innerHeight + 200 : 1000,
-                rotate: Math.random() * 360,
-              }}
-              transition={{
-                duration: 20 + Math.random() * 10,
-                repeat: Infinity,
-                delay: i * 2,
-                ease: "linear",
-              }}
-            />
-          ))}
-        </div>
+        {/* Floating Cards Animation - Only render on client to avoid hydration mismatch */}
+        {isMounted && floatingCardPositions.length > 0 && (
+          <div className="absolute inset-0 pointer-events-none">
+            {floatingCardPositions.map((pos, i) => (
+              <motion.div
+                key={i}
+                className="absolute w-32 h-44 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 border-2 border-transparent bg-clip-border opacity-30"
+                style={{
+                  background: 'linear-gradient(#1f2937, #1f2937) padding-box, linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) border-box',
+                  border: '2px solid transparent'
+                }}
+                initial={{
+                  x: pos.x,
+                  y: -200,
+                  rotate: pos.initialRotate,
+                }}
+                animate={{
+                  y: pos.y,
+                  rotate: pos.animateRotate,
+                }}
+                transition={{
+                  duration: pos.duration,
+                  repeat: Infinity,
+                  delay: i * 2,
+                  ease: "linear",
+                }}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Features Section */}

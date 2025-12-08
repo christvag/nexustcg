@@ -12,7 +12,6 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  MessageSquare,
   Award,
   Trophy,
   Star
@@ -150,7 +149,7 @@ export default function AdminDashboard() {
       case 'in_progress':
         return <AlertCircle className="h-4 w-4 text-orange-500" />;
       case 'grading':
-        return <MessageSquare className="h-4 w-4 text-purple-500" />;
+        return <Star className="h-4 w-4 text-purple-500" />;
       case 'completed':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'shipped':

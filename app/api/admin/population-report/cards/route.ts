@@ -110,6 +110,7 @@ export async function GET(req: NextRequest) {
       rarity: card.rarity,
       card_number: card.card_number,
       card_info: card.card_info,
+      card_owner: card.card_owner || '',
       language: card.language || 'English',
       date_graded: card.date_graded,
       front_image_path: card.front_image,

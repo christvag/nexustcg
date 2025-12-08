@@ -16,6 +16,7 @@ interface GradedCard {
   rarity: string;
   card_number: string;
   card_info: string;
+  card_owner: string;
   language: string;
   date_graded: string;
   front_image_path?: string;
@@ -598,6 +599,9 @@ export default function PopulationReportCardsPage() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider" id="pr-th-language">
                   Language
                 </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider" id="pr-th-owner">
+                  Owner
+                </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider" id="pr-th-date-graded">
                   Date Graded
                 </th>
@@ -657,6 +661,9 @@ export default function PopulationReportCardsPage() {
                     <td className="px-4 py-3 text-sm text-gray-300" id={`pr-td-language-${card.id}`}>
                       {card.language || 'English'}
                     </td>
+                    <td className="px-4 py-3 text-sm text-gray-300" id={`pr-td-owner-${card.id}`}>
+                      {card.card_owner || '-'}
+                    </td>
                     <td className="px-4 py-3 text-sm text-gray-400">
                       {new Date(card.date_graded).toLocaleDateString()}
                     </td>
@@ -696,7 +703,7 @@ export default function PopulationReportCardsPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={13} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={14} className="px-4 py-8 text-center text-gray-500">
                     No cards found
                   </td>
                 </tr>
@@ -929,6 +936,19 @@ export default function PopulationReportCardsPage() {
                     />
                   </div>
                 )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Card Owner (Email)</label>
+                  <input
+                    type="email"
+                    value={editingCard.card_owner || ''}
+                    onChange={(e) => setEditingCard({ ...editingCard, card_owner: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                    id="edit-card-owner"
+                    placeholder="owner@email.com"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Enter the owner's email to link this card to their account</p>
+                </div>
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-300 mb-2">Card Info</label>

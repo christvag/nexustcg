@@ -5,7 +5,6 @@ import Link from 'next/link';
 import {
   Package,
   Truck,
-  MessageSquare,
   Star,
   TrendingUp,
   Calendar,
@@ -23,15 +22,11 @@ export default function UserDashboard() {
   const [currentUser, setCurrentUser] = useState(null)
   const [recentOrders, setRecentOrders] = useState([])
   const [isLoading, setIsLoading] = useState(true)
-
-  const [supportTickets] = useState([])
-
   const [spendingData, setSpendingData] = useState([])
 
   const [stats, setStats] = useState({
     totalOrders: 0,
     totalSpent: 0,
-    activeTickets: 0,
     completedOrders: 0,
     wishlistItems: 0,
     loyaltyPoints: 0
@@ -67,7 +62,6 @@ export default function UserDashboard() {
         setStats({
           totalOrders,
           totalSpent,
-          activeTickets: supportTickets.length,
           completedOrders,
           wishlistItems: 0,
           loyaltyPoints: Math.floor(totalSpent * 0.5) // 0.5 points per dollar
@@ -106,12 +100,21 @@ export default function UserDashboard() {
 
   const getOrderStatusIcon = (status: string) => {
     switch (status) {
+      case 'pending':
+        return <Clock className="h-4 w-4 text-yellow-500" />;
+      case 'received':
+        return <Package className="h-4 w-4 text-blue-500" />;
+      case 'in_progress':
       case 'processing':
-        return <Clock className="h-4 w-4 text-blue-500" />;
-      case 'shipped':
-        return <Truck className="h-4 w-4 text-purple-500" />;
-      case 'delivered':
+        return <Clock className="h-4 w-4 text-orange-500" />;
+      case 'grading':
+        return <Star className="h-4 w-4 text-purple-500" />;
+      case 'completed':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'shipped':
+        return <Truck className="h-4 w-4 text-indigo-500" />;
+      case 'delivered':
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
       default:
         return <Package className="h-4 w-4 text-gray-500" />;
     }
@@ -119,10 +122,19 @@ export default function UserDashboard() {
 
   const getOrderStatusClass = (status: string) => {
     switch (status) {
-      case 'processing':
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'received':
         return 'bg-blue-100 text-blue-800';
-      case 'shipped':
+      case 'in_progress':
+      case 'processing':
+        return 'bg-orange-100 text-orange-800';
+      case 'grading':
         return 'bg-purple-100 text-purple-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'shipped':
+        return 'bg-indigo-100 text-indigo-800';
       case 'delivered':
         return 'bg-green-100 text-green-800';
       default:
@@ -130,16 +142,24 @@ export default function UserDashboard() {
     }
   };
 
-  const getTicketStatusClass = (status: string) => {
+  const getOrderStatusText = (status: string) => {
     switch (status) {
-      case 'open':
-        return 'bg-green-100 text-green-800';
-      case 'resolved':
-        return 'bg-blue-100 text-blue-800';
-      case 'closed':
-        return 'bg-gray-100 text-gray-800';
+      case 'pending':
+        return 'Pending';
+      case 'received':
+        return 'Received';
+      case 'in_progress':
+        return 'In Progress';
+      case 'grading':
+        return 'Grading';
+      case 'completed':
+        return 'Completed';
+      case 'shipped':
+        return 'Shipped';
+      case 'delivered':
+        return 'Delivered';
       default:
-        return 'bg-yellow-100 text-yellow-800';
+        return status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
     }
   };
 
@@ -194,7 +214,7 @@ export default function UserDashboard() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="bg-white rounded-lg shadow p-4 text-center">
           <Package className="h-8 w-8 text-blue-500 mx-auto mb-2" />
           <div className="text-2xl font-bold text-gray-900">{stats.totalOrders}</div>
@@ -206,13 +226,7 @@ export default function UserDashboard() {
           <div className="text-2xl font-bold text-gray-900">${stats.totalSpent.toLocaleString()}</div>
           <div className="text-sm text-gray-600">Total Spent</div>
         </div>
-        
-        <div className="bg-white rounded-lg shadow p-4 text-center">
-          <MessageSquare className="h-8 w-8 text-orange-500 mx-auto mb-2" />
-          <div className="text-2xl font-bold text-gray-900">{stats.activeTickets}</div>
-          <div className="text-sm text-gray-600">Active Tickets</div>
-        </div>
-        
+
         <div className="bg-white rounded-lg shadow p-4 text-center">
           <CheckCircle className="h-8 w-8 text-purple-500 mx-auto mb-2" />
           <div className="text-2xl font-bold text-gray-900">{stats.completedOrders}</div>
@@ -232,8 +246,8 @@ export default function UserDashboard() {
         </div>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Main Content */}
+      <div className="space-y-6">
         {/* Recent Orders */}
         <div className="bg-white rounded-lg shadow">
           <div className="p-6 border-b">
@@ -281,7 +295,7 @@ export default function UserDashboard() {
                     </div>
                     <div className="text-right">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getOrderStatusClass(order.status)}`}>
-                        {order.status}
+                        {getOrderStatusText(order.status)}
                       </span>
                     </div>
                   </div>
@@ -305,54 +319,6 @@ export default function UserDashboard() {
           </div>
         </div>
 
-        {/* Support Tickets */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Support Tickets</h3>
-              <Link 
-                href="/user/dashboard/support"
-                className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-              >
-                View All
-              </Link>
-            </div>
-          </div>
-          <div className="p-6">
-            <div className="space-y-4">
-              {supportTickets.map((ticket) => (
-                <div key={ticket.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <MessageSquare className="h-5 w-5 text-gray-400" />
-                    <div>
-                      <div className="font-medium text-gray-900">{ticket.subject}</div>
-                      <div className="text-sm text-gray-500">
-                        {ticket.id} • Updated {ticket.lastUpdate}
-                      </div>
-                    </div>
-                  </div>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTicketStatusClass(ticket.status)}`}>
-                    {ticket.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-            
-            {supportTickets.length === 0 && (
-              <div className="text-center py-8">
-                <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No support tickets</h3>
-                <p className="text-gray-500 mb-4">Need help? Create a support ticket</p>
-                <Link
-                  href="/user/dashboard/support"
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                >
-                  Create Ticket
-                </Link>
-              </div>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* Spending Chart */}
@@ -381,7 +347,7 @@ export default function UserDashboard() {
       {/* Quick Actions */}
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <Link
             href="/user/dashboard/orders"
             className="flex flex-col items-center p-4 border rounded-lg hover:bg-gray-50 transition-colors"
@@ -389,15 +355,7 @@ export default function UserDashboard() {
             <Package className="h-8 w-8 text-blue-500 mb-2" />
             <span className="text-sm font-medium text-gray-900">Track Orders</span>
           </Link>
-          
-          <Link
-            href="/user/dashboard/support"
-            className="flex flex-col items-center p-4 border rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <MessageSquare className="h-8 w-8 text-green-500 mb-2" />
-            <span className="text-sm font-medium text-gray-900">Get Support</span>
-          </Link>
-          
+
           <Link
             href="/user/dashboard/profile"
             className="flex flex-col items-center p-4 border rounded-lg hover:bg-gray-50 transition-colors"
@@ -405,7 +363,7 @@ export default function UserDashboard() {
             <Settings className="h-8 w-8 text-purple-500 mb-2" />
             <span className="text-sm font-medium text-gray-900">Settings</span>
           </Link>
-          
+
           <Link
             href="/packages"
             className="flex flex-col items-center p-4 border rounded-lg hover:bg-gray-50 transition-colors"

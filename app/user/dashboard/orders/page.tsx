@@ -10,7 +10,7 @@ import {
   MapPin,
   Eye,
   Download,
-  MessageSquare,
+  Mail,
   Star,
   Search,
   Filter,
@@ -288,10 +288,10 @@ export default function OrderTracking() {
               <Download className="h-4 w-4" />
               <span>Download Receipt</span>
             </button>
-            <button className="flex items-center space-x-2 px-4 py-2 border rounded-lg hover:bg-gray-50">
-              <MessageSquare className="h-4 w-4" />
-              <span>Contact Support</span>
-            </button>
+            <a href="mailto:support@nexustcgrading.com" className="flex items-center space-x-2 px-4 py-2 border rounded-lg hover:bg-gray-50">
+              <Mail className="h-4 w-4" />
+              <span>Email Support</span>
+            </a>
             {order.status === 'delivered' && (
               <button className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                 <Star className="h-4 w-4" />

@@ -6,10 +6,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   User,
   Package,
-  MessageSquare,
   Settings,
-  Heart,
-  ShoppingCart,
+  CreditCard,
   MapPin,
   Bell,
   Menu,
@@ -21,10 +19,8 @@ import {
 const sidebarItems = [
   { href: '/user/dashboard', label: 'Dashboard', icon: User },
   { href: '/user/dashboard/orders', label: 'My Orders', icon: Package },
-  { href: '/user/dashboard/support', label: 'Support Tickets', icon: MessageSquare },
+  { href: '/user/dashboard/my-cards', label: 'My Cards', icon: CreditCard },
   { href: '/user/dashboard/profile', label: 'Profile Settings', icon: Settings },
-  { href: '/user/dashboard/community', label: 'Community', icon: Heart },
-  { href: '/user/dashboard/wishlist', label: 'Wishlist', icon: ShoppingCart },
   { href: '/user/dashboard/addresses', label: 'Addresses', icon: MapPin },
 ];
 

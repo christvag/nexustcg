@@ -220,7 +220,6 @@ export async function DELETE(request: NextRequest) {
     // Delete user-related data
     await runQuery('DELETE FROM user_addresses WHERE user_id = ?', [userIdNum])
     await runQuery('DELETE FROM user_sessions WHERE user_id = ?', [userIdNum])
-    await runQuery('DELETE FROM support_messages WHERE user_id = ?', [userIdNum])
     await runQuery('DELETE FROM chat_messages WHERE user_id = ?', [userIdNum])
 
     // Finally delete the user
