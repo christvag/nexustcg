@@ -64,23 +64,22 @@ export async function GET(req: NextRequest) {
     const db = new Database(dbPath)
     db.pragma('foreign_keys = ON')
 
-    // Search users
+    // Search users by email, first_name, or last_name
     const searchSql = `
-      SELECT id, username, email, first_name, last_name, role
+      SELECT id, email, first_name, last_name, role
       FROM users
       WHERE
-        username LIKE ? OR
         email LIKE ? OR
         first_name LIKE ? OR
         last_name LIKE ? OR
         (first_name || ' ' || last_name) LIKE ?
       ORDER BY
         CASE
-          WHEN username LIKE ? THEN 1
-          WHEN email LIKE ? THEN 2
+          WHEN email LIKE ? THEN 1
+          WHEN first_name LIKE ? THEN 2
           ELSE 3
         END,
-        username ASC
+        email ASC
       LIMIT 20
     `
 
@@ -88,7 +87,6 @@ export async function GET(req: NextRequest) {
     const exactPattern = `${query}%`
 
     const users = db.prepare(searchSql).all(
-      searchPattern,
       searchPattern,
       searchPattern,
       searchPattern,

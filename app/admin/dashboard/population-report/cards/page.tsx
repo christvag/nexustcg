@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Search, Filter, Download, Edit2, Trash2, Eye, Calendar, X, Star } from 'lucide-react';
+import UserSearchDropdown from '@/components/UserSearchDropdown';
 
 interface GradedCard {
   id: number;
@@ -939,15 +940,12 @@ export default function PopulationReportCardsPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Card Owner (Email)</label>
-                  <input
-                    type="email"
+                  <UserSearchDropdown
                     value={editingCard.card_owner || ''}
-                    onChange={(e) => setEditingCard({ ...editingCard, card_owner: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
-                    id="edit-card-owner"
-                    placeholder="owner@email.com"
+                    onChange={(email) => setEditingCard({ ...editingCard, card_owner: email })}
+                    placeholder="Search user by email or name..."
+                    id="edit-card-owner-search"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Enter the owner's email to link this card to their account</p>
                 </div>
 
                 <div className="md:col-span-2">

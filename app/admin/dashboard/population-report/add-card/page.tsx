@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Save, Upload, X, Image as ImageIcon } from 'lucide-react';
+import UserSearchDropdown from '@/components/UserSearchDropdown';
 
 interface FormData {
   cardId: string;
@@ -476,15 +477,12 @@ export default function AddCardPage() {
           <label className="block text-sm font-medium text-gray-300 mb-2">
             Card Owner (Email)
           </label>
-          <input
-            type="email"
-            name="cardOwner"
+          <UserSearchDropdown
             value={formData.cardOwner}
-            onChange={handleChange}
-            className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
-            placeholder="owner@email.com"
+            onChange={(email) => setFormData(prev => ({ ...prev, cardOwner: email }))}
+            placeholder="Search user by email or name..."
+            id="add-card-owner-search"
           />
-          <p className="text-xs text-gray-500 mt-1">Enter the owner's email to link this card to their account. Leave empty for "Nexus TCG Grading".</p>
         </div>
 
         {/* Additional Info */}
