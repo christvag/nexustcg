@@ -18,26 +18,11 @@ interface GradedCard {
   card_number: string;
   card_info: string;
   card_owner: string;
-  language: string;
   date_graded: string;
   front_image_path?: string;
   back_image_path?: string;
   is_featured?: number;
 }
-
-const CARD_LANGUAGES = [
-  'English',
-  'Japanese',
-  'Korean',
-  'Traditional Chinese',
-  'Simplified Chinese',
-  'German',
-  'French',
-  'Italian',
-  'Spanish',
-  'Portuguese',
-  'Other',
-];
 
 export default function PopulationReportCardsPage() {
   const [cards, setCards] = useState<GradedCard[]>([]);
@@ -47,7 +32,6 @@ export default function PopulationReportCardsPage() {
   const [filterGame, setFilterGame] = useState('');
   const [filterGrade, setFilterGrade] = useState('');
   const [filterRarity, setFilterRarity] = useState('');
-  const [filterLanguage, setFilterLanguage] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   const [selectedCards, setSelectedCards] = useState<Set<number>>(new Set());
@@ -77,7 +61,7 @@ export default function PopulationReportCardsPage() {
 
   useEffect(() => {
     filterCards();
-  }, [searchTerm, filterGame, filterGrade, filterRarity, filterLanguage, filterDateFrom, filterDateTo, cards]);
+  }, [searchTerm, filterGame, filterGrade, filterRarity, filterDateFrom, filterDateTo, cards]);
 
   useEffect(() => {
     // Update select all checkbox state
@@ -129,10 +113,6 @@ export default function PopulationReportCardsPage() {
 
     if (filterRarity) {
       filtered = filtered.filter(card => card.rarity === filterRarity);
-    }
-
-    if (filterLanguage) {
-      filtered = filtered.filter(card => (card.language || 'English') === filterLanguage);
     }
 
     if (filterDateFrom) {
@@ -339,7 +319,7 @@ export default function PopulationReportCardsPage() {
 
     const selectedCardsData = filteredCards.filter(card => selectedCards.has(card.id));
     const csvContent = [
-      ['serial_number', 'type', 'name_card', 'grade', 'grade_name', 'year_card', 'set_name', 'edition', 'card_info', 'rarity', 'card_number', 'language', 'date_graded'],
+      ['serial_number', 'type', 'name_card', 'grade', 'grade_name', 'year_card', 'set_name', 'edition', 'card_info', 'rarity', 'card_number', 'card_owner', 'date_graded'],
       ...selectedCardsData.map(card => [
         card.card_id,
         card.card_game,
@@ -352,7 +332,7 @@ export default function PopulationReportCardsPage() {
         card.card_info || '',
         card.rarity,
         card.card_number || '',
-        card.language || 'English',
+        card.card_owner || '',
         formatDateToYYYYMMDD(card.date_graded)
       ])
     ].map(row => row.join(',')).join('\n');
@@ -368,7 +348,7 @@ export default function PopulationReportCardsPage() {
 
   const handleExport = () => {
     const csvContent = [
-      ['serial_number', 'type', 'name_card', 'grade', 'grade_name', 'year_card', 'set_name', 'edition', 'card_info', 'rarity', 'card_number', 'language', 'date_graded'],
+      ['serial_number', 'type', 'name_card', 'grade', 'grade_name', 'year_card', 'set_name', 'edition', 'card_info', 'rarity', 'card_number', 'card_owner', 'date_graded'],
       ...filteredCards.map(card => [
         card.card_id,
         card.card_game,
@@ -381,7 +361,7 @@ export default function PopulationReportCardsPage() {
         card.card_info || '',
         card.rarity,
         card.card_number || '',
-        card.language || 'English',
+        card.card_owner || '',
         formatDateToYYYYMMDD(card.date_graded)
       ])
     ].map(row => row.join(',')).join('\n');
@@ -391,6 +371,36 @@ export default function PopulationReportCardsPage() {
     const a = document.createElement('a');
     a.href = url;
     a.download = `population-report-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  // Export individual card to CSV
+  const handleExportSingleCard = (card: GradedCard) => {
+    const csvContent = [
+      ['serial_number', 'type', 'name_card', 'grade', 'grade_name', 'year_card', 'set_name', 'edition', 'card_info', 'rarity', 'card_number', 'card_owner', 'date_graded'],
+      [
+        card.card_id,
+        card.card_game,
+        card.card_name,
+        card.card_grade,
+        card.grade_name || '',
+        card.year_card || '',
+        card.set_name,
+        card.edition || '',
+        card.card_info || '',
+        card.rarity,
+        card.card_number || '',
+        card.card_owner || '',
+        formatDateToYYYYMMDD(card.date_graded)
+      ]
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `card-${card.card_id}-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -464,20 +474,6 @@ export default function PopulationReportCardsPage() {
               <option value="">All Rarities</option>
               {uniqueRarities.map(rarity => (
                 <option key={rarity} value={rarity}>{rarity}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Filter by Language */}
-          <div id="pr-filter-language">
-            <select
-              value={filterLanguage}
-              onChange={(e) => setFilterLanguage(e.target.value)}
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Languages</option>
-              {CARD_LANGUAGES.filter(lang => lang !== 'Other').map(lang => (
-                <option key={lang} value={lang}>{lang}</option>
               ))}
             </select>
           </div>
@@ -597,9 +593,6 @@ export default function PopulationReportCardsPage() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider" id="pr-th-card-number">
                   Card Number
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider" id="pr-th-language">
-                  Language
-                </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider" id="pr-th-owner">
                   Owner
                 </th>
@@ -659,9 +652,6 @@ export default function PopulationReportCardsPage() {
                     <td className="px-4 py-3 text-sm text-gray-300" id={`pr-td-card-number-${card.id}`}>
                       {card.card_number || '-'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-300" id={`pr-td-language-${card.id}`}>
-                      {card.language || 'English'}
-                    </td>
                     <td className="px-4 py-3 text-sm text-gray-300" id={`pr-td-owner-${card.id}`}>
                       {card.card_owner || '-'}
                     </td>
@@ -681,6 +671,14 @@ export default function PopulationReportCardsPage() {
                           id={`featured-card-btn-${card.id}`}
                         >
                           <Star className={`h-4 w-4 ${card.is_featured ? 'fill-current' : ''}`} />
+                        </button>
+                        <button
+                          onClick={() => handleExportSingleCard(card)}
+                          className="p-1 text-green-400 hover:text-green-300 transition-colors"
+                          title="Export to CSV"
+                          id={`export-card-btn-${card.id}`}
+                        >
+                          <Download className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleEdit(card)}
@@ -704,7 +702,7 @@ export default function PopulationReportCardsPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={14} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={13} className="px-4 py-8 text-center text-gray-500">
                     No cards found
                   </td>
                 </tr>
@@ -900,43 +898,6 @@ export default function PopulationReportCardsPage() {
                     placeholder="e.g., 4/102"
                   />
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Language</label>
-                  <select
-                    value={CARD_LANGUAGES.includes(editingCard.language || 'English') ? (editingCard.language || 'English') : 'Other'}
-                    onChange={(e) => {
-                      if (e.target.value === 'Other') {
-                        setEditingCard({ ...editingCard, language: '' });
-                      } else {
-                        setEditingCard({ ...editingCard, language: e.target.value });
-                      }
-                    }}
-                    className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
-                    id="edit-language"
-                  >
-                    {CARD_LANGUAGES.map(lang => (
-                      <option key={lang} value={lang}>{lang}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Custom Language Input - shows when language is not in the predefined list or is empty */}
-                {(!CARD_LANGUAGES.includes(editingCard.language || '') || editingCard.language === '') && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Specify Language <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={editingCard.language || ''}
-                      onChange={(e) => setEditingCard({ ...editingCard, language: e.target.value })}
-                      className="w-full px-3 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
-                      id="edit-custom-language"
-                      placeholder="e.g., Thai, Dutch, etc."
-                    />
-                  </div>
-                )}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Card Owner (Email)</label>

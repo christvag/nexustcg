@@ -46,7 +46,6 @@ interface ApiCardData {
   card_name: string
   card_id: string
   card_rarity: string
-  language: string
   total_graded: number
   grade_10: number
   grade_9: number
@@ -98,7 +97,6 @@ interface FeaturedCard {
   set_name: string
   rarity: string
   year_card?: string
-  language?: string
   front_image?: string
   date_graded: string
 }
@@ -532,7 +530,7 @@ export default function PopulationReportPage() {
                           </Link>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-white">
-                          {card.card_name} - {card.language || 'English'}
+                          {card.card_name}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">
                           {card.card_game}
@@ -641,7 +639,7 @@ export default function PopulationReportPage() {
                     </span>
                   </div>
                   <h4 className="font-bold text-white mb-1 truncate group-hover:text-yellow-400 transition-colors">
-                    {card.card_name} - {card.language || 'English'}
+                    {card.card_name}
                   </h4>
                   <p className="text-xs text-gray-400 mb-1">{card.card_game}</p>
                   <div className="flex items-center justify-between">
@@ -855,9 +853,9 @@ export default function PopulationReportPage() {
                   </thead>
                   <tbody className="bg-gray-900/30 divide-y divide-gray-700">
                     {cardData.map((card) => (
-                      <tr key={`${card.card_name}-${card.card_id}-${card.language}`} id={`population-card-row-${card.card_id}`} className="hover:bg-gray-700/50">
+                      <tr key={`${card.card_name}-${card.card_id}`} id={`population-card-row-${card.card_id}`} className="hover:bg-gray-700/50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
-                          {card.card_name} - {card.language || 'English'}
+                          {card.card_name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                           {card.card_rarity || '-'}

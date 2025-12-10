@@ -17,8 +17,6 @@ interface FormData {
   cardNumber: string;
   cardInfo: string;
   cardOwner: string;
-  language: string;
-  customLanguage: string;
 }
 
 interface GameOption {
@@ -44,20 +42,6 @@ const CARD_GRADES = [
   { value: '10+', label: '10+', name: 'PRISTINE' },
 ];
 
-const CARD_LANGUAGES = [
-  'English',
-  'Japanese',
-  'Korean',
-  'Traditional Chinese',
-  'Simplified Chinese',
-  'German',
-  'French',
-  'Italian',
-  'Spanish',
-  'Portuguese',
-  'Other',
-];
-
 export default function AddCardPage() {
   const [formData, setFormData] = useState<FormData>({
     cardId: '',
@@ -72,8 +56,6 @@ export default function AddCardPage() {
     cardNumber: '',
     cardInfo: '',
     cardOwner: '',
-    language: 'English',
-    customLanguage: '',
   });
   const [frontImage, setFrontImage] = useState<File | null>(null);
   const [backImage, setBackImage] = useState<File | null>(null);
@@ -194,11 +176,8 @@ export default function AddCardPage() {
       const token = localStorage.getItem('authToken');
 
       // Prepare form data with images
-      // Use customLanguage if "Other" is selected, otherwise use the selected language
-      const finalLanguage = formData.language === 'Other' ? formData.customLanguage : formData.language;
       const submitData = {
         ...formData,
-        language: finalLanguage,
         frontImage: frontPreview,
         backImage: backPreview
       };
@@ -232,8 +211,6 @@ export default function AddCardPage() {
           cardNumber: '',
           cardInfo: '',
           cardOwner: '',
-          language: 'English',
-          customLanguage: '',
         }));
         removeFrontImage();
         removeBackImage();
@@ -434,42 +411,6 @@ export default function AddCardPage() {
               placeholder="e.g., 4/102"
             />
           </div>
-        </div>
-
-        {/* Language */}
-        <div id="language-fields" className="grid grid-cols-2 gap-4">
-          <div id="language-field">
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Language
-            </label>
-            <select
-              name="language"
-              value={formData.language}
-              onChange={handleChange}
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
-            >
-              {CARD_LANGUAGES.map(lang => (
-                <option key={lang} value={lang}>{lang}</option>
-              ))}
-            </select>
-          </div>
-
-          {formData.language === 'Other' && (
-            <div id="custom-language-field">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Specify Language <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="customLanguage"
-                value={formData.customLanguage}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
-                placeholder="e.g., Thai, Dutch, etc."
-              />
-            </div>
-          )}
         </div>
 
         {/* Card Owner */}

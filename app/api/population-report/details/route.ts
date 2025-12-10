@@ -30,8 +30,13 @@ export async function GET(req: NextRequest) {
       whereClause += ` AND (${gameFilter})`
     }
     if (year) {
-      whereClause += ` AND strftime('%Y', date_graded) = ?`
-      params.push(year)
+      // Handle "Unknown" year which represents empty/null year_card in the database
+      if (year === 'Unknown') {
+        whereClause += ` AND (year_card IS NULL OR year_card = '')`
+      } else {
+        whereClause += ` AND year_card = ?`
+        params.push(year)
+      }
     }
     if (set) {
       // Handle "Unknown Set" which represents empty/null set_name in the database
@@ -87,15 +92,24 @@ export async function GET(req: NextRequest) {
     }))
 
     // Get popularity rank (how rare this card is)
+    // Build the year condition for the subquery
+    const yearConditionForRank = year
+      ? (year === 'Unknown' ? "AND (year_card IS NULL OR year_card = '')" : 'AND year_card = ?')
+      : ''
+
     // Build the set condition for the subquery
     const setConditionForRank = set
       ? (set === 'Unknown Set' ? "AND (set_name IS NULL OR set_name = '')" : 'AND set_name = ?')
       : ''
 
-    // Build params for popularity rank query - only add set param if it's not "Unknown Set"
+    // Build params for popularity rank query
     const rankParams = [...params]
+    // Add year param for subquery if needed (not for "Unknown")
+    if (year && year !== 'Unknown') {
+      rankParams.push(year)
+    }
+    // Add set param for subquery if needed (not for "Unknown Set")
     if (set && set !== 'Unknown Set') {
-      // The set param is already in params from whereClause, we need it again for the subquery
       rankParams.push(set)
     }
     rankParams.push(cardName)
@@ -110,7 +124,7 @@ export async function GET(req: NextRequest) {
             SELECT card_name, COUNT(*) as cnt
             FROM population_report_cards
             ${game ? `WHERE (${gameFilter})` : 'WHERE 1=1'}
-            ${year ? 'AND strftime(\'%Y\', date_graded) = ?' : ''}
+            ${yearConditionForRank}
             ${setConditionForRank}
             GROUP BY card_name
             HAVING cnt > (SELECT COUNT(*) FROM population_report_cards WHERE card_name = ?)

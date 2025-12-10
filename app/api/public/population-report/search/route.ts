@@ -27,7 +27,6 @@ export async function GET(req: NextRequest) {
         card_grade,
         set_name,
         rarity,
-        COALESCE(language, 'English') as language,
         strftime('%m', date_graded) as month_graded,
         strftime('%Y', date_graded) as year_graded,
         date_graded,

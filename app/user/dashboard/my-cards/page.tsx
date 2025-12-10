@@ -17,24 +17,10 @@ interface GradedCard {
   rarity: string;
   card_number: string;
   card_info: string;
-  language: string;
   date_graded: string;
   front_image?: string;
   back_image?: string;
 }
-
-const CARD_LANGUAGES = [
-  'English',
-  'Japanese',
-  'Korean',
-  'Traditional Chinese',
-  'Simplified Chinese',
-  'German',
-  'French',
-  'Italian',
-  'Spanish',
-  'Portuguese',
-];
 
 export default function MyCardsPage() {
   const [cards, setCards] = useState<GradedCard[]>([]);
@@ -44,7 +30,6 @@ export default function MyCardsPage() {
   const [filterGame, setFilterGame] = useState('');
   const [filterGrade, setFilterGrade] = useState('');
   const [filterRarity, setFilterRarity] = useState('');
-  const [filterLanguage, setFilterLanguage] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -62,7 +47,7 @@ export default function MyCardsPage() {
 
   useEffect(() => {
     filterCards();
-  }, [searchTerm, filterGame, filterGrade, filterRarity, filterLanguage, filterDateFrom, filterDateTo, cards]);
+  }, [searchTerm, filterGame, filterGrade, filterRarity, filterDateFrom, filterDateTo, cards]);
 
   const fetchUserCards = async (userEmail: string) => {
     try {
@@ -107,10 +92,6 @@ export default function MyCardsPage() {
       filtered = filtered.filter(card => card.rarity === filterRarity);
     }
 
-    if (filterLanguage) {
-      filtered = filtered.filter(card => (card.language || 'English') === filterLanguage);
-    }
-
     if (filterDateFrom) {
       filtered = filtered.filter(card => new Date(card.date_graded) >= new Date(filterDateFrom));
     }
@@ -132,7 +113,7 @@ export default function MyCardsPage() {
 
   const handleExport = () => {
     const csvContent = [
-      ['Serial Number', 'Game', 'Card Name', 'Grade', 'Grade Name', 'Year', 'Set', 'Rarity', 'Card Number', 'Language', 'Date Graded'],
+      ['Serial Number', 'Game', 'Card Name', 'Grade', 'Grade Name', 'Year', 'Set', 'Rarity', 'Card Number', 'Date Graded'],
       ...filteredCards.map(card => [
         card.card_id,
         card.card_game,
@@ -143,7 +124,6 @@ export default function MyCardsPage() {
         card.set_name,
         card.rarity,
         card.card_number || '',
-        card.language || 'English',
         formatDateToYYYYMMDD(card.date_graded)
       ])
     ].map(row => row.join(',')).join('\n');
@@ -256,20 +236,6 @@ export default function MyCardsPage() {
             </select>
           </div>
 
-          {/* Filter by Language */}
-          <div id="my-cards-filter-language">
-            <select
-              value={filterLanguage}
-              onChange={(e) => setFilterLanguage(e.target.value)}
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Languages</option>
-              {CARD_LANGUAGES.map(lang => (
-                <option key={lang} value={lang}>{lang}</option>
-              ))}
-            </select>
-          </div>
-
           {/* Filter by Date From */}
           <div id="my-cards-filter-date-from">
             <div className="relative">
@@ -353,9 +319,6 @@ export default function MyCardsPage() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider" id="my-cards-th-card-number">
                   Card Number
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider" id="my-cards-th-language">
-                  Language
-                </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider" id="my-cards-th-date">
                   Date Graded
                 </th>
@@ -402,9 +365,6 @@ export default function MyCardsPage() {
                     <td className="px-4 py-3 text-sm text-gray-300">
                       {card.card_number || '-'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-300">
-                      {card.language || 'English'}
-                    </td>
                     <td className="px-4 py-3 text-sm text-gray-400">
                       {new Date(card.date_graded).toLocaleDateString()}
                     </td>
@@ -421,7 +381,7 @@ export default function MyCardsPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={12} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={11} className="px-4 py-8 text-center text-gray-500">
                     {cards.length === 0 ? (
                       <div>
                         <p className="mb-2">You don't have any graded cards yet.</p>

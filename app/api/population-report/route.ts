@@ -192,7 +192,6 @@ export async function GET(req: NextRequest) {
     let sql = `
       SELECT
         card_name,
-        COALESCE(language, 'English') as language,
         COALESCE(card_id, 'N/A') as card_id,
         rarity as card_rarity,
         COUNT(*) as total_graded,
@@ -224,7 +223,7 @@ export async function GET(req: NextRequest) {
     }
 
     sql += `
-      GROUP BY card_name, card_id, rarity, language
+      GROUP BY card_name, card_id, rarity
       ORDER BY total_graded DESC, card_name
     `
 
