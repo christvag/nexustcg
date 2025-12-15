@@ -1,5 +1,5 @@
 services:
-  # TCG Grading App
+  # TCG Grading App - Subdomain: tcg.nexusgrading.com
   tcg-grading-app:
     build: .
     ports:
@@ -8,6 +8,11 @@ services:
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
       - JWT_SECRET=${JWT_SECRET:-nexus-tcgrading-secret-key-2024}
+      # Subdomain configuration
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://tcg.nexusgrading.com}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-https://tcg.nexusgrading.com}
+      # CORS - Allow WordPress main domain
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://nexusgrading.com,https://www.nexusgrading.com,https://tcg.nexusgrading.com}
     env_file:
       - .env.local
     volumes:

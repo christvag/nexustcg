@@ -12,7 +12,7 @@ const nextConfig = {
       },
     ],
     domains: [
-      'images.unsplash.com', 
+      'images.unsplash.com',
       'via.placeholder.com',
       'limitlesstcg.nyc3.cdn.digitaloceanspaces.com',
       'assets.pokemon.com',
@@ -41,6 +41,21 @@ const nextConfig = {
   // Enable experimental features if needed
   experimental: {
     // serverComponentsExternalPackages: [],
+  },
+  // Security headers for subdomain deployment (CORS handled by middleware.ts)
+  async headers() {
+    return [
+      {
+        // Security headers for all routes
+        source: '/:path*',
+        headers: [
+          { key: 'X-DNS-Prefetch-Control', value: 'on' },
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'origin-when-cross-origin' },
+        ],
+      },
+    ];
   },
 }
 

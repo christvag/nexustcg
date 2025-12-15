@@ -1,8 +1,90 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { useState, useEffect, useMemo } from 'react'
+import {
+  Search,
+  TrendingUp,
+  ChevronRight,
+  Calendar,
+  Package,
+  Trophy,
+  BarChart3,
+  ArrowLeft,
+  Star
+} from 'lucide-react'
+
+interface ApiGameData {
+  game_type: string
+  card_game: string
+  total_cards: number
+  gem_mint_cards: number
+  near_mint_plus: number
+  avg_grade: number
+}
+
+interface ApiYearData {
+  year: string
+  total_cards: number
+  gem_mint_cards: number
+  avg_grade: number
+  total_sets: number
+}
+
+interface ApiSetData {
+  set_name: string
+  total_cards: number
+  gem_mint_cards: number
+  near_mint_plus: number
+  avg_grade: number
+  unique_cards: number
+}
+
+interface ApiCardData {
+  card_name: string
+  card_id: string
+  card_rarity: string
+  total_graded: number
+  grade_10: number
+  grade_9: number
+  grade_8: number
+  grade_7: number
+  grade_6: number
+  grade_5_below: number
+  avg_grade: number
+  highest_grade: number
+  lowest_grade: number
+}
+
+interface CardDetails {
+  cardName: string
+  game: string
+  year: string
+  set: string
+  summary: {
+    totalGraded: number
+    avgGrade: number
+    highestGrade: number
+    lowestGrade: number
+    popularityRank: string | number
+  }
+  gradeDistribution: Array<{
+    grade: string
+    count: number
+    percentage: string
+  }>
+  individualCards: Array<{
+    id: number
+    card_id: string
+    card_name: string
+    card_game: string
+    rarity: string
+    grade: number
+    grade_name: string
+    gradedDate: string
+  }>
+}
 
 interface FeaturedCard {
   id: number
@@ -18,29 +100,78 @@ interface FeaturedCard {
   date_graded: string
 }
 
-export default function HomePage() {
+export default function PopulationReportPage() {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedGame, setSelectedGame] = useState<string | null>(null)
+  const [selectedYear, setSelectedYear] = useState<string | null>(null)
+  const [selectedSet, setSelectedSet] = useState<string | null>(null)
+  const [selectedCard, setSelectedCard] = useState<string | null>(null)
+  const [gameStats, setGameStats] = useState<ApiGameData[]>([])
+  const [yearData, setYearData] = useState<ApiYearData[]>([])
+  const [setData, setSetData] = useState<ApiSetData[]>([])
+  const [cardData, setCardData] = useState<ApiCardData[]>([])
+  const [cardDetails, setCardDetails] = useState<CardDetails | null>(null)
   const [featuredCards, setFeaturedCards] = useState<FeaturedCard[]>([])
-  const [isMounted, setIsMounted] = useState(false)
+  const [totalStats, setTotalStats] = useState({
+    totalCards: 0,
+    totalGames: 0,
+    avgGrade: 0
+  })
+  const [isLoading, setIsLoading] = useState(true)
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [supportedGames, setSupportedGames] = useState<Array<{
+    id: string
+    name: string
+    logo_path: string | null
+    icon: string
+  }>>([])
 
-  // Generate stable random values for floating cards (only on client)
-  const floatingCardPositions = useMemo(() => {
-    if (!isMounted) return []
-    return [...Array(5)].map((_, i) => ({
-      x: Math.random() * (window.innerWidth - 128),
-      y: window.innerHeight + 200,
-      initialRotate: Math.random() * 360,
-      animateRotate: Math.random() * 360,
-      duration: 20 + Math.random() * 10,
-    }))
-  }, [isMounted])
-
-  // Set mounted state on client
+  // Fetch games from database on mount
   useEffect(() => {
-    setIsMounted(true)
+    const fetchGames = async () => {
+      try {
+        const response = await fetch('/api/population-report/games', { cache: 'no-store' })
+        if (response.ok) {
+          const result = await response.json()
+          if (result.success && result.games) {
+            const games = result.games.map((game: any) => {
+              // Fallback icons
+              const iconMap: { [key: string]: string } = {
+                'pokemon': '⚡',
+                'yugioh': '🔮',
+                'mtg': '🌟',
+                'magicthegathering': '🌟',
+                'onepiece': '🏴‍☠️',
+                'onepiececards': '🏴‍☠️'
+              }
+
+              return {
+                id: game.id,
+                name: game.name,
+                logo_path: game.logo_path,
+                icon: iconMap[game.id] || '🎮'
+              }
+            })
+            setSupportedGames(games)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching games:', error)
+        // Fallback to default games
+        setSupportedGames([
+          { id: 'pokemon', name: 'Pokemon', logo_path: null, icon: '⚡' },
+          { id: 'yugioh', name: 'Yu-Gi-Oh!', logo_path: null, icon: '🔮' },
+          { id: 'mtg', name: 'MTG', logo_path: null, icon: '🌟' },
+          { id: 'onepiece', name: 'One Piece', logo_path: null, icon: '🏴‍☠️' }
+        ])
+      }
+    }
+    fetchGames()
   }, [])
 
-  // Fetch featured cards on mount
   useEffect(() => {
+    fetchGameStats()
     fetchFeaturedCards()
   }, [])
 
@@ -56,293 +187,804 @@ export default function HomePage() {
     }
   }
 
+  useEffect(() => {
+    if (selectedGame && !selectedYear) {
+      fetchYearData()
+    }
+  }, [selectedGame])
+
+  useEffect(() => {
+    if (selectedGame && selectedYear && !selectedSet) {
+      fetchSetData()
+    }
+  }, [selectedGame, selectedYear])
+
+  useEffect(() => {
+    if (selectedGame && selectedYear && selectedSet && !selectedCard) {
+      fetchCardData()
+    }
+  }, [selectedGame, selectedYear, selectedSet])
+
+  const fetchGameStats = async () => {
+    try {
+      setIsLoading(true)
+      const params = searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : ''
+      const response = await fetch(`/api/population-report${params}`)
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.data?.games) {
+          const games = result.data.games || []
+          setGameStats(games)
+          const totalCards = games.reduce((sum: number, game: ApiGameData) => sum + game.total_cards, 0)
+          setTotalStats({
+            totalCards,
+            totalGames: games.length,
+            avgGrade: games.length > 0 ? games.reduce((sum: number, game: ApiGameData) => sum + game.avg_grade, 0) / games.length : 0
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching game stats:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const fetchYearData = async () => {
+    try {
+      setIsLoading(true)
+      const params = new URLSearchParams({
+        game: selectedGame || '',
+        ...(searchTerm && { search: searchTerm })
+      })
+      const response = await fetch(`/api/population-report?${params}`)
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.data) {
+          setYearData(result.data.years || [])
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching year data:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const fetchSetData = async () => {
+    try {
+      setIsLoading(true)
+      const params = new URLSearchParams({
+        game: selectedGame || '',
+        year: selectedYear || '',
+        ...(searchTerm && { search: searchTerm })
+      })
+      const response = await fetch(`/api/population-report?${params}`)
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.data) {
+          setSetData(result.data.sets || [])
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching set data:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const fetchCardData = async () => {
+    try {
+      setIsLoading(true)
+      const params = new URLSearchParams({
+        game: selectedGame || '',
+        year: selectedYear || '',
+        set: selectedSet || '',
+        ...(searchTerm && { search: searchTerm })
+      })
+      const response = await fetch(`/api/population-report?${params}`)
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.data) {
+          setCardData(result.data.cards || [])
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching card data:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const fetchCardDetails = async (cardName: string) => {
+    try {
+      setIsLoading(true)
+      const params = new URLSearchParams({
+        cardName,
+        ...(selectedGame && { game: selectedGame }),
+        ...(selectedYear && { year: selectedYear }),
+        ...(selectedSet && { set: selectedSet })
+      })
+      const response = await fetch(`/api/population-report/details?${params}`)
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.data) {
+          setCardDetails(result.data)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching card details:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleSearch = async () => {
+    if (!searchTerm || searchTerm.trim().length < 2) {
+      setSearchResults([])
+      return
+    }
+
+    try {
+      setIsSearching(true)
+      const response = await fetch(`/api/public/population-report/search?search=${encodeURIComponent(searchTerm)}`)
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success) {
+          setSearchResults(result.data)
+        }
+      }
+    } catch (error) {
+      console.error('Error searching cards:', error)
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  const handleGameSelect = (gameId: string) => {
+    setSelectedGame(gameId)
+    setSelectedYear(null)
+    setSelectedSet(null)
+    setSelectedCard(null)
+    setYearData([])
+    setSetData([])
+    setCardData([])
+    setCardDetails(null)
+  }
+
+  const handleYearSelect = (year: string) => {
+    setSelectedYear(year)
+    setSelectedSet(null)
+    setSelectedCard(null)
+    setSetData([])
+    setCardData([])
+    setCardDetails(null)
+  }
+
+  const handleSetSelect = (setName: string) => {
+    setSelectedSet(setName)
+    setSelectedCard(null)
+    setCardData([])
+    setCardDetails(null)
+  }
+
+  const handleCardSelect = (cardName: string) => {
+    setSelectedCard(cardName)
+    fetchCardDetails(cardName)
+  }
+
+  const handleBack = () => {
+    if (selectedCard) {
+      setSelectedCard(null)
+      setCardDetails(null)
+    } else if (selectedSet) {
+      setSelectedSet(null)
+      setCardData([])
+    } else if (selectedYear) {
+      setSelectedYear(null)
+      setSetData([])
+    } else if (selectedGame) {
+      setSelectedGame(null)
+      setYearData([])
+    }
+  }
+
+  const getCurrentGameStats = () => {
+    return gameStats.find(g => g.game_type === selectedGame)
+  }
+
+  const getGameDisplayName = (gameId: string) => {
+    // First check the hardcoded map for common games
+    const gameMap: { [key: string]: string } = {
+      'pokemon': 'Pokemon TCG',
+      'yugioh': 'Yu-Gi-Oh!',
+      'mtg': 'Magic: The Gathering',
+      'onepiece': 'One Piece Cards'
+    }
+    if (gameMap[gameId]) return gameMap[gameId]
+
+    // Then check supportedGames for dynamically added games
+    const dynamicGame = supportedGames.find(g => g.id === gameId)
+    if (dynamicGame) return dynamicGame.name
+
+    // Fallback: convert camelCase/lowercase to Title Case
+    return gameId.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, str => str.toUpperCase())
+  }
+
+  const getGradeColor = (grade: string) => {
+    if (grade === '10+') return 'text-pink-500'
+    const numGrade = parseFloat(grade)
+    if (numGrade >= 10) return 'text-green-500'
+    if (numGrade >= 9) return 'text-blue-500'
+    if (numGrade >= 8) return 'text-yellow-500'
+    if (numGrade >= 7) return 'text-orange-500'
+    return 'text-red-500'
+  }
+
+  if (isLoading && gameStats.length === 0) {
+    return (
+      <div id="population-report-loading" className="min-h-screen bg-gradient-to-br from-gray-900 to-black">
+        {/* Header */}
+        <header id="population-report-loading-header" className="bg-black/50 border-b border-gray-800 backdrop-blur-md">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-center items-center py-4">
+              <div className="flex items-center space-x-3">
+                <TrendingUp className="h-8 w-8 text-[#d83f0a]" />
+                <h1 className="text-2xl font-bold text-white">Population Report</h1>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-center min-h-96">
+            <div id="population-loading-spinner" className="text-center">
+              <TrendingUp className="h-12 w-12 text-[#d83f0a] animate-pulse mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-white mb-2">Loading Population Data</h2>
+              <p className="text-gray-400">Please wait while we fetch the latest grading statistics...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="relative overflow-hidden">
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center px-4 py-20">
-        <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20" />
-          <div className="absolute inset-0 opacity-20" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-          }} />
-        </div>
-
-        <div className="relative z-10 max-w-7xl mx-auto text-center">
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-5xl md:text-7xl font-bold mb-6"
-          >
-            <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-              Professional TCG
-            </span>
-            <br />
-            <span className="text-white">Grading Service</span>
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto"
-          >
-            Get your Pokemon, Yu-Gi-Oh!, MTG, and other trading cards professionally graded
-            with our fast and reliable service.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center"
-          >
-            <Link
-              href="/packages"
-              className="inline-flex items-center justify-center px-8 py-4 text-lg font-medium text-white bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg hover:scale-105 transition-transform shadow-lg"
-            >
-              Get Started
-              <svg className="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </Link>
-            <Link
-              href="/about"
-              className="inline-flex items-center justify-center px-8 py-4 text-lg font-medium text-white border-2 border-gray-700 rounded-lg hover:bg-gray-800 transition-colors"
-            >
-              Learn More
-            </Link>
-          </motion.div>
-        </div>
-
-        {/* Floating Cards Animation - Only render on client to avoid hydration mismatch */}
-        {isMounted && floatingCardPositions.length > 0 && (
-          <div className="absolute inset-0 pointer-events-none">
-            {floatingCardPositions.map((pos, i) => (
-              <motion.div
-                key={i}
-                className="absolute w-32 h-44 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 border-2 border-transparent bg-clip-border opacity-30"
-                style={{
-                  background: 'linear-gradient(#1f2937, #1f2937) padding-box, linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) border-box',
-                  border: '2px solid transparent'
-                }}
-                initial={{
-                  x: pos.x,
-                  y: -200,
-                  rotate: pos.initialRotate,
-                }}
-                animate={{
-                  y: pos.y,
-                  rotate: pos.animateRotate,
-                }}
-                transition={{
-                  duration: pos.duration,
-                  repeat: Infinity,
-                  delay: i * 2,
-                  ease: "linear",
-                }}
-              />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Features Section */}
-      <section className="py-20 px-4 bg-black/50 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-4xl font-bold text-center mb-12"
-          >
-            <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-              Our Grading Process
-            </span>
-          </motion.h2>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                title: "Authentication",
-                description: "Every card is thoroughly authenticated by our experts",
-                icon: "🔍",
-              },
-              {
-                title: "Grading",
-                description: "Professional grading based on condition and rarity",
-                icon: "⭐",
-              },
-              {
-                title: "Protection",
-                description: "Cards are sealed in tamper-proof protective slabs",
-                icon: "🛡️",
-              },
-            ].map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.2 }}
-                className="bg-gray-900 rounded-2xl p-8 shadow-xl border-2 border-transparent transition-all duration-300 hover:scale-105 hover:shadow-2xl"
-                style={{
-                  background: 'linear-gradient(#1f2937, #1f2937) padding-box, linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) border-box',
-                  border: '2px solid transparent'
-                }}
+    <div id="population-report-page" className="min-h-screen bg-gradient-to-br from-gray-900 to-black">
+      {/* Header */}
+      <header id="population-report-header" className="bg-black/50 border-b border-gray-800 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center space-x-3">
+              <TrendingUp className="h-8 w-8 text-[#d83f0a]" />
+              <h1 className="text-3xl font-bold text-white">Population Report</h1>
+            </div>
+            {(selectedGame || selectedYear || selectedSet || selectedCard) && (
+              <button
+                id="population-back-btn"
+                onClick={handleBack}
+                className="flex items-center space-x-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 border border-gray-700"
               >
-                <div className="text-5xl mb-4">{feature.icon}</div>
-                <h3 className="text-2xl font-bold mb-4 text-white">
-                  {feature.title}
-                </h3>
-                <p className="text-gray-400">{feature.description}</p>
-              </motion.div>
-            ))}
+                <ArrowLeft className="h-4 w-4" />
+                <span>Back</span>
+              </button>
+            )}
           </div>
         </div>
-      </section>
+      </header>
 
-      {/* Supported Games Section */}
-      <section className="py-20 px-4">
-        <div className="max-w-7xl mx-auto">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-4xl font-bold text-center mb-12"
-          >
-            <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-              Supported Games
-            </span>
-          </motion.h2>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-            {[
-              "Pokemon",
-              "Yu-Gi-Oh!",
-              "Magic: The Gathering",
-              "Metazoo",
-              "One Piece",
-              "Sports Cards",
-            ].map((game, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl p-6 text-center hover:from-blue-500/20 hover:to-purple-500/20 transition-all cursor-pointer hover:scale-105"
-              >
-                <div className="text-3xl mb-2">🎴</div>
-                <p className="font-medium text-white">{game}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Cards Section */}
-      {featuredCards.length > 0 && (
-        <section id="featured-cards-section" className="py-20 px-4 bg-black/50 backdrop-blur-md">
-          <div className="max-w-7xl mx-auto">
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-4xl font-bold text-center mb-12"
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Search Bar */}
+        <div id="population-search-section" className="bg-gray-900/50 border border-gray-800 rounded-lg shadow-lg p-6 mb-6 backdrop-blur-md">
+          <div className="relative max-w-2xl mx-auto">
+            <Search className="h-5 w-5 text-gray-500 absolute left-3 top-3" />
+            <input
+              id="population-search-input"
+              type="text"
+              placeholder="Search by card name or card ID number (e.g., 'Charizard' or '00000677')"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              className="w-full pl-10 pr-24 py-2 bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-lg focus:ring-2 focus:ring-[#d83f0a] focus:border-[#d83f0a]"
+            />
+            <button
+              id="population-search-btn"
+              onClick={handleSearch}
+              disabled={isSearching}
+              className="absolute right-2 top-1.5 px-4 py-1.5 bg-gradient-to-r from-[#d83f0a] to-[#d66a0a] text-white rounded-md hover:opacity-90 disabled:bg-gray-700 disabled:cursor-not-allowed text-sm font-medium"
             >
-              <span className="bg-gradient-to-r from-[#d83f0a] via-[#d66a0a] to-[#ff8c00] bg-clip-text text-transparent">
-                Featured Cards
-              </span>
-            </motion.h2>
+              {isSearching ? 'Searching...' : 'Search'}
+            </button>
+          </div>
 
-            <div id="featured-cards-grid" className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {featuredCards.map((card, index) => (
-                <motion.div
-                  id={`featured-card-${card.id}`}
+          {/* Search Results */}
+          {searchResults.length > 0 && (
+            <div id="population-search-results" className="mt-6 max-w-2xl mx-auto">
+              <h4 className="text-sm font-semibold text-white mb-3">
+                Search Results ({searchResults.length} cards found)
+              </h4>
+              <div className="max-h-96 overflow-y-auto border border-gray-700 rounded-lg bg-gray-800/50">
+                <table id="population-search-results-table" className="min-w-full divide-y divide-gray-700">
+                  <thead className="bg-gray-800 sticky top-0">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Card ID</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Card Name</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Game</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Grade</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-700">
+                    {searchResults.map((card) => (
+                      <tr key={card.id} id={`search-result-${card.id}`} className="hover:bg-gray-700/50">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-mono">
+                          <Link href={`/cert/${card.card_id}`}>
+                            <span className="text-[#d83f0a] hover:text-[#d66a0a] font-semibold cursor-pointer hover:underline">
+                              {card.card_id}
+                            </span>
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-white">
+                          {card.card_name}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">
+                          {card.card_game}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className={`px-2 py-1 rounded text-xs font-medium bg-gray-900 ${getGradeColor(card.card_grade)}`}>
+                            {card.card_grade}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {searchTerm.length >= 2 && searchResults.length === 0 && !isSearching && (
+            <div id="population-no-results" className="mt-6 max-w-2xl mx-auto text-center py-8 text-gray-400">
+              No cards found matching "{searchTerm}"
+            </div>
+          )}
+        </div>
+
+        {/* Stats Cards */}
+        <div id="population-stats-grid" className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+          <div id="population-stats-total-graded" className="bg-gray-900/50 border border-gray-800 rounded-lg shadow-lg p-6 backdrop-blur-md">
+            <div className="flex items-center">
+              <div className="p-2 bg-gradient-to-r from-[#d83f0a] to-[#d66a0a] rounded-lg">
+                <Trophy className="h-6 w-6 text-white" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-400">Total Graded</p>
+                <p className="text-2xl font-semibold text-white">{totalStats.totalCards.toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+
+          <div id="population-stats-games" className="bg-gray-900/50 border border-gray-800 rounded-lg shadow-lg p-6 backdrop-blur-md">
+            <div className="flex items-center">
+              <div className="p-2 bg-gradient-to-r from-[#d83f0a] to-[#d66a0a] rounded-lg">
+                <Package className="h-6 w-6 text-white" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-400">Games</p>
+                <p className="text-2xl font-semibold text-white">{totalStats.totalGames}</p>
+              </div>
+            </div>
+          </div>
+
+          <div id="population-stats-avg-grade" className="bg-gray-900/50 border border-gray-800 rounded-lg shadow-lg p-6 backdrop-blur-md">
+            <div className="flex items-center">
+              <div className="p-2 bg-gradient-to-r from-[#d83f0a] to-[#d66a0a] rounded-lg">
+                <BarChart3 className="h-6 w-6 text-white" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-400">Avg Grade</p>
+                <p className="text-2xl font-semibold text-white">{totalStats.avgGrade.toFixed(1)}</p>
+              </div>
+            </div>
+          </div>
+
+          <div id="population-stats-gem-mint" className="bg-gray-900/50 border border-gray-800 rounded-lg shadow-lg p-6 backdrop-blur-md">
+            <div className="flex items-center">
+              <div className="p-2 bg-gradient-to-r from-[#d83f0a] to-[#d66a0a] rounded-lg">
+                <Calendar className="h-6 w-6 text-white" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-400">GEM MINT</p>
+                <p className="text-2xl font-semibold text-white">{gameStats.reduce((sum, game) => sum + game.gem_mint_cards, 0).toLocaleString()}</p>
+                <p className="text-xs text-gray-500">Grade 9-10</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Featured Cards Section */}
+        {featuredCards.length > 0 && !selectedGame && (
+          <div id="population-featured-cards" className="bg-gray-900/50 border border-gray-800 rounded-lg shadow-lg p-6 mb-6 backdrop-blur-md">
+            <div className="flex items-center mb-6">
+              <Star className="h-6 w-6 text-yellow-400 fill-current mr-2" />
+              <h3 className="text-lg font-medium text-white">Featured Graded Cards</h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {featuredCards.map((card) => (
+                <Link
                   key={card.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.05 }}
-                  className="bg-gray-900 rounded-xl overflow-hidden border-2 border-[#d83f0a]/50 hover:border-[#d83f0a] transition-all hover:scale-105"
+                  href={`/cert/${card.card_id}`}
+                  id={`featured-card-${card.id}`}
+                  className="block bg-gray-800/50 border border-gray-700 rounded-lg p-4 hover:border-yellow-500/50 hover:bg-gray-700/50 transition-all group"
                 >
-                  <div id={`featured-card-content-${card.id}`} className="p-4">
-                    <Link href={`/cert/${card.card_id}`}>
-                      <div className="aspect-[2.5/3.5] bg-gradient-to-br from-[#d83f0a]/10 to-[#d66a0a]/10 rounded-lg mb-4 flex items-center justify-center cursor-pointer">
-                        {card.front_image ? (
-                          <img
-                            src={card.front_image.startsWith('/') ? `/api/storage${card.front_image}` : `/api/storage/${card.front_image}`}
-                            alt={card.card_name}
-                            className="w-full h-full object-cover rounded-lg"
-                          />
-                        ) : (
-                          <div className="text-6xl">🎴</div>
-                        )}
-                      </div>
-                    </Link>
-                    <div id={`featured-card-id-badge-${card.id}`} className="mb-2">
-                      <Link href={`/cert/${card.card_id}`}>
-                        <span className="inline-block px-2 py-1 bg-gradient-to-r from-[#d83f0a] to-[#d66a0a] text-white rounded text-xs font-bold hover:scale-105 transition-transform cursor-pointer">
-                          ID: {card.card_id}
-                        </span>
-                      </Link>
-                    </div>
-                    <Link href={`/cert/${card.card_id}`}>
-                      <h4 id={`featured-card-name-${card.id}`} className="font-bold text-white mb-2 truncate cursor-pointer hover:text-[#d83f0a] transition-colors">{card.card_name}</h4>
-                    </Link>
-                    <div id={`featured-card-details-${card.id}`} className="space-y-1 text-sm">
-                      <p className="text-gray-400">{card.card_game}</p>
-                      <p className="text-gray-400">Grade: <span className="text-[#d83f0a] font-bold">{card.card_grade}</span></p>
-                      <p className="text-gray-400 text-xs">{card.set_name}</p>
-                    </div>
+                  <div className="aspect-[2.5/3.5] bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                    {card.front_image ? (
+                      <img
+                        src={card.front_image.startsWith('/') ? `/api/storage${card.front_image}` : `/api/storage/${card.front_image}`}
+                        alt={card.card_name}
+                        className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform"
+                      />
+                    ) : (
+                      <div className="text-5xl">🎴</div>
+                    )}
                   </div>
-                </motion.div>
+                  <div className="mb-2">
+                    <span className="inline-block px-2 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded text-xs font-bold">
+                      ID: {card.card_id}
+                    </span>
+                  </div>
+                  <h4 className="font-bold text-white mb-1 truncate group-hover:text-yellow-400 transition-colors">
+                    {card.card_name}
+                  </h4>
+                  <p className="text-xs text-gray-400 mb-1">{card.card_game}</p>
+                  <div className="flex items-center justify-between">
+                    <span className={`text-sm font-bold ${getGradeColor(card.card_grade)}`}>
+                      Grade: {card.card_grade}
+                    </span>
+                    <span className="text-xs text-gray-500">{card.set_name}</span>
+                  </div>
+                </Link>
               ))}
             </div>
           </div>
-        </section>
-      )}
+        )}
 
-      {/* CTA Section */}
-      <section className="py-20 px-4 bg-gradient-to-r from-blue-600 to-purple-600">
-        <div className="max-w-4xl mx-auto text-center">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-4xl font-bold text-white mb-6"
-          >
-            Ready to Grade Your Cards?
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
-            className="text-xl text-white/90 mb-8"
-          >
-            Choose from our flexible packages and get started today.
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.4 }}
-          >
-            <Link
-              href="/packages"
-              className="inline-flex items-center justify-center px-8 py-4 text-lg font-medium text-blue-600 bg-white rounded-lg hover:scale-105 transition-transform shadow-lg"
-            >
-              View Packages
-              <svg className="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </Link>
-          </motion.div>
+        {/* Navigation Breadcrumbs */}
+        {(selectedGame || selectedYear || selectedSet || selectedCard) && (
+          <div id="population-breadcrumbs" className="bg-gray-900/50 border border-gray-800 rounded-lg shadow-lg p-4 mb-6 backdrop-blur-md">
+            <nav className="flex items-center space-x-2 text-sm">
+              <button onClick={() => setSelectedGame(null)} className="text-[#d83f0a] hover:text-[#d66a0a] font-medium">
+                All Games
+              </button>
+              {selectedGame && (
+                <>
+                  <ChevronRight className="h-4 w-4 text-gray-600" />
+                  <button onClick={() => setSelectedYear(null)} className="text-[#d83f0a] hover:text-[#d66a0a] font-medium">
+                    {getGameDisplayName(selectedGame)}
+                  </button>
+                </>
+              )}
+              {selectedYear && (
+                <>
+                  <ChevronRight className="h-4 w-4 text-gray-600" />
+                  <button onClick={() => setSelectedSet(null)} className="text-[#d83f0a] hover:text-[#d66a0a] font-medium">
+                    {selectedYear}
+                  </button>
+                </>
+              )}
+              {selectedSet && (
+                <>
+                  <ChevronRight className="h-4 w-4 text-gray-600" />
+                  <button onClick={() => setSelectedCard(null)} className="text-[#d83f0a] hover:text-[#d66a0a] font-medium">
+                    {selectedSet}
+                  </button>
+                </>
+              )}
+              {selectedCard && (
+                <>
+                  <ChevronRight className="h-4 w-4 text-gray-600" />
+                  <span className="text-gray-300">{selectedCard}</span>
+                </>
+              )}
+            </nav>
+          </div>
+        )}
+
+        {/* Main Content */}
+        <div id="population-main-content" className="bg-gray-900/50 border border-gray-800 rounded-lg shadow-lg overflow-hidden backdrop-blur-md">
+          {!selectedGame && (
+            /* Game Selection */
+            <div id="population-game-selection" className="p-6">
+              <h3 className="text-lg font-medium text-white mb-6">Select Category by Game</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {supportedGames.map((game) => (
+                  <button
+                    key={game.id}
+                    id={`population-game-card-${game.id}`}
+                    onClick={() => handleGameSelect(game.id)}
+                    className="p-6 border-2 border-gray-700 rounded-lg hover:border-[#d83f0a] hover:bg-gray-700/50 transition-all group bg-gray-800/50 flex flex-col items-center justify-center"
+                  >
+                    {game.logo_path ? (
+                      <img
+                        src={`/api/storage/${game.logo_path}`}
+                        alt={game.name}
+                        className="h-[60px] object-contain mb-3"
+                      />
+                    ) : (
+                      <span className="text-4xl mb-3">{game.icon}</span>
+                    )}
+                    <p className="text-xs text-gray-400 group-hover:text-[#d83f0a] transition-colors">
+                      View population report
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {selectedGame && !selectedYear && (
+            /* Year Selection */
+            <div id="population-year-selection" className="p-6">
+              <h3 className="text-lg font-medium text-white mb-6">
+                {getGameDisplayName(selectedGame)} - Cards Graded by Year
+              </h3>
+              {yearData.length === 0 && !isLoading ? (
+                /* Empty State - No cards for this game */
+                <div id="population-empty-state" className="text-center py-16">
+                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-800/50 border border-gray-700 mb-6">
+                    <Package className="h-10 w-10 text-gray-500" />
+                  </div>
+                  <h4 className="text-xl font-semibold text-white mb-3">
+                    No Cards Found for {getGameDisplayName(selectedGame)}
+                  </h4>
+                  <p className="text-gray-400 mb-6 max-w-md mx-auto">
+                    There are no graded cards for this game in our population report yet. Be the first one to submit your cards for grading!
+                  </p>
+                  <Link
+                    href="/packages"
+                    id="population-empty-state-cta"
+                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#d83f0a] to-[#d66a0a] text-white font-semibold rounded-lg hover:opacity-90 transition-opacity"
+                  >
+                    <Trophy className="h-5 w-5 mr-2" />
+                    Submit Your Cards
+                  </Link>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table id="population-year-table" className="min-w-full divide-y divide-gray-700">
+                    <thead className="bg-gray-800/50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Year</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Total Cards</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Sets</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-gray-900/30 divide-y divide-gray-700">
+                      {yearData.map((year) => (
+                        <tr key={year.year} id={`population-year-row-${year.year}`} className="hover:bg-gray-700/50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+                            {year.year}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                            {year.total_cards.toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                            {year.total_sets} sets
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <button
+                              onClick={() => handleYearSelect(year.year)}
+                              className="text-[#d83f0a] hover:text-[#d66a0a] font-medium"
+                            >
+                              View Sets →
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {selectedYear && !selectedSet && (
+            /* Set Selection */
+            <div id="population-set-selection" className="p-6">
+              <h3 className="text-lg font-medium text-white mb-6">
+                {getGameDisplayName(selectedGame || '')} {selectedYear} - Sets
+              </h3>
+              <div className="overflow-x-auto">
+                <table id="population-set-table" className="min-w-full divide-y divide-gray-700">
+                  <thead className="bg-gray-800/50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Set Name</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Total Cards</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-gray-900/30 divide-y divide-gray-700">
+                    {setData.map((set) => (
+                      <tr key={set.set_name} id={`population-set-row-${set.set_name.replace(/\s+/g, '-')}`} className="hover:bg-gray-700/50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+                          {set.set_name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                          {set.total_cards.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <button
+                            onClick={() => handleSetSelect(set.set_name)}
+                            className="text-[#d83f0a] hover:text-[#d66a0a] font-medium"
+                          >
+                            View Cards →
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {selectedSet && !selectedCard && (
+            /* Card Selection */
+            <div id="population-card-selection" className="p-6">
+              <h3 className="text-lg font-medium text-white mb-6">
+                {selectedSet} - Cards
+              </h3>
+              <div className="overflow-x-auto">
+                <table id="population-card-table" className="min-w-full divide-y divide-gray-700">
+                  <thead className="bg-gray-800/50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Card Name</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Rarity</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Total Graded</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Grade Distribution</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-gray-900/30 divide-y divide-gray-700">
+                    {cardData.map((card) => (
+                      <tr key={`${card.card_name}-${card.card_id}`} id={`population-card-row-${card.card_id}`} className="hover:bg-gray-700/50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+                          {card.card_name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                          {card.card_rarity || '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                          {card.total_graded.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex space-x-2">
+                            {card.grade_10 > 0 && (
+                              <span className={`px-2 py-1 rounded text-xs font-medium bg-gray-800 ${getGradeColor('10')}`}>
+                                10: {card.grade_10}
+                              </span>
+                            )}
+                            {card.grade_9 > 0 && (
+                              <span className={`px-2 py-1 rounded text-xs font-medium bg-gray-800 ${getGradeColor('9')}`}>
+                                9: {card.grade_9}
+                              </span>
+                            )}
+                            {card.grade_8 > 0 && (
+                              <span className={`px-2 py-1 rounded text-xs font-medium bg-gray-800 ${getGradeColor('8')}`}>
+                                8: {card.grade_8}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <button
+                            onClick={() => handleCardSelect(card.card_name)}
+                            className="text-[#d83f0a] hover:text-[#d66a0a] font-medium"
+                          >
+                            View Details →
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {selectedCard && cardDetails && (
+            /* Card Details */
+            <div id="population-card-details" className="p-6">
+              <h3 className="text-lg font-medium text-white mb-6">
+                {selectedCard} - Grading Report
+              </h3>
+
+              {/* Card Summary */}
+              <div id="population-card-summary-grid" className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div id="population-card-summary-total" className="bg-gray-800/50 border border-gray-700 p-4 rounded-lg">
+                  <div className="text-2xl font-bold text-[#d83f0a]">{cardDetails.summary.totalGraded}</div>
+                  <div className="text-sm text-gray-400">Total Graded</div>
+                </div>
+                <div id="population-card-summary-avg" className="bg-gray-800/50 border border-gray-700 p-4 rounded-lg">
+                  <div className="text-2xl font-bold text-[#d83f0a]">{cardDetails.summary.avgGrade.toFixed(2)}</div>
+                  <div className="text-sm text-gray-400">Average Grade</div>
+                </div>
+                <div id="population-card-summary-highest" className="bg-gray-800/50 border border-gray-700 p-4 rounded-lg">
+                  <div className="text-2xl font-bold text-[#d83f0a]">{cardDetails.summary.highestGrade}</div>
+                  <div className="text-sm text-gray-400">Highest Grade</div>
+                </div>
+                <div id="population-card-summary-rank" className="bg-gray-800/50 border border-gray-700 p-4 rounded-lg">
+                  <div className="text-2xl font-bold text-[#d83f0a]">#{cardDetails.summary.popularityRank}</div>
+                  <div className="text-sm text-gray-400">Popularity Rank</div>
+                </div>
+              </div>
+
+              {/* Grade Distribution Chart */}
+              <div id="population-grade-distribution" className="mb-8">
+                <h4 className="text-md font-medium text-white mb-4">Grade Distribution</h4>
+                <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-4">
+                  {cardDetails.gradeDistribution.map((grade) => (
+                    <div key={grade.grade} id={`population-grade-dist-${grade.grade}`} className="text-center">
+                      <div className={`p-4 rounded-lg border border-gray-700 bg-gray-800/50`}>
+                        <div className={`text-xl font-bold ${getGradeColor(grade.grade)}`}>
+                          {grade.count}
+                        </div>
+                        <div className="text-sm text-gray-400">Grade {grade.grade}</div>
+                        <div className="text-xs text-gray-500">{grade.percentage}%</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Detailed List */}
+              <div id="population-individual-cards">
+                <h4 className="text-md font-medium text-white mb-4">Individual Cards</h4>
+                <div className="overflow-x-auto">
+                  <table id="population-individual-cards-table" className="min-w-full divide-y divide-gray-700">
+                    <thead className="bg-gray-800/50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">ID</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Grade</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Grade Name</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Rarity</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date Graded</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-gray-900/30 divide-y divide-gray-700">
+                      {cardDetails.individualCards.map((detail, index) => (
+                        <tr key={index} id={`population-individual-card-${detail.card_id}`} className="hover:bg-gray-700/50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-mono">
+                            <Link href={`/cert/${detail.card_id}`}>
+                              <span className="text-[#d83f0a] hover:text-[#d66a0a] font-semibold cursor-pointer hover:underline">
+                                {detail.card_id}
+                              </span>
+                            </Link>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 py-1 rounded text-sm font-medium bg-gray-800 ${getGradeColor(detail.grade.toString())}`}>
+                              {detail.grade}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                            {detail.grade_name || '-'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                            {detail.rarity || '-'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                            {detail.gradedDate}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-      </section>
+      </div>
     </div>
   )
 }

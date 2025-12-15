@@ -8,10 +8,8 @@ import { ShoppingCart } from 'lucide-react'
 import { CartSidebar } from './CartSidebar'
 
 const navigation = [
-  { name: 'Home', href: '/' },
+  { name: 'Population Report', href: '/' },
   { name: 'Packages', href: '/packages' },
-  { name: 'Population Report', href: '/population-report' },
-  { name: 'About', href: '/about' },
 ]
 
 interface CartItem {
