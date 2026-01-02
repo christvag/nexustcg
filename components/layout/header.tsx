@@ -8,8 +8,11 @@ import { ShoppingCart } from 'lucide-react'
 import { CartSidebar } from './CartSidebar'
 
 const navigation = [
-  { name: 'Population Report', href: '/' },
+  { name: 'Home', href: 'https://nexusgrading.com/', external: true },
   { name: 'Packages', href: '/packages' },
+  { name: 'Population Report', href: '/' },
+  { name: 'About', href: 'https://nexusgrading.com/about/', external: true },
+  { name: 'Contact Us', href: 'https://nexusgrading.com/contact-us/', external: true },
 ]
 
 interface CartItem {
@@ -99,33 +102,51 @@ export function Header() {
         <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center">
-              <Link href="/" className="flex items-center space-x-3">
+              <a href="https://nexusgrading.com/" id="header-logo-link" className="flex items-center space-x-3">
                 <img
                   src="/api/storage/nexustcg_logo.png"
                   alt="Nexus TCG Logo"
                   className="h-11 w-11 object-contain"
+                  id="header-logo-img"
                 />
                 <img
                   src="/api/storage/nexustcg_text_logo_white.png"
                   alt="Nexus TCGrading"
                   className="h-9 object-contain"
+                  id="header-text-logo-img"
                 />
-              </Link>
+              </a>
             </div>
 
             <div className="hidden md:block">
               <div className="ml-10 flex items-baseline space-x-4">
                 {navigation.map((item) => {
                   const isActive = pathname === item.href
+                  const linkClasses = `px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                    isActive
+                      ? 'bg-gradient-to-r from-gaming-primary to-gaming-secondary text-white'
+                      : 'text-gray-300 hover:text-gaming-light'
+                  }`
+
+                  if ('external' in item && item.external) {
+                    return (
+                      <a
+                        key={item.name}
+                        href={item.href}
+                        id={`header-nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
+                        className={linkClasses}
+                      >
+                        {item.name}
+                      </a>
+                    )
+                  }
+
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
-                      className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
-                        isActive
-                          ? 'bg-gradient-to-r from-gaming-primary to-gaming-secondary text-white'
-                          : 'text-gray-300 hover:text-gaming-light'
-                      }`}
+                      id={`header-nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
+                      className={linkClasses}
                     >
                       {item.name}
                     </Link>
