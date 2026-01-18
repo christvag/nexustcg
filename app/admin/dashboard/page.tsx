@@ -50,18 +50,9 @@ export default function AdminDashboard() {
       const usersResponse = await fetch('/api/users')
       const usersData = await usersResponse.json()
       
-      // Fetch grading report data
-      const gradingResponse = await fetch('/api/admin/grading-report')
-      const gradingData = await gradingResponse.json()
-      
       if (ordersResponse.ok && usersResponse.ok) {
         const orders = ordersData.orders || []
         const users = usersData.users || []
-        const gradingStats = gradingData.success ? gradingData.stats : {
-          totalGraded: 0,
-          averageGrade: 0,
-          grade10Count: 0
-        }
         
         // Calculate stats
         const totalOrders = orders.length
@@ -76,9 +67,9 @@ export default function AdminDashboard() {
           totalRevenue,
           totalUsers,
           activeUsers,
-          totalGraded: gradingStats.totalGraded,
-          averageGrade: gradingStats.averageGrade,
-          grade10Count: gradingStats.grade10Count
+          totalGraded: 0,
+          averageGrade: 0,
+          grade10Count: 0
         })
         
         // Set recent orders (last 5)
@@ -418,26 +409,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div id="quick-actions-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div id="quick-action-grading" className="bg-[#171717] border border-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-[#d66a0a]/20 rounded-lg">
-              <svg className="h-6 w-6 text-[#d66a0a]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <h4 className="text-lg font-medium text-white">Grading Report</h4>
-              <p className="text-sm text-gray-400">View all graded cards</p>
-            </div>
-          </div>
-          <div className="mt-4">
-            <a href="/admin/dashboard/grading-report" className="text-[#d83f0a] hover:text-[#d66a0a] font-medium text-sm">
-              View Grading Report →
-            </a>
-          </div>
-        </div>
-
+      <div id="quick-actions-grid" className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div id="quick-action-orders" className="bg-[#171717] border border-gray-800 rounded-lg shadow p-6">
           <div className="flex items-center">
             <div className="p-2 bg-green-900/20 rounded-lg">
