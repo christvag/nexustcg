@@ -10,7 +10,7 @@ import { CartSidebar } from './CartSidebar'
 const navigation = [
   { name: 'Home', href: 'https://nexusgrading.com/', external: true },
   { name: 'Packages', href: '/packages' },
-  { name: 'Population Report', href: '/' },
+  { name: 'Population Report', href: '/population-report' },
   { name: 'About', href: 'https://nexusgrading.com/about/', external: true },
   { name: 'Contact Us', href: 'https://nexusgrading.com/contact-us/', external: true },
 ]

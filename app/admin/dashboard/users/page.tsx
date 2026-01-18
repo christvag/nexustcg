@@ -19,7 +19,10 @@ import {
   Crown,
   User as UserIcon,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Lock,
+  Check,
+  X
 } from 'lucide-react';
 
 interface User {
@@ -50,6 +53,18 @@ export default function UsersManagement() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Password change state for editing users
+  const [passwordChangeData, setPasswordChangeData] = useState({
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordChangeLoading, setPasswordChangeLoading] = useState(false);
+  const [passwordChangeError, setPasswordChangeError] = useState('');
+  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState('');
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -356,6 +371,72 @@ export default function UsersManagement() {
     setSelectedUsers([]);
   };
 
+  // Handle admin password change for a user
+  const handleAdminPasswordChange = async () => {
+    if (!editingUser) return;
+
+    setPasswordChangeError('');
+    setPasswordChangeSuccess('');
+
+    // Validate passwords match
+    if (passwordChangeData.newPassword !== passwordChangeData.confirmPassword) {
+      setPasswordChangeError('Passwords do not match');
+      return;
+    }
+
+    // Validate password length
+    if (passwordChangeData.newPassword.length < 6) {
+      setPasswordChangeError('Password must be at least 6 characters');
+      return;
+    }
+
+    setPasswordChangeLoading(true);
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('/api/admin/users/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userId: editingUser.id,
+          newPassword: passwordChangeData.newPassword,
+          confirmPassword: passwordChangeData.confirmPassword
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setPasswordChangeSuccess('Password changed successfully!');
+        setPasswordChangeData({ newPassword: '', confirmPassword: '' });
+      } else {
+        setPasswordChangeError(data.error || 'Failed to change password');
+      }
+    } catch (error) {
+      setPasswordChangeError('Network error. Please try again.');
+    } finally {
+      setPasswordChangeLoading(false);
+    }
+  };
+
+  // Reset password change state
+  const resetPasswordChangeState = () => {
+    setPasswordChangeData({ newPassword: '', confirmPassword: '' });
+    setPasswordChangeError('');
+    setPasswordChangeSuccess('');
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
+  };
+
+  // Check if passwords match for real-time validation
+  const adminPasswordsMatch = passwordChangeData.newPassword && passwordChangeData.confirmPassword &&
+    passwordChangeData.newPassword === passwordChangeData.confirmPassword;
+  const adminPasswordsMismatch = passwordChangeData.newPassword && passwordChangeData.confirmPassword &&
+    passwordChangeData.newPassword !== passwordChangeData.confirmPassword;
+
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -377,8 +458,8 @@ export default function UsersManagement() {
     <div className="p-6 bg-[#0b0b0b] min-h-screen">
       {/* User Modal */}
       {showUserModal && (
-    <div id="user-modal-overlay" className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-      <div id="user-modal-container" className="bg-[#171717] rounded-lg p-6 w-full max-w-md border border-gray-800">
+    <div id="user-modal-overlay" className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+      <div id="user-modal-container" className="bg-[#171717] rounded-lg p-6 w-full max-w-md border border-gray-800 max-h-[90vh] overflow-y-auto">
         <h3 id="user-modal-title" className="text-lg font-semibold mb-4 text-white">
           {editingUser ? 'Edit User' : 'Add New User'}
         </h3>
@@ -516,6 +597,7 @@ export default function UsersManagement() {
               onClick={() => {
                 setShowUserModal(false);
                 setEditingUser(null);
+                resetPasswordChangeState();
                 setFormData({
                   firstName: '',
                   lastName: '',
@@ -541,6 +623,124 @@ export default function UsersManagement() {
             </button>
           </div>
         </form>
+
+        {/* Password Change Section - Only shown when editing */}
+        {editingUser && (
+          <div id="admin-password-change-section" className="mt-6 pt-6 border-t border-gray-700">
+            <h4 id="admin-password-change-title" className="text-md font-semibold text-white mb-4 flex items-center space-x-2">
+              <Lock className="h-4 w-4" />
+              <span>Change User Password</span>
+            </h4>
+
+            {/* Password Change Error */}
+            {passwordChangeError && (
+              <div id="admin-password-error" className="mb-4 p-3 bg-red-900/30 border border-red-700 rounded-lg flex items-center space-x-2">
+                <X className="h-4 w-4 text-red-400" />
+                <p className="text-red-400 text-sm">{passwordChangeError}</p>
+              </div>
+            )}
+
+            {/* Password Change Success */}
+            {passwordChangeSuccess && (
+              <div id="admin-password-success" className="mb-4 p-3 bg-green-900/30 border border-green-700 rounded-lg flex items-center space-x-2">
+                <Check className="h-4 w-4 text-green-400" />
+                <p className="text-green-400 text-sm">{passwordChangeSuccess}</p>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="admin-new-password" className="block text-sm font-medium text-gray-300 mb-1">
+                  New Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="admin-new-password"
+                    type={showNewPassword ? 'text' : 'password'}
+                    className="w-full px-3 py-2 pr-10 bg-[#0b0b0b] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
+                    value={passwordChangeData.newPassword}
+                    onChange={(e) => setPasswordChangeData(prev => ({ ...prev, newPassword: e.target.value }))}
+                    placeholder="Minimum 6 characters"
+                  />
+                  <button
+                    id="toggle-admin-new-password"
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                  >
+                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {passwordChangeData.newPassword && passwordChangeData.newPassword.length < 6 && (
+                  <p className="mt-1 text-sm text-amber-500">Password must be at least 6 characters</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="admin-confirm-password" className="block text-sm font-medium text-gray-300 mb-1">
+                  Confirm New Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="admin-confirm-password"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    className={`w-full px-3 py-2 pr-10 bg-[#0b0b0b] border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent ${
+                      adminPasswordsMismatch
+                        ? 'border-red-500 focus:ring-red-500'
+                        : adminPasswordsMatch
+                        ? 'border-green-500 focus:ring-green-500'
+                        : 'border-gray-700 focus:ring-[#d83f0a]'
+                    }`}
+                    value={passwordChangeData.confirmPassword}
+                    onChange={(e) => setPasswordChangeData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                    placeholder="Re-enter new password"
+                  />
+                  <button
+                    id="toggle-admin-confirm-password"
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {/* Real-time password match indicator */}
+                {adminPasswordsMatch && (
+                  <p id="admin-passwords-match" className="mt-1 text-sm text-green-400 flex items-center space-x-1">
+                    <Check className="h-4 w-4" />
+                    <span>Passwords match</span>
+                  </p>
+                )}
+                {adminPasswordsMismatch && (
+                  <p id="admin-passwords-mismatch" className="mt-1 text-sm text-red-400 flex items-center space-x-1">
+                    <X className="h-4 w-4" />
+                    <span>Passwords do not match</span>
+                  </p>
+                )}
+              </div>
+
+              <button
+                id="admin-change-password-btn"
+                type="button"
+                onClick={handleAdminPasswordChange}
+                disabled={passwordChangeLoading || adminPasswordsMismatch || !passwordChangeData.newPassword || !passwordChangeData.confirmPassword}
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {passwordChangeLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Changing Password...</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="h-4 w-4" />
+                    <span>Change Password</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
       )}

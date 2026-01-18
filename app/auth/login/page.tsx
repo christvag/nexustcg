@@ -163,20 +163,6 @@ export default function LoginPage() {
                 </button>
               </div>
 
-              <div className="mt-6">
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-700"></div>
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-gray-900 text-gray-500">Test Credentials</span>
-                  </div>
-                </div>
-                <div className="mt-4 text-sm text-gray-400 space-y-1">
-                  <p><strong>Admin:</strong> admin@tcgrading.com / admin123</p>
-                  <p><strong>User:</strong> john@example.com / password123</p>
-                </div>
-              </div>
             </form>
         </motion.div>
       </motion.div>

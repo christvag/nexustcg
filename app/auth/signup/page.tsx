@@ -308,6 +308,28 @@ export default function SignupPage() {
                 )}
               </button>
             </div>
+
+            <p id="signup-terms-agreement" className="text-center text-sm text-gray-400 mt-4">
+              By signing up, you agree to our{' '}
+              <a
+                href="https://nexusgrading.com/terms-and-conditions"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gaming-primary hover:text-gaming-secondary underline"
+              >
+                Terms and Conditions
+              </a>{' '}
+              and{' '}
+              <a
+                href="https://nexusgrading.com/privacy-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gaming-primary hover:text-gaming-secondary underline"
+              >
+                Privacy Policy
+              </a>
+              .
+            </p>
           </form>
         </motion.div>
       </motion.div>

@@ -104,6 +104,10 @@ export default function UserProfile() {
     confirm: false
   });
 
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [editingAddress, setEditingAddress] = useState<ShippingAddress | null>(null);
   
@@ -119,19 +123,63 @@ export default function UserProfile() {
     alert('Profile updated successfully!');
   };
 
-  const handlePasswordChange = (e: React.FormEvent) => {
+  const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
+    setPasswordError('');
+    setPasswordSuccess('');
+
+    // Client-side validation
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert('Passwords do not match');
+      setPasswordError('New passwords do not match');
       return;
     }
-    alert('Password changed successfully!');
-    setPasswordData({
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: ''
-    });
+
+    if (passwordData.newPassword.length < 6) {
+      setPasswordError('New password must be at least 6 characters');
+      return;
+    }
+
+    setPasswordLoading(true);
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('/api/user/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+          confirmPassword: passwordData.confirmPassword
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setPasswordSuccess('Password changed successfully!');
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+      } else {
+        setPasswordError(data.error || 'Failed to change password');
+      }
+    } catch (error) {
+      setPasswordError('Network error. Please try again.');
+    } finally {
+      setPasswordLoading(false);
+    }
   };
+
+  // Check if passwords match for real-time validation
+  const passwordsMatch = passwordData.newPassword && passwordData.confirmPassword &&
+    passwordData.newPassword === passwordData.confirmPassword;
+  const passwordsMismatch = passwordData.newPassword && passwordData.confirmPassword &&
+    passwordData.newPassword !== passwordData.confirmPassword;
 
   const handleAddressSubmit = (addressData: ShippingAddress) => {
     if (editingAddress) {
@@ -646,16 +694,34 @@ export default function UserProfile() {
 
           {/* Security Tab */}
           {activeTab === 'security' && (
-            <div className="space-y-6">
+            <div id="security-tab-content" className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Change Password</h3>
-                <form onSubmit={handlePasswordChange} className="space-y-4">
+                <h3 id="change-password-title" className="text-lg font-medium text-gray-900 mb-4">Change Password</h3>
+
+                {/* Error Message */}
+                {passwordError && (
+                  <div id="password-error-alert" className="mb-4 p-4 bg-red-100 border border-red-400 rounded-lg flex items-center space-x-2">
+                    <X className="h-5 w-5 text-red-600" />
+                    <p className="text-red-700 text-sm">{passwordError}</p>
+                  </div>
+                )}
+
+                {/* Success Message */}
+                {passwordSuccess && (
+                  <div id="password-success-alert" className="mb-4 p-4 bg-green-100 border border-green-400 rounded-lg flex items-center space-x-2">
+                    <Check className="h-5 w-5 text-green-600" />
+                    <p className="text-green-700 text-sm">{passwordSuccess}</p>
+                  </div>
+                )}
+
+                <form id="change-password-form" onSubmit={handlePasswordChange} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="current-password" className="block text-sm font-medium text-gray-700 mb-1">
                       Current Password *
                     </label>
                     <div className="relative">
                       <input
+                        id="current-password"
                         type={showPassword.current ? 'text' : 'password'}
                         required
                         className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
@@ -663,9 +729,10 @@ export default function UserProfile() {
                         onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
                       />
                       <button
+                        id="toggle-current-password"
                         type="button"
                         onClick={() => setShowPassword({...showPassword, current: !showPassword.current})}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                       >
                         {showPassword.current ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
@@ -673,55 +740,97 @@ export default function UserProfile() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="new-password" className="block text-sm font-medium text-gray-700 mb-1">
                       New Password *
                     </label>
                     <div className="relative">
                       <input
+                        id="new-password"
                         type={showPassword.new ? 'text' : 'password'}
                         required
+                        minLength={6}
                         className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
                         value={passwordData.newPassword}
                         onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+                        placeholder="Minimum 6 characters"
                       />
                       <button
+                        id="toggle-new-password"
                         type="button"
                         onClick={() => setShowPassword({...showPassword, new: !showPassword.new})}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                       >
                         {showPassword.new ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
+                    {passwordData.newPassword && passwordData.newPassword.length < 6 && (
+                      <p id="password-length-warning" className="mt-1 text-sm text-amber-600">
+                        Password must be at least 6 characters
+                      </p>
+                    )}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 mb-1">
                       Confirm New Password *
                     </label>
                     <div className="relative">
                       <input
+                        id="confirm-password"
                         type={showPassword.confirm ? 'text' : 'password'}
                         required
-                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 pr-10 ${
+                          passwordsMismatch
+                            ? 'border-red-400 focus:ring-red-500'
+                            : passwordsMatch
+                            ? 'border-green-400 focus:ring-green-500'
+                            : 'focus:ring-blue-500'
+                        }`}
                         value={passwordData.confirmPassword}
                         onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                        placeholder="Re-enter your new password"
                       />
                       <button
+                        id="toggle-confirm-password"
                         type="button"
                         onClick={() => setShowPassword({...showPassword, confirm: !showPassword.confirm})}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                       >
                         {showPassword.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
+                    {/* Real-time password match indicator */}
+                    {passwordsMatch && (
+                      <p id="passwords-match-indicator" className="mt-1 text-sm text-green-600 flex items-center space-x-1">
+                        <Check className="h-4 w-4" />
+                        <span>Passwords match</span>
+                      </p>
+                    )}
+                    {passwordsMismatch && (
+                      <p id="passwords-mismatch-indicator" className="mt-1 text-sm text-red-600 flex items-center space-x-1">
+                        <X className="h-4 w-4" />
+                        <span>Passwords do not match</span>
+                      </p>
+                    )}
                   </div>
 
                   <button
+                    id="update-password-btn"
                     type="submit"
-                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+                    disabled={passwordLoading || passwordsMismatch}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Lock className="h-4 w-4" />
-                    <span>Update Password</span>
+                    {passwordLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>Updating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="h-4 w-4" />
+                        <span>Update Password</span>
+                      </>
+                    )}
                   </button>
                 </form>
               </div>

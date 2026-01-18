@@ -65,8 +65,9 @@ export default function UserDashboardLayout({
 
   const handleLogout = () => {
     localStorage.removeItem('currentUser');
+    localStorage.removeItem('authToken');
     setUser(null);
-    router.push('/login');
+    window.location.href = 'https://nexusgrading.com';
   };
 
   if (isLoading) {
