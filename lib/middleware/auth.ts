@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { User } from '@/lib/types/dashboard';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || 'nexus-tcgrading-secret-key-2024';
 
 export interface AuthenticatedRequest extends NextRequest {
   user?: User;

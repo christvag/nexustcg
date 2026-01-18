@@ -3,7 +3,7 @@ import { setCookie, getCookie, deleteCookie } from 'cookies-next'
 import { NextRequest, NextResponse } from 'next/server'
 import type { User } from './tcgrading-database'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+const JWT_SECRET = process.env.JWT_SECRET || 'nexus-tcgrading-secret-key-2024'
 const TOKEN_EXPIRY = '7d' // 7 days
 
 interface TokenPayload {

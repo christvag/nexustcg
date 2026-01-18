@@ -13,7 +13,7 @@ function checkAdminAuth(request: NextRequest) {
   }
 
   try {
-    const decoded = verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
+    const decoded = verify(token, process.env.JWT_SECRET || 'nexus-tcgrading-secret-key-2024') as any;
 
     if (decoded.role !== 'admin') {
       return { error: 'Forbidden - Admin access required', status: 403 };
