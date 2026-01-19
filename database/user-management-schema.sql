@@ -239,3 +239,91 @@ BEGIN
     INSERT INTO order_status_history (order_id, old_status, new_status, notes)
     VALUES (NEW.id, OLD.status, NEW.status, 'Status updated automatically');
 END;
+
+-- ============================================
+-- PACKAGES V2 - Table-style pricing page
+-- ============================================
+
+-- Packages V2 table (columns in the pricing table)
+CREATE TABLE IF NOT EXISTS packages_v2 (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    slug TEXT UNIQUE NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    price_suffix TEXT DEFAULT '/card',
+    cta_text TEXT DEFAULT 'Get Started',
+    cta_url TEXT,
+    description TEXT,
+    highlight_color TEXT DEFAULT '#d83f0a',
+    is_featured BOOLEAN DEFAULT 0,
+    is_active BOOLEAN DEFAULT 1,
+    display_order INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Package Features V2 table (rows in the pricing table)
+CREATE TABLE IF NOT EXISTS package_features_v2 (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT,
+    category TEXT DEFAULT 'general',
+    display_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Package Feature Values V2 table (intersection of packages and features)
+CREATE TABLE IF NOT EXISTS package_feature_values_v2 (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    package_id INTEGER NOT NULL,
+    feature_id INTEGER NOT NULL,
+    value_type TEXT DEFAULT 'check' CHECK(value_type IN ('check', 'dropdown', 'text')),
+    is_checked BOOLEAN DEFAULT 0,
+    text_value TEXT,
+    dropdown_options TEXT, -- JSON array of options for dropdown type
+    dropdown_selected TEXT, -- Selected option for dropdown type
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (package_id) REFERENCES packages_v2(id) ON DELETE CASCADE,
+    FOREIGN KEY (feature_id) REFERENCES package_features_v2(id) ON DELETE CASCADE,
+    UNIQUE(package_id, feature_id)
+);
+
+-- Packages V2 Settings table (global settings for the pricing page)
+CREATE TABLE IF NOT EXISTS packages_v2_settings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    setting_key TEXT UNIQUE NOT NULL,
+    setting_value TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for Packages V2
+CREATE INDEX IF NOT EXISTS idx_packages_v2_slug ON packages_v2(slug);
+CREATE INDEX IF NOT EXISTS idx_packages_v2_active ON packages_v2(is_active);
+CREATE INDEX IF NOT EXISTS idx_packages_v2_order ON packages_v2(display_order);
+CREATE INDEX IF NOT EXISTS idx_package_features_v2_active ON package_features_v2(is_active);
+CREATE INDEX IF NOT EXISTS idx_package_features_v2_order ON package_features_v2(display_order);
+CREATE INDEX IF NOT EXISTS idx_package_feature_values_v2_package ON package_feature_values_v2(package_id);
+CREATE INDEX IF NOT EXISTS idx_package_feature_values_v2_feature ON package_feature_values_v2(feature_id);
+
+-- Triggers for Packages V2
+CREATE TRIGGER IF NOT EXISTS update_packages_v2_updated_at
+    AFTER UPDATE ON packages_v2
+BEGIN
+    UPDATE packages_v2 SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS update_package_features_v2_updated_at
+    AFTER UPDATE ON package_features_v2
+BEGIN
+    UPDATE package_features_v2 SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS update_package_feature_values_v2_updated_at
+    AFTER UPDATE ON package_feature_values_v2
+BEGIN
+    UPDATE package_feature_values_v2 SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
