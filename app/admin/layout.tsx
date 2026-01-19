@@ -22,7 +22,7 @@ const sidebarItems = [
   { href: '/admin/dashboard/orders', label: 'Orders', icon: ShoppingCart },
   { href: '/admin/dashboard/users', label: 'Users', icon: Users },
   { href: '/admin/dashboard/population-report', label: 'Population Report', icon: BarChart3 },
-  { href: '/admin/dashboard/packages', label: 'Packages', icon: Package },
+  { href: '/admin/dashboard/packages-v2', label: 'Packages', icon: Package },
   { href: '/admin/dashboard/settings', label: 'Settings', icon: Settings },
 ];
 
