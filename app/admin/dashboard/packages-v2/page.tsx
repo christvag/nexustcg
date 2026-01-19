@@ -342,7 +342,7 @@ export default function PackagesV2Page() {
           <p className="text-gray-400 mt-1">Configure table-style pricing page</p>
         </div>
         <a
-          href="/packages-v2"
+          href="/packages"
           target="_blank"
           className="flex items-center gap-2 px-4 py-2 bg-[#171717] border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-800 transition-colors"
         >
