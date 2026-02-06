@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUserByEmail } from '@/lib/user-database'
-import bcrypt from 'bcrypt'
+import Database from 'better-sqlite3'
+import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import path from 'path'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'nexus-tcgrading-secret-key-2024'
+
+function getDb() {
+  const dbPath = path.join(process.cwd(), 'database', 'user-management.db')
+  const db = new Database(dbPath)
+  db.pragma('foreign_keys = ON')
+  return db
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,10 +25,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const db = getDb()
+
     // Get user by email
-    const user = await getUserByEmail(email)
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as any
 
     if (!user) {
+      db.close()
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
@@ -29,6 +40,7 @@ export async function POST(request: NextRequest) {
 
     // Check if user is active
     if (!user.is_active) {
+      db.close()
       return NextResponse.json(
         { error: 'Account is disabled' },
         { status: 403 }
@@ -39,6 +51,7 @@ export async function POST(request: NextRequest) {
     const isValidPassword = await bcrypt.compare(password, user.password_hash)
 
     if (!isValidPassword) {
+      db.close()
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
@@ -57,7 +70,9 @@ export async function POST(request: NextRequest) {
     )
 
     // Remove sensitive data
-    const { password_hash, reset_token, reset_token_expires, ...safeUser } = user as any
+    const { password_hash, reset_token, reset_token_expires, ...safeUser } = user
+
+    db.close()
 
     return NextResponse.json({
       success: true,

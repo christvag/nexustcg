@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { CheckCircle, Calendar, Hash, Award, Star, Package, Info } from 'lucide-react'
+import PopReportTable from '@/components/PopReportTable'
 
 interface CardData {
   id: number
@@ -424,6 +425,11 @@ export default function CardCertificationPage() {
             To verify this certification, visit our website and enter the certification number: <span className="text-[#d83f0a] font-mono font-semibold">{card.card_id}</span>
           </p>
         </motion.div>
+
+        {/* Pop Report Section */}
+        <div id="cert-pop-report" className="mt-8">
+          <PopReportTable cardName={card.card_name} cardGame={card.card_game} />
+        </div>
       </main>
     </div>
   )

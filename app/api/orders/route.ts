@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Database from 'better-sqlite3'
 import path from 'path'
+import { triggerOrderEmail } from '@/lib/email-trigger'
 
 function getDb() {
   const dbPath = path.join(process.cwd(), 'database', 'user-management.db')
@@ -162,6 +163,25 @@ export async function POST(request: NextRequest) {
 
     // Get the created order
     const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId)
+
+    // Fire-and-forget: send order confirmation email
+    const customerEmail = customer_info?.email
+    const customerName = customer_info?.firstName && customer_info?.lastName
+      ? `${customer_info.firstName} ${customer_info.lastName}`
+      : customer_info?.name || 'Customer'
+
+    if (customerEmail) {
+      triggerOrderEmail(customerEmail, orderNumber, 'pending', customerName).catch(() => {})
+    } else if (user_id) {
+      // Look up user email from DB
+      const user = db.prepare('SELECT first_name, last_name, email FROM users WHERE id = ?').get(user_id) as any
+      if (user?.email) {
+        const userName = user.first_name && user.last_name
+          ? `${user.first_name} ${user.last_name}`
+          : 'Customer'
+        triggerOrderEmail(user.email, orderNumber, 'pending', userName).catch(() => {})
+      }
+    }
 
     db.close()
 

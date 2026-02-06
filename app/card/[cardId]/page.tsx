@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Calendar, Award, Package, Sparkles } from 'lucide-react'
 import Link from 'next/link'
+import PopReportTable from '@/components/PopReportTable'
 
 interface CardDetail {
   id: number
@@ -281,6 +282,11 @@ export default function CardDetailPage() {
               </div>
             </motion.div>
           </div>
+        </div>
+
+        {/* Pop Report Section */}
+        <div id="card-detail-pop-report">
+          <PopReportTable cardName={card.card_name} cardGame={card.card_game} />
         </div>
       </div>
     </div>

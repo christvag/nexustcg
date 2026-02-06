@@ -1,45 +1,69 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createUser, getUserById, getAllUsers, updateUser, runQuery, type User } from '@/lib/user-database'
+import Database from 'better-sqlite3'
+import bcrypt from 'bcryptjs'
+import path from 'path'
+
+function getDb() {
+  const dbPath = path.join(process.cwd(), 'database', 'user-management.db')
+  const db = new Database(dbPath)
+  db.pragma('foreign_keys = ON')
+  return db
+}
 
 export async function POST(request: NextRequest) {
+  const db = getDb()
   try {
     const body = await request.json()
     const { email, password, first_name, last_name, username, phone, role } = body
 
     if (!email || !password || !first_name || !last_name) {
+      db.close()
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       )
     }
 
-    try {
-      const user = await createUser({
-        email,
-        password,
-        first_name,
-        last_name,
-        username,
-        phone,
-        role
-      })
-
-      return NextResponse.json({
-        success: true,
-        user
-      })
-    } catch (error: any) {
-      if (error.message?.includes('UNIQUE constraint failed')) {
-        return NextResponse.json(
-          { error: 'User already exists with this email' },
-          { status: 409 }
-        )
-      }
-      throw error
+    // Check if user already exists
+    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email)
+    if (existing) {
+      db.close()
+      return NextResponse.json(
+        { error: 'User already exists with this email' },
+        { status: 409 }
+      )
     }
 
-  } catch (error) {
+    const hashedPassword = await bcrypt.hash(password, 12)
+
+    const result = db.prepare(`
+      INSERT INTO users (email, password_hash, first_name, last_name, phone, role)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(
+      email,
+      hashedPassword,
+      first_name,
+      last_name,
+      phone || null,
+      role || 'user'
+    )
+
+    const userId = result.lastInsertRowid as number
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId) as any
+
+    // Remove sensitive fields
+    const { password_hash, reset_token, reset_token_expires, ...safeUser } = user
+
+    db.close()
+
+    return NextResponse.json({
+      success: true,
+      user: safeUser
+    })
+
+  } catch (error: any) {
     console.error('User API error:', error)
+    db.close()
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -48,74 +72,65 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const db = getDb()
   try {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('id')
 
     if (userId) {
-      const user = await getUserById(parseInt(userId))
+      const user = db.prepare(`
+        SELECT u.*,
+          COUNT(o.id) as total_orders,
+          COALESCE(SUM(CASE WHEN o.payment_status = 'paid' THEN o.total ELSE 0 END), 0) as total_spent
+        FROM users u
+        LEFT JOIN orders o ON u.id = o.user_id
+        WHERE u.id = ?
+        GROUP BY u.id
+      `).get(parseInt(userId)) as any
+
       if (!user) {
+        db.close()
         return NextResponse.json(
           { error: 'User not found' },
           { status: 404 }
         )
       }
 
-      // Get user statistics
-      const orderStats = await runQuery(
-        `SELECT
-          COUNT(*) as total_orders,
-          COALESCE(SUM(CASE WHEN payment_status = 'paid' THEN total ELSE 0 END), 0) as total_spent
-        FROM orders
-        WHERE user_id = ?`,
-        [parseInt(userId)]
-      )
-
       // Remove sensitive fields
-      const { password_hash, reset_token, reset_token_expires, ...safeUser } = user as any
+      const { password_hash, reset_token, reset_token_expires, ...safeUser } = user
 
-      return NextResponse.json({
-        user: {
-          ...safeUser,
-          total_orders: orderStats[0]?.total_orders || 0,
-          total_spent: orderStats[0]?.total_spent || 0
-        }
-      })
+      db.close()
+
+      return NextResponse.json({ user: safeUser })
     }
 
-    // Get all users
-    const users = await getAllUsers()
+    // Get all users with order stats in a single query
+    const users = db.prepare(`
+      SELECT u.*,
+        COUNT(o.id) as total_orders,
+        COALESCE(SUM(CASE WHEN o.payment_status = 'paid' THEN o.total ELSE 0 END), 0) as total_spent
+      FROM users u
+      LEFT JOIN orders o ON u.id = o.user_id
+      GROUP BY u.id
+      ORDER BY u.created_at DESC
+    `).all() as any[]
 
-    // Get statistics for all users and remove sensitive data
-    const usersWithStats = await Promise.all(
-      users.map(async (user) => {
-        const orderStats = await runQuery(
-          `SELECT
-            COUNT(*) as total_orders,
-            COALESCE(SUM(CASE WHEN payment_status = 'paid' THEN total ELSE 0 END), 0) as total_spent
-          FROM orders
-          WHERE user_id = ?`,
-          [user.id]
-        )
+    // Remove sensitive fields
+    const safeUsers = users.map(user => {
+      const { password_hash, reset_token, reset_token_expires, ...safeUser } = user
+      return safeUser
+    })
 
-        // Remove sensitive fields
-        const { password_hash, reset_token, reset_token_expires, ...safeUser } = user as any
-
-        return {
-          ...safeUser,
-          total_orders: orderStats[0]?.total_orders || 0,
-          total_spent: orderStats[0]?.total_spent || 0
-        }
-      })
-    )
+    db.close()
 
     return NextResponse.json({
-      users: usersWithStats,
-      count: usersWithStats.length
+      users: safeUsers,
+      count: safeUsers.length
     })
 
   } catch (error) {
     console.error('Get users API error:', error)
+    db.close()
     return NextResponse.json(
       { error: 'Failed to fetch users' },
       { status: 500 }
@@ -124,11 +139,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  const db = getDb()
   try {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('id')
 
     if (!userId) {
+      db.close()
       return NextResponse.json(
         { error: 'User ID is required' },
         { status: 400 }
@@ -139,27 +156,39 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
 
     // Check if user exists
-    const existingUser = await getUserById(userIdNum)
+    const existingUser = db.prepare('SELECT * FROM users WHERE id = ?').get(userIdNum)
     if (!existingUser) {
+      db.close()
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       )
     }
 
-    // Update user using updateUser function
-    const updatedUser = await updateUser(userIdNum, {
-      first_name: body.first_name,
-      last_name: body.last_name,
-      email: body.email,
-      phone: body.phone,
-      role: body.role,
-      is_active: body.is_active !== undefined ? body.is_active : undefined,
-      email_verified: body.email_verified !== undefined ? body.email_verified : undefined
-    })
+    // Build dynamic update
+    const updates: string[] = []
+    const values: any[] = []
+
+    if (body.first_name !== undefined) { updates.push('first_name = ?'); values.push(body.first_name) }
+    if (body.last_name !== undefined) { updates.push('last_name = ?'); values.push(body.last_name) }
+    if (body.email !== undefined) { updates.push('email = ?'); values.push(body.email) }
+    if (body.phone !== undefined) { updates.push('phone = ?'); values.push(body.phone) }
+    if (body.role !== undefined) { updates.push('role = ?'); values.push(body.role) }
+    if (body.is_active !== undefined) { updates.push('is_active = ?'); values.push(body.is_active) }
+    if (body.email_verified !== undefined) { updates.push('email_verified = ?'); values.push(body.email_verified) }
+
+    if (updates.length > 0) {
+      values.push(userIdNum)
+      db.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).run(...values)
+    }
+
+    // Get updated user
+    const updatedUser = db.prepare('SELECT * FROM users WHERE id = ?').get(userIdNum) as any
 
     // Remove sensitive fields
-    const { password_hash, reset_token, reset_token_expires, ...safeUser } = updatedUser as any
+    const { password_hash, reset_token, reset_token_expires, ...safeUser } = updatedUser
+
+    db.close()
 
     return NextResponse.json({
       success: true,
@@ -169,6 +198,7 @@ export async function PUT(request: NextRequest) {
 
   } catch (error) {
     console.error('Update user API error:', error)
+    db.close()
     return NextResponse.json(
       { error: 'Failed to update user' },
       { status: 500 }
@@ -177,11 +207,13 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const db = getDb()
   try {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('id')
 
     if (!userId) {
+      db.close()
       return NextResponse.json(
         { error: 'User ID is required' },
         { status: 400 }
@@ -191,8 +223,9 @@ export async function DELETE(request: NextRequest) {
     const userIdNum = parseInt(userId)
 
     // Check if user exists
-    const user = await getUserById(userIdNum)
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userIdNum)
     if (!user) {
+      db.close()
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
@@ -200,30 +233,27 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Get all order IDs for this user
-    const orderIds = await runQuery(
-      'SELECT id FROM orders WHERE user_id = ?',
-      [userIdNum]
-    )
+    const orderIds = db.prepare('SELECT id FROM orders WHERE user_id = ?').all(userIdNum) as any[]
 
-    // Delete all related data in correct order
-    for (const order of orderIds) {
-      // Delete order-related data
-      await runQuery('DELETE FROM order_items WHERE order_id = ?', [order.id])
-      await runQuery('DELETE FROM order_status_history WHERE order_id = ?', [order.id])
-      await runQuery('DELETE FROM chat_messages WHERE order_id = ?', [order.id])
-      await runQuery('DELETE FROM payments WHERE order_id = ?', [order.id])
-    }
+    // Delete all related data in a transaction
+    const deleteAll = db.transaction(() => {
+      for (const order of orderIds) {
+        db.prepare('DELETE FROM order_items WHERE order_id = ?').run(order.id)
+        db.prepare('DELETE FROM order_status_history WHERE order_id = ?').run(order.id)
+        db.prepare('DELETE FROM chat_messages WHERE order_id = ?').run(order.id)
+        db.prepare('DELETE FROM payments WHERE order_id = ?').run(order.id)
+      }
 
-    // Delete orders
-    await runQuery('DELETE FROM orders WHERE user_id = ?', [userIdNum])
+      db.prepare('DELETE FROM orders WHERE user_id = ?').run(userIdNum)
+      db.prepare('DELETE FROM user_addresses WHERE user_id = ?').run(userIdNum)
+      db.prepare('DELETE FROM user_sessions WHERE user_id = ?').run(userIdNum)
+      db.prepare('DELETE FROM chat_messages WHERE user_id = ?').run(userIdNum)
+      db.prepare('DELETE FROM users WHERE id = ?').run(userIdNum)
+    })
 
-    // Delete user-related data
-    await runQuery('DELETE FROM user_addresses WHERE user_id = ?', [userIdNum])
-    await runQuery('DELETE FROM user_sessions WHERE user_id = ?', [userIdNum])
-    await runQuery('DELETE FROM chat_messages WHERE user_id = ?', [userIdNum])
+    deleteAll()
 
-    // Finally delete the user
-    await runQuery('DELETE FROM users WHERE id = ?', [userIdNum])
+    db.close()
 
     return NextResponse.json({
       success: true,
@@ -232,6 +262,7 @@ export async function DELETE(request: NextRequest) {
 
   } catch (error) {
     console.error('Delete user API error:', error)
+    db.close()
     return NextResponse.json(
       { error: 'Failed to delete user' },
       { status: 500 }

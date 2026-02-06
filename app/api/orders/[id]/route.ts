@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getOrderById, updateOrderStatus, getOrderItems } from '@/lib/tcgrading-database'
+import Database from 'better-sqlite3'
+import path from 'path'
+import { triggerOrderEmail } from '@/lib/email-trigger'
 
 export async function GET(
   request: NextRequest,
@@ -67,7 +70,26 @@ export async function PUT(
       )
     }
 
-    const updatedOrder = getOrderById(orderId)
+    const updatedOrder = getOrderById(orderId) as any
+
+    // Fire-and-forget: send email notification
+    if (updatedOrder?.user_id) {
+      const db = new Database(path.join(process.cwd(), 'database', 'user-management.db'))
+      const user = db.prepare('SELECT first_name, last_name, email FROM users WHERE id = ?').get(updatedOrder.user_id) as any
+      db.close()
+
+      if (user?.email) {
+        const customerName = user.first_name && user.last_name
+          ? `${user.first_name} ${user.last_name}`
+          : 'Customer'
+        triggerOrderEmail(
+          user.email,
+          updatedOrder.order_number,
+          status,
+          customerName
+        ).catch(() => {})
+      }
+    }
 
     return NextResponse.json({
       success: true,
