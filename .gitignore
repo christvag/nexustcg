@@ -26,7 +26,6 @@ yarn-error.log*
 
 # local env files
 .env*.local
-.env
 
 # vercel
 .vercel
@@ -41,3 +40,4 @@ next-env.d.ts
 /database/*.db-journal
 /database/*.db-wal
 /database/*.db-shm
+config.bat
