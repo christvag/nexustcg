@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Filter, Download, Edit2, Trash2, Eye, Calendar, X, Star } from 'lucide-react';
+import { Search, Filter, Download, Edit2, Trash2, Eye, Calendar, X, Star, Settings } from 'lucide-react';
 import UserSearchDropdown from '@/components/UserSearchDropdown';
 
 interface GradedCard {
@@ -41,6 +41,8 @@ export default function PopulationReportCardsPage() {
   const [uploadingFront, setUploadingFront] = useState(false);
   const [uploadingBack, setUploadingBack] = useState(false);
   const [availableGames, setAvailableGames] = useState<string[]>([]);
+  const [showExportSettings, setShowExportSettings] = useState(false);
+  const [exportFields, setExportFields] = useState<Array<{slug: string, label: string, header: string, enabled: boolean}>>([]);
 
   useEffect(() => {
     fetchCards();
@@ -56,6 +58,55 @@ export default function PopulationReportCardsPage() {
       }
     } catch (err) {
       console.error('Failed to fetch games:', err);
+    }
+  };
+
+  // Initialize export fields from localStorage or defaults
+  useEffect(() => {
+    const defaultFields = [
+      { slug: 'card_id', label: 'Serial Number', header: 'serial_number', enabled: true },
+      { slug: 'card_game', label: 'Game/Type', header: 'type', enabled: true },
+      { slug: 'card_name', label: 'Card Name', header: 'name_card', enabled: true },
+      { slug: 'card_grade', label: 'Grade', header: 'grade', enabled: true },
+      { slug: 'grade_name', label: 'Grade Name', header: 'grade_name', enabled: true },
+      { slug: 'year_card', label: 'Year', header: 'year_card', enabled: true },
+      { slug: 'set_name', label: 'Set Name', header: 'set_name', enabled: true },
+      { slug: 'edition', label: 'Edition', header: 'edition', enabled: true },
+      { slug: 'card_info', label: 'Card Info', header: 'card_info', enabled: true },
+      { slug: 'rarity', label: 'Rarity', header: 'rarity', enabled: true },
+      { slug: 'card_number', label: 'Card Number', header: 'card_number', enabled: true },
+      { slug: 'card_owner', label: 'Card Owner', header: 'card_owner', enabled: true },
+      { slug: 'date_graded', label: 'Date Graded', header: 'date_graded', enabled: true },
+      { slug: 'id', label: 'Database ID', header: 'id', enabled: false },
+      { slug: 'front_image', label: 'Front Image Path', header: 'front_image', enabled: false },
+      { slug: 'back_image', label: 'Back Image Path', header: 'back_image', enabled: false },
+      { slug: 'is_featured', label: 'Is Featured', header: 'is_featured', enabled: false },
+      { slug: 'created_at', label: 'Created At', header: 'created_at', enabled: false },
+      { slug: 'updated_at', label: 'Updated At', header: 'updated_at', enabled: false },
+    ];
+
+    const saved = localStorage.getItem('popReportExportSettings');
+    if (saved) {
+      try {
+        setExportFields(JSON.parse(saved));
+      } catch {
+        setExportFields(defaultFields);
+      }
+    } else {
+      setExportFields(defaultFields);
+    }
+  }, []);
+
+  const saveExportSettings = () => {
+    localStorage.setItem('popReportExportSettings', JSON.stringify(exportFields));
+    setShowExportSettings(false);
+    alert('Export settings saved successfully');
+  };
+
+  const resetExportSettings = () => {
+    if (confirm('Reset to default export settings?')) {
+      localStorage.removeItem('popReportExportSettings');
+      window.location.reload();
     }
   };
 
@@ -318,23 +369,16 @@ export default function PopulationReportCardsPage() {
     }
 
     const selectedCardsData = filteredCards.filter(card => selectedCards.has(card.id));
+    const enabledFields = exportFields.filter(f => f.enabled);
+    const headers = enabledFields.map(f => f.header);
+
     const csvContent = [
-      ['serial_number', 'type', 'name_card', 'grade', 'grade_name', 'year_card', 'set_name', 'edition', 'card_info', 'rarity', 'card_number', 'card_owner', 'date_graded'],
-      ...selectedCardsData.map(card => [
-        card.card_id,
-        card.card_game,
-        card.card_name,
-        card.card_grade,
-        card.grade_name || '',
-        card.year_card || '',
-        card.set_name,
-        card.edition || '',
-        card.card_info || '',
-        card.rarity,
-        card.card_number || '',
-        card.card_owner || '',
-        formatDateToYYYYMMDD(card.date_graded)
-      ])
+      headers,
+      ...selectedCardsData.map(card => enabledFields.map(field => {
+        const value = (card as any)[field.slug];
+        if (field.slug === 'date_graded' && value) return formatDateToYYYYMMDD(value);
+        return value || '';
+      }))
     ].map(row => row.join(',')).join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -347,23 +391,16 @@ export default function PopulationReportCardsPage() {
   };
 
   const handleExport = () => {
+    const enabledFields = exportFields.filter(f => f.enabled);
+    const headers = enabledFields.map(f => f.header);
+
     const csvContent = [
-      ['serial_number', 'type', 'name_card', 'grade', 'grade_name', 'year_card', 'set_name', 'edition', 'card_info', 'rarity', 'card_number', 'card_owner', 'date_graded'],
-      ...filteredCards.map(card => [
-        card.card_id,
-        card.card_game,
-        card.card_name,
-        card.card_grade,
-        card.grade_name || '',
-        card.year_card || '',
-        card.set_name,
-        card.edition || '',
-        card.card_info || '',
-        card.rarity,
-        card.card_number || '',
-        card.card_owner || '',
-        formatDateToYYYYMMDD(card.date_graded)
-      ])
+      headers,
+      ...filteredCards.map(card => enabledFields.map(field => {
+        const value = (card as any)[field.slug];
+        if (field.slug === 'date_graded' && value) return formatDateToYYYYMMDD(value);
+        return value || '';
+      }))
     ].map(row => row.join(',')).join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -377,23 +414,16 @@ export default function PopulationReportCardsPage() {
 
   // Export individual card to CSV
   const handleExportSingleCard = (card: GradedCard) => {
+    const enabledFields = exportFields.filter(f => f.enabled);
+    const headers = enabledFields.map(f => f.header);
+
     const csvContent = [
-      ['serial_number', 'type', 'name_card', 'grade', 'grade_name', 'year_card', 'set_name', 'edition', 'card_info', 'rarity', 'card_number', 'card_owner', 'date_graded'],
-      [
-        card.card_id,
-        card.card_game,
-        card.card_name,
-        card.card_grade,
-        card.grade_name || '',
-        card.year_card || '',
-        card.set_name,
-        card.edition || '',
-        card.card_info || '',
-        card.rarity,
-        card.card_number || '',
-        card.card_owner || '',
-        formatDateToYYYYMMDD(card.date_graded)
-      ]
+      headers,
+      enabledFields.map(field => {
+        const value = (card as any)[field.slug];
+        if (field.slug === 'date_graded' && value) return formatDateToYYYYMMDD(value);
+        return value || '';
+      })
     ].map(row => row.join(',')).join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -547,6 +577,93 @@ export default function PopulationReportCardsPage() {
               <Download className="h-4 w-4" />
               <span>Export All</span>
             </button>
+            <div className="relative" id="pr-export-settings-container">
+              <button
+                onClick={() => setShowExportSettings(!showExportSettings)}
+                className="flex items-center space-x-2 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm"
+                id="pr-btn-export-settings"
+                title="Export Settings"
+              >
+                <Settings className="h-4 w-4" />
+              </button>
+
+              {/* Export Settings Dropdown */}
+              {showExportSettings && (
+                <div className="absolute right-0 mt-2 w-[600px] bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50" id="pr-export-settings-dropdown">
+                  <div className="p-4 border-b border-gray-700">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-lg font-semibold text-white">Export Field Settings</h3>
+                      <button onClick={() => setShowExportSettings(false)} className="text-gray-400 hover:text-white">
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+                    <p className="text-sm text-gray-400 mt-1">Select fields to include in CSV exports</p>
+                  </div>
+
+                  <div className="p-4 max-h-96 overflow-y-auto">
+                    <table className="w-full text-sm">
+                      <thead className="border-b border-gray-700">
+                        <tr>
+                          <th className="text-left py-2 px-2 text-gray-400 font-medium">Include</th>
+                          <th className="text-left py-2 px-2 text-gray-400 font-medium">Field Label</th>
+                          <th className="text-left py-2 px-2 text-gray-400 font-medium">API Slug</th>
+                          <th className="text-left py-2 px-2 text-gray-400 font-medium">Export Header</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {exportFields.map((field, idx) => (
+                          <tr key={field.slug} className="border-b border-gray-700/50 hover:bg-gray-700/30">
+                            <td className="py-2 px-2">
+                              <input
+                                type="checkbox"
+                                checked={field.enabled}
+                                onChange={(e) => {
+                                  const updated = [...exportFields];
+                                  updated[idx].enabled = e.target.checked;
+                                  setExportFields(updated);
+                                }}
+                                className="w-4 h-4 bg-gray-700 border-gray-600 rounded text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                              />
+                            </td>
+                            <td className="py-2 px-2 text-white">{field.label}</td>
+                            <td className="py-2 px-2 text-gray-400 font-mono text-xs">{field.slug}</td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="text"
+                                value={field.header}
+                                onChange={(e) => {
+                                  const updated = [...exportFields];
+                                  updated[idx].header = e.target.value;
+                                  setExportFields(updated);
+                                }}
+                                className="w-full px-2 py-1 bg-gray-900 text-white text-xs rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="p-4 border-t border-gray-700 flex justify-between items-center">
+                    <button
+                      onClick={resetExportSettings}
+                      className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm"
+                      id="pr-btn-reset-export-settings"
+                    >
+                      Reset to Default
+                    </button>
+                    <button
+                      onClick={saveExportSettings}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                      id="pr-btn-save-export-settings"
+                    >
+                      Save Settings
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
