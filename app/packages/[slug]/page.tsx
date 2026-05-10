@@ -95,7 +95,7 @@ export default function PackageV2DetailPage() {
 
   const fetchPackageDetails = async () => {
     try {
-      const response = await fetch(`/api/packages-v2/${slug}`)
+      const response = await fetch(`/api/packages/${slug}`)
       const data = await response.json()
       if (data.success) {
         setPackageData(data.package)

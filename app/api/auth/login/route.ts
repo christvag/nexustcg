@@ -82,8 +82,15 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Login API error:', error)
+    const isDev = process.env.NODE_ENV !== 'production'
     return NextResponse.json(
-      { error: 'Internal server error' },
+      {
+        error: 'Internal server error',
+        ...(isDev && {
+          detail: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        }),
+      },
       { status: 500 }
     )
   }

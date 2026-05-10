@@ -41,3 +41,22 @@ next-env.d.ts
 /database/*.db-journal
 /database/*.db-wal
 /database/*.db-shm
+
+# Moat task system
+.moat/
+
+# Claude Code configuration
+.claude/
+
+# Drawbridge extension repository
+.drawbridge-extension/
+
+# Local screenshots (ad-hoc debugging)
+/*.png
+
+# DB backups (do not travel with repo)
+/database/*.bak
+/database/*.bak.*
+
+# Stray Windows redirect output
+/nul

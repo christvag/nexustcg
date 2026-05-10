@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useUrlParam, useDebouncedUrlParam } from '@/lib/hooks/use-url-state';
+import { DashboardErrorBanner } from '@/components/dashboard/error-banner';
 import {
   Search,
   Filter,
@@ -43,15 +45,28 @@ interface User {
 }
 
 export default function UsersManagement() {
+  return (
+    <Suspense fallback={<div id="users-loading" className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d83f0a]"></div></div>}>
+      <UsersManagementInner />
+    </Suspense>
+  );
+}
+
+function UsersManagementInner() {
   const [users, setUsers] = useState<User[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterRole, setFilterRole] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [searchTerm, displaySearch, setDisplaySearch] = useDebouncedUrlParam('q', 300, ['page']);
+  const [filterRole, setFilterRoleUrl] = useUrlParam('role', 'all');
+  const [filterStatus, setFilterStatusUrl] = useUrlParam('status', 'all');
+  const [pageParam, setPageParam] = useUrlParam('page', '1');
+  const currentPage = Math.max(1, parseInt(pageParam, 10) || 1);
+  const setCurrentPage = (n: number) => setPageParam(n <= 1 ? null : String(n));
+  const setFilterRole = (next: string) => setFilterRoleUrl(next === 'all' ? null : next, { resetKeys: ['page'] });
+  const setFilterStatus = (next: string) => setFilterStatusUrl(next === 'all' ? null : next, { resetKeys: ['page'] });
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
   // Password change state for editing users
@@ -85,7 +100,16 @@ export default function UsersManagement() {
 
   const fetchUsers = async () => {
     try {
+      setLoadError(null);
       const response = await fetch('/api/users');
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          setLoadError('Your session is invalid or has expired. Please sign in again.');
+        } else {
+          setLoadError(`Failed to load users (HTTP ${response.status}).`);
+        }
+        return;
+      }
       const data = await response.json();
 
       if (response.ok && data.users) {
@@ -107,8 +131,9 @@ export default function UsersManagement() {
         }));
         setUsers(mappedUsers);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching users:', error);
+      setLoadError(error?.message || 'Network error while fetching users.');
     } finally {
       setIsLoading(false);
     }
@@ -448,7 +473,10 @@ export default function UsersManagement() {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / usersPerPage));
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
   const paginatedUsers = filteredUsers.slice(
     (currentPage - 1) * usersPerPage,
     currentPage * usersPerPage
@@ -774,6 +802,15 @@ export default function UsersManagement() {
         </button>
       </div>
 
+      {loadError && (
+        <DashboardErrorBanner
+          message={loadError}
+          onRetry={fetchUsers}
+          idPrefix="users"
+          title="Couldn't load users"
+        />
+      )}
+
       {/* Stats Cards */}
       <div id="users-stats-cards" className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div id="stat-total-users" className="bg-[#171717] rounded-lg border border-gray-800 p-4">
@@ -825,8 +862,8 @@ export default function UsersManagement() {
                 type="text"
                 placeholder="Search users by name or email..."
                 className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={displaySearch}
+                onChange={(e) => setDisplaySearch(e.target.value)}
               />
             </div>
           </div>

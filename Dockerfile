@@ -8,9 +8,11 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat python3 py3-setuptools make g++
 WORKDIR /app
 
-# Install dependencies based on the preferred package manager
+# Install dependencies based on the preferred package manager.
+# --ignore-scripts skips postinstall here because schema files haven't been copied yet;
+# we run db:seed explicitly in the builder stage after `COPY . .`.
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -23,6 +25,10 @@ COPY . .
 # Rebuild native modules for Alpine Linux
 RUN npm rebuild bcrypt --build-from-source
 RUN npm rebuild better-sqlite3 --build-from-source
+RUN npm rebuild sqlite3 --build-from-source || true
+
+# Seed the SQLite databases now that schema files are in place. Idempotent.
+RUN node scripts/db-seed.js || true
 
 # Environment variables for build
 ENV NEXT_TELEMETRY_DISABLED 1

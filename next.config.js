@@ -38,9 +38,11 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Enable experimental features if needed
+  // Externalize native modules so the standalone build doesn't try to bundle their .node bindings.
+  // Without this, better-sqlite3 / bcrypt fail at runtime in production builds with NODE_MODULE_VERSION mismatches
+  // or "module not found" errors. They must remain CommonJS requires resolved at runtime.
   experimental: {
-    // serverComponentsExternalPackages: [],
+    serverComponentsExternalPackages: ['better-sqlite3', 'sqlite3', 'bcrypt', 'bcryptjs'],
   },
   // Security headers for subdomain deployment (CORS handled by middleware.ts)
   async headers() {

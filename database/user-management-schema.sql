@@ -1,29 +1,8 @@
 -- User Management SQLite Database Schema
--- This database stores user accounts, order information, and pricing packages
-
--- Packages table
-CREATE TABLE IF NOT EXISTS packages (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    slug TEXT UNIQUE NOT NULL,
-    price DECIMAL(10,2) NOT NULL,
-    description TEXT,
-    long_description TEXT,
-    features TEXT, -- JSON array of features
-    specifications TEXT, -- JSON array of specifications
-    trust_indicators TEXT, -- JSON array of trust indicators (e.g., [{label: "Secure Processing", icon: "shield"}, ...])
-    icon_name TEXT,
-    icon_url TEXT,
-    image_url TEXT,
-    processing_time TEXT,
-    min_cards INTEGER DEFAULT 1,
-    max_cards INTEGER,
-    is_active BOOLEAN DEFAULT 1,
-    is_popular BOOLEAN DEFAULT 0,
-    display_order INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+-- This database stores user accounts, order information, and pricing packages.
+-- The active packages system is the comparison-table model defined toward the
+-- bottom of this file (`packages`, `package_features`, `package_feature_values`,
+-- `packages_settings`). The legacy single-row `packages` table has been removed.
 
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
@@ -184,9 +163,7 @@ CREATE TABLE IF NOT EXISTS email_settings (
 );
 
 -- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_packages_slug ON packages(slug);
-CREATE INDEX IF NOT EXISTS idx_packages_active ON packages(is_active);
-CREATE INDEX IF NOT EXISTS idx_packages_display_order ON packages(display_order);
+-- (packages indexes are defined alongside the packages CREATE TABLE block below)
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
@@ -225,11 +202,7 @@ BEGIN
     UPDATE payments SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
 
-CREATE TRIGGER IF NOT EXISTS update_packages_updated_at
-    AFTER UPDATE ON packages
-BEGIN
-    UPDATE packages SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
-END;
+-- (update_packages_updated_at trigger is defined alongside the packages CREATE TABLE block below)
 
 -- Trigger to create order status history when order status changes
 CREATE TRIGGER IF NOT EXISTS order_status_change_history
@@ -241,11 +214,11 @@ BEGIN
 END;
 
 -- ============================================
--- PACKAGES V2 - Table-style pricing page
+-- PACKAGES - Comparison-table pricing page
 -- ============================================
 
--- Packages V2 table (columns in the pricing table)
-CREATE TABLE IF NOT EXISTS packages_v2 (
+-- Packages table (one row per pricing column)
+CREATE TABLE IF NOT EXISTS packages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     slug TEXT UNIQUE NOT NULL,
@@ -254,6 +227,9 @@ CREATE TABLE IF NOT EXISTS packages_v2 (
     cta_text TEXT DEFAULT 'Get Started',
     cta_url TEXT,
     description TEXT,
+    long_description TEXT,
+    icon_url TEXT,
+    image_url TEXT,
     highlight_color TEXT DEFAULT '#d83f0a',
     is_featured BOOLEAN DEFAULT 0,
     is_active BOOLEAN DEFAULT 1,
@@ -262,8 +238,8 @@ CREATE TABLE IF NOT EXISTS packages_v2 (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Package Features V2 table (rows in the pricing table)
-CREATE TABLE IF NOT EXISTS package_features_v2 (
+-- Package features (one row per feature row in the comparison table)
+CREATE TABLE IF NOT EXISTS package_features (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     description TEXT,
@@ -274,8 +250,8 @@ CREATE TABLE IF NOT EXISTS package_features_v2 (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Package Feature Values V2 table (intersection of packages and features)
-CREATE TABLE IF NOT EXISTS package_feature_values_v2 (
+-- Cell values: intersection of a package column and a feature row
+CREATE TABLE IF NOT EXISTS package_feature_values (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     package_id INTEGER NOT NULL,
     feature_id INTEGER NOT NULL,
@@ -286,13 +262,13 @@ CREATE TABLE IF NOT EXISTS package_feature_values_v2 (
     dropdown_selected TEXT, -- Selected option for dropdown type
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (package_id) REFERENCES packages_v2(id) ON DELETE CASCADE,
-    FOREIGN KEY (feature_id) REFERENCES package_features_v2(id) ON DELETE CASCADE,
+    FOREIGN KEY (package_id) REFERENCES packages(id) ON DELETE CASCADE,
+    FOREIGN KEY (feature_id) REFERENCES package_features(id) ON DELETE CASCADE,
     UNIQUE(package_id, feature_id)
 );
 
--- Packages V2 Settings table (global settings for the pricing page)
-CREATE TABLE IF NOT EXISTS packages_v2_settings (
+-- Page-level settings (title, subtitle, toggles, etc.)
+CREATE TABLE IF NOT EXISTS packages_settings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     setting_key TEXT UNIQUE NOT NULL,
     setting_value TEXT,
@@ -300,30 +276,30 @@ CREATE TABLE IF NOT EXISTS packages_v2_settings (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Indexes for Packages V2
-CREATE INDEX IF NOT EXISTS idx_packages_v2_slug ON packages_v2(slug);
-CREATE INDEX IF NOT EXISTS idx_packages_v2_active ON packages_v2(is_active);
-CREATE INDEX IF NOT EXISTS idx_packages_v2_order ON packages_v2(display_order);
-CREATE INDEX IF NOT EXISTS idx_package_features_v2_active ON package_features_v2(is_active);
-CREATE INDEX IF NOT EXISTS idx_package_features_v2_order ON package_features_v2(display_order);
-CREATE INDEX IF NOT EXISTS idx_package_feature_values_v2_package ON package_feature_values_v2(package_id);
-CREATE INDEX IF NOT EXISTS idx_package_feature_values_v2_feature ON package_feature_values_v2(feature_id);
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_packages_slug ON packages(slug);
+CREATE INDEX IF NOT EXISTS idx_packages_active ON packages(is_active);
+CREATE INDEX IF NOT EXISTS idx_packages_order ON packages(display_order);
+CREATE INDEX IF NOT EXISTS idx_package_features_active ON package_features(is_active);
+CREATE INDEX IF NOT EXISTS idx_package_features_order ON package_features(display_order);
+CREATE INDEX IF NOT EXISTS idx_package_feature_values_package ON package_feature_values(package_id);
+CREATE INDEX IF NOT EXISTS idx_package_feature_values_feature ON package_feature_values(feature_id);
 
--- Triggers for Packages V2
-CREATE TRIGGER IF NOT EXISTS update_packages_v2_updated_at
-    AFTER UPDATE ON packages_v2
+-- Triggers (auto-update updated_at)
+CREATE TRIGGER IF NOT EXISTS update_packages_updated_at
+    AFTER UPDATE ON packages
 BEGIN
-    UPDATE packages_v2 SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+    UPDATE packages SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
 
-CREATE TRIGGER IF NOT EXISTS update_package_features_v2_updated_at
-    AFTER UPDATE ON package_features_v2
+CREATE TRIGGER IF NOT EXISTS update_package_features_updated_at
+    AFTER UPDATE ON package_features
 BEGIN
-    UPDATE package_features_v2 SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+    UPDATE package_features SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
 
-CREATE TRIGGER IF NOT EXISTS update_package_feature_values_v2_updated_at
-    AFTER UPDATE ON package_feature_values_v2
+CREATE TRIGGER IF NOT EXISTS update_package_feature_values_updated_at
+    AFTER UPDATE ON package_feature_values
 BEGIN
-    UPDATE package_feature_values_v2 SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+    UPDATE package_feature_values SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;

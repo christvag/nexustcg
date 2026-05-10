@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import { useUrlParam, useDebouncedUrlParam } from '@/lib/hooks/use-url-state'
 import {
   Search,
   TrendingUp,
@@ -101,11 +102,31 @@ interface FeaturedCard {
 }
 
 export default function PopulationReportPage() {
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedGame, setSelectedGame] = useState<string | null>(null)
-  const [selectedYear, setSelectedYear] = useState<string | null>(null)
-  const [selectedSet, setSelectedSet] = useState<string | null>(null)
-  const [selectedCard, setSelectedCard] = useState<string | null>(null)
+  return (
+    <Suspense
+      fallback={
+        <div id="population-report-loading" className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d83f0a]"></div>
+        </div>
+      }
+    >
+      <PopulationReportPageInner />
+    </Suspense>
+  )
+}
+
+function PopulationReportPageInner() {
+  // URL-driven navigation state. Drilling down updates ?game=…&year=…&set=…&card=… so
+  // every level is shareable / refreshable / browser-back-able. Empty string == not set.
+  const [searchTerm, _displaySearch, setDisplaySearch] = useDebouncedUrlParam('q', 300)
+  const [gameUrl, setGameUrl] = useUrlParam('game')
+  const [yearUrl, setYearUrl] = useUrlParam('year')
+  const [setUrl, setSetUrl] = useUrlParam('set')
+  const [cardUrl, setCardUrl] = useUrlParam('card')
+  const selectedGame = gameUrl || null
+  const selectedYear = yearUrl || null
+  const selectedSet = setUrl || null
+  const selectedCard = cardUrl || null
   const [gameStats, setGameStats] = useState<ApiGameData[]>([])
   const [yearData, setYearData] = useState<ApiYearData[]>([])
   const [setData, setSetData] = useState<ApiSetData[]>([])
@@ -204,6 +225,15 @@ export default function PopulationReportPage() {
       fetchCardData()
     }
   }, [selectedGame, selectedYear, selectedSet])
+
+  // Fetch card details whenever ?card=… is set (incl. deep-link refresh / share-link open).
+  useEffect(() => {
+    if (selectedCard) {
+      fetchCardDetails(selectedCard)
+    } else {
+      setCardDetails(null)
+    }
+  }, [selectedCard])
 
   const fetchGameStats = async () => {
     try {
@@ -342,50 +372,35 @@ export default function PopulationReportPage() {
   }
 
   const handleGameSelect = (gameId: string) => {
-    setSelectedGame(gameId)
-    setSelectedYear(null)
-    setSelectedSet(null)
-    setSelectedCard(null)
-    setYearData([])
-    setSetData([])
-    setCardData([])
+    setGameUrl(gameId, { resetKeys: ['year', 'set', 'card'] })
     setCardDetails(null)
   }
 
   const handleYearSelect = (year: string) => {
-    setSelectedYear(year)
-    setSelectedSet(null)
-    setSelectedCard(null)
-    setSetData([])
-    setCardData([])
+    setYearUrl(year, { resetKeys: ['set', 'card'] })
     setCardDetails(null)
   }
 
   const handleSetSelect = (setName: string) => {
-    setSelectedSet(setName)
-    setSelectedCard(null)
-    setCardData([])
+    setSetUrl(setName, { resetKeys: ['card'] })
     setCardDetails(null)
   }
 
   const handleCardSelect = (cardName: string) => {
-    setSelectedCard(cardName)
-    fetchCardDetails(cardName)
+    setCardUrl(cardName)
+    // Card details fetch is handled by the useEffect below so deep-link refresh works.
   }
 
   const handleBack = () => {
     if (selectedCard) {
-      setSelectedCard(null)
+      setCardUrl(null)
       setCardDetails(null)
     } else if (selectedSet) {
-      setSelectedSet(null)
-      setCardData([])
+      setSetUrl(null, { resetKeys: ['card'] })
     } else if (selectedYear) {
-      setSelectedYear(null)
-      setSetData([])
+      setYearUrl(null, { resetKeys: ['set', 'card'] })
     } else if (selectedGame) {
-      setSelectedGame(null)
-      setYearData([])
+      setGameUrl(null, { resetKeys: ['year', 'set', 'card'] })
     }
   }
 
@@ -482,8 +497,8 @@ export default function PopulationReportPage() {
               id="population-search-input"
               type="text"
               placeholder="Search by card name or card ID number (e.g., 'Charizard' or '00000677')"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={_displaySearch}
+              onChange={(e) => setDisplaySearch(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               className="w-full pl-10 pr-24 py-2 bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-lg focus:ring-2 focus:ring-[#d83f0a] focus:border-[#d83f0a]"
             />
@@ -652,13 +667,19 @@ export default function PopulationReportPage() {
         {(selectedGame || selectedYear || selectedSet || selectedCard) && (
           <div id="population-breadcrumbs" className="bg-gray-900/50 border border-gray-800 rounded-lg shadow-lg p-4 mb-6 backdrop-blur-md">
             <nav className="flex items-center space-x-2 text-sm">
-              <button onClick={() => setSelectedGame(null)} className="text-[#d83f0a] hover:text-[#d66a0a] font-medium">
+              <button
+                onClick={() => setGameUrl(null, { resetKeys: ['year', 'set', 'card'] })}
+                className="text-[#d83f0a] hover:text-[#d66a0a] font-medium"
+              >
                 All Games
               </button>
               {selectedGame && (
                 <>
                   <ChevronRight className="h-4 w-4 text-gray-600" />
-                  <button onClick={() => setSelectedYear(null)} className="text-[#d83f0a] hover:text-[#d66a0a] font-medium">
+                  <button
+                    onClick={() => setYearUrl(null, { resetKeys: ['set', 'card'] })}
+                    className="text-[#d83f0a] hover:text-[#d66a0a] font-medium"
+                  >
                     {getGameDisplayName(selectedGame)}
                   </button>
                 </>
@@ -666,7 +687,10 @@ export default function PopulationReportPage() {
               {selectedYear && (
                 <>
                   <ChevronRight className="h-4 w-4 text-gray-600" />
-                  <button onClick={() => setSelectedSet(null)} className="text-[#d83f0a] hover:text-[#d66a0a] font-medium">
+                  <button
+                    onClick={() => setSetUrl(null, { resetKeys: ['card'] })}
+                    className="text-[#d83f0a] hover:text-[#d66a0a] font-medium"
+                  >
                     {selectedYear}
                   </button>
                 </>
@@ -674,7 +698,10 @@ export default function PopulationReportPage() {
               {selectedSet && (
                 <>
                   <ChevronRight className="h-4 w-4 text-gray-600" />
-                  <button onClick={() => setSelectedCard(null)} className="text-[#d83f0a] hover:text-[#d66a0a] font-medium">
+                  <button
+                    onClick={() => setCardUrl(null)}
+                    className="text-[#d83f0a] hover:text-[#d66a0a] font-medium"
+                  >
                     {selectedSet}
                   </button>
                 </>

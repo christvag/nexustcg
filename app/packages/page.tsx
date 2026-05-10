@@ -1,9 +1,11 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
 import { Check, X, ChevronDown } from 'lucide-react'
+
+const FEATURE_PARAM_PREFIX = 'feat-'
 
 // id: packages-public-page-001
 
@@ -50,13 +52,32 @@ interface PricingData {
   settings: Record<string, string>
 }
 
-export default function PackagesV2Page() {
+export default function PackagesPage() {
+  return (
+    <Suspense fallback={<div id="packages-public-loading" className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d83f0a]"></div></div>}>
+      <PackagesPageInner />
+    </Suspense>
+  )
+}
+
+function PackagesPageInner() {
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [data, setData] = useState<PricingData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedDropdowns, setSelectedDropdowns] = useState<Record<string, string>>({})
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [currency, setCurrency] = useState<CurrencySettings>({ code: 'GBP', symbol: '£', position: 'before' })
+
+  // Dropdown selections live in the URL (?feat-<featureId>-<pkgSlug>=value) so a shared
+  // pricing comparison preserves the user's chosen options. Initial defaults from the API
+  // are merged in for keys the URL doesn't supply.
+  const selectedDropdowns: Record<string, string> = {}
+  searchParams.forEach((value, key) => {
+    if (key.startsWith(FEATURE_PARAM_PREFIX)) {
+      selectedDropdowns[key.slice(FEATURE_PARAM_PREFIX.length)] = value
+    }
+  })
 
   useEffect(() => {
     fetchPricingData()
@@ -84,20 +105,28 @@ export default function PackagesV2Page() {
 
   const fetchPricingData = async () => {
     try {
-      const response = await fetch('/api/packages-v2')
+      const response = await fetch('/api/packages')
       const result = await response.json()
       if (result.success) {
         setData(result.data)
-        // Initialize dropdown selections
-        const initialSelections: Record<string, string> = {}
+        // Seed defaults into the URL only for keys not already chosen by the visitor.
+        const params = new URLSearchParams(searchParams.toString())
+        let touched = false
         result.data.features.forEach((feature: Feature) => {
           Object.entries(feature.values).forEach(([pkgSlug, value]) => {
-            if (value.valueType === 'dropdown' && value.dropdownSelected) {
-              initialSelections[`${feature.id}-${pkgSlug}`] = value.dropdownSelected
+            if ((value as FeatureValue).valueType === 'dropdown' && (value as FeatureValue).dropdownSelected) {
+              const k = `${FEATURE_PARAM_PREFIX}${feature.id}-${pkgSlug}`
+              if (!params.has(k)) {
+                params.set(k, (value as FeatureValue).dropdownSelected as string)
+                touched = true
+              }
             }
           })
         })
-        setSelectedDropdowns(initialSelections)
+        if (touched) {
+          const qs = params.toString()
+          router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+        }
       }
     } catch (error) {
       console.error('Error fetching pricing data:', error)
@@ -111,10 +140,10 @@ export default function PackagesV2Page() {
   }
 
   const handleDropdownSelect = (featureId: number, pkgSlug: string, value: string) => {
-    setSelectedDropdowns(prev => ({
-      ...prev,
-      [`${featureId}-${pkgSlug}`]: value
-    }))
+    const params = new URLSearchParams(searchParams.toString())
+    params.set(`${FEATURE_PARAM_PREFIX}${featureId}-${pkgSlug}`, value)
+    const qs = params.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
     setOpenDropdown(null)
   }
 
@@ -182,7 +211,7 @@ export default function PackagesV2Page() {
 
   if (loading) {
     return (
-      <div id="packages-v2-loading" className="min-h-screen flex items-center justify-center bg-[#0b0b0b]">
+      <div id="packages-loading" className="min-h-screen flex items-center justify-center bg-[#0b0b0b]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d83f0a] mx-auto mb-4"></div>
           <p className="text-gray-400">Loading pricing...</p>
@@ -193,7 +222,7 @@ export default function PackagesV2Page() {
 
   if (!data || data.packages.length === 0) {
     return (
-      <div id="packages-v2-empty" className="min-h-screen flex items-center justify-center bg-[#0b0b0b]">
+      <div id="packages-empty" className="min-h-screen flex items-center justify-center bg-[#0b0b0b]">
         <div className="text-center">
           <p className="text-gray-400">No pricing packages available at the moment.</p>
         </div>
@@ -202,11 +231,11 @@ export default function PackagesV2Page() {
   }
 
   return (
-    <div id="packages-v2-page" className="min-h-screen py-20 px-4 bg-[#0b0b0b]">
+    <div id="packages-page" className="min-h-screen py-20 px-4 bg-[#0b0b0b]">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <motion.div
-          id="packages-v2-header"
+          id="packages-header"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-12"
@@ -223,13 +252,13 @@ export default function PackagesV2Page() {
 
         {/* Pricing Table */}
         <motion.div
-          id="packages-v2-table-container"
+          id="packages-table-container"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="overflow-x-auto"
         >
-          <table id="packages-v2-table" className="w-full border-collapse">
+          <table id="packages-table" className="w-full border-collapse">
             {/* Package Headers */}
             <thead>
               <tr>
@@ -374,7 +403,7 @@ export default function PackagesV2Page() {
         </motion.div>
 
         {/* Mobile Cards View (for small screens) */}
-        <div id="packages-v2-mobile" className="md:hidden mt-8 space-y-6">
+        <div id="packages-mobile" className="md:hidden mt-8 space-y-6">
           {data.packages.map((pkg, index) => (
             <motion.div
               key={pkg.id}
@@ -472,7 +501,7 @@ export default function PackagesV2Page() {
 
         {/* Footer Note */}
         <motion.div
-          id="packages-v2-footer"
+          id="packages-footer"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}

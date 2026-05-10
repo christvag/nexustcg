@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useUrlParam, useDebouncedUrlParam } from '@/lib/hooks/use-url-state';
+import { DashboardErrorBanner } from '@/components/dashboard/error-banner';
 import {
   Search,
   Filter,
@@ -35,13 +37,25 @@ interface Order {
 }
 
 export default function OrdersManagement() {
+  return (
+    <Suspense fallback={<div id="orders-loading" className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d83f0a]"></div></div>}>
+      <OrdersManagementInner />
+    </Suspense>
+  );
+}
+
+function OrdersManagementInner() {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [searchTerm, displaySearch, setDisplaySearch] = useDebouncedUrlParam('q', 300, ['page']);
+  const [filterStatus, setFilterStatusUrl] = useUrlParam('status', 'all');
+  const [pageParam, setPageParam] = useUrlParam('page', '1');
+  const currentPage = Math.max(1, parseInt(pageParam, 10) || 1);
+  const setCurrentPage = (n: number) => setPageParam(n <= 1 ? null : String(n));
+  const setFilterStatus = (next: string) => setFilterStatusUrl(next === 'all' ? null : next, { resetKeys: ['page'] });
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
   const [showOrderDetails, setShowOrderDetails] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const ordersPerPage = 10;
 
@@ -51,7 +65,16 @@ export default function OrdersManagement() {
 
   const fetchOrders = async () => {
     try {
+      setLoadError(null);
       const response = await fetch('/api/orders');
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          setLoadError('Your session is invalid or has expired. Please sign in again.');
+        } else {
+          setLoadError(`Failed to load orders (HTTP ${response.status}).`);
+        }
+        return;
+      }
       const data = await response.json();
 
       if (response.ok && data.orders) {
@@ -77,8 +100,9 @@ export default function OrdersManagement() {
         }));
         setOrders(mappedOrders);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching orders:', error);
+      setLoadError(error?.message || 'Network error while fetching orders.');
     } finally {
       setIsLoading(false);
     }
@@ -172,7 +196,11 @@ export default function OrdersManagement() {
     return matchesSearch && matchesFilter;
   });
 
-  const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / ordersPerPage));
+  // If filter changes shrink the result set below the current page, clamp.
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
   const paginatedOrders = filteredOrders.slice(
     (currentPage - 1) * ordersPerPage,
     currentPage * ordersPerPage
@@ -203,6 +231,15 @@ export default function OrdersManagement() {
         </button>
       </div>
 
+      {loadError && (
+        <DashboardErrorBanner
+          message={loadError}
+          onRetry={fetchOrders}
+          idPrefix="orders"
+          title="Couldn't load orders"
+        />
+      )}
+
       {/* Filters and Search */}
       <div id="orders-filters-section" className="bg-[#171717] border border-gray-800 rounded-lg shadow p-4">
         <div className="flex flex-col md:flex-row gap-4">
@@ -214,8 +251,8 @@ export default function OrdersManagement() {
                 type="text"
                 placeholder="Search orders by number, customer, or email..."
                 className="w-full pl-10 pr-4 py-2 bg-[#0b0b0b] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#d83f0a] focus:border-transparent"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={displaySearch}
+                onChange={(e) => setDisplaySearch(e.target.value)}
               />
             </div>
           </div>

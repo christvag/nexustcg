@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Search, Filter, Download, Edit2, Trash2, Eye, Calendar, X, Star, Settings } from 'lucide-react';
 import UserSearchDropdown from '@/components/UserSearchDropdown';
+import { useUrlParam, useDebouncedUrlParam } from '@/lib/hooks/use-url-state';
+import { DashboardErrorBanner } from '@/components/dashboard/error-banner';
 
 interface GradedCard {
   id: number;
@@ -25,15 +27,29 @@ interface GradedCard {
 }
 
 export default function PopulationReportCardsPage() {
+  return (
+    <Suspense fallback={<div id="popcards-loading" className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d83f0a]"></div></div>}>
+      <PopulationReportCardsPageInner />
+    </Suspense>
+  );
+}
+
+function PopulationReportCardsPageInner() {
   const [cards, setCards] = useState<GradedCard[]>([]);
   const [filteredCards, setFilteredCards] = useState<GradedCard[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterGame, setFilterGame] = useState('');
-  const [filterGrade, setFilterGrade] = useState('');
-  const [filterRarity, setFilterRarity] = useState('');
-  const [filterDateFrom, setFilterDateFrom] = useState('');
-  const [filterDateTo, setFilterDateTo] = useState('');
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [searchTerm, displaySearch, setDisplaySearch] = useDebouncedUrlParam('q', 300);
+  const [filterGame, setFilterGameUrl] = useUrlParam('game');
+  const [filterGrade, setFilterGradeUrl] = useUrlParam('grade');
+  const [filterRarity, setFilterRarityUrl] = useUrlParam('rarity');
+  const [filterDateFrom, setFilterDateFromUrl] = useUrlParam('from');
+  const [filterDateTo, setFilterDateToUrl] = useUrlParam('to');
+  const setFilterGame = (next: string) => setFilterGameUrl(next || null);
+  const setFilterGrade = (next: string) => setFilterGradeUrl(next || null);
+  const setFilterRarity = (next: string) => setFilterRarityUrl(next || null);
+  const setFilterDateFrom = (next: string) => setFilterDateFromUrl(next || null);
+  const setFilterDateTo = (next: string) => setFilterDateToUrl(next || null);
   const [selectedCards, setSelectedCards] = useState<Set<number>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
   const [editingCard, setEditingCard] = useState<GradedCard | null>(null);
@@ -125,19 +141,29 @@ export default function PopulationReportCardsPage() {
 
   const fetchCards = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      setLoadError(null);
+      const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+      if (!token) {
+        setLoadError('You are not signed in. Please log in as an admin.');
+        return;
+      }
       const response = await fetch('/api/admin/population-report/cards', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setCards(data.cards || []);
+      if (response.status === 401 || response.status === 403) {
+        setLoadError('Your session is invalid or has expired. Please sign in again.');
+        return;
       }
-    } catch (error) {
+      if (!response.ok) {
+        setLoadError(`Failed to load cards (HTTP ${response.status}).`);
+        return;
+      }
+      const data = await response.json();
+      setCards(data.cards || []);
+    } catch (error: any) {
       console.error('Failed to fetch cards:', error);
+      setLoadError(error?.message || 'Network error while fetching cards.');
     } finally {
       setLoading(false);
     }
@@ -449,6 +475,14 @@ export default function PopulationReportCardsPage() {
 
   return (
     <div className="space-y-6" id="pr-cards-container">
+      {loadError && (
+        <DashboardErrorBanner
+          message={loadError}
+          onRetry={fetchCards}
+          idPrefix="pr-cards"
+          title="Couldn't load cards"
+        />
+      )}
       {/* Header with Search and Filters */}
       <div className="bg-gray-800 rounded-lg border border-gray-700 p-4" id="pr-cards-filters">
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -459,8 +493,8 @@ export default function PopulationReportCardsPage() {
               <input
                 type="text"
                 placeholder="Search by card name, ID, or set..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={displaySearch}
+                onChange={(e) => setDisplaySearch(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>

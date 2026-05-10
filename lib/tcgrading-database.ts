@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3'
 import path from 'path'
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcryptjs'
 
 const dbPath = path.join(process.cwd(), 'database', 'tcgrading.db')
 let db: Database.Database | null = null
