@@ -1,56 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server'
-import sqlite3 from 'sqlite3'
+import Database from 'better-sqlite3'
 import path from 'path'
 
-// id: api-packages-v2-slug-001
+// id: api-packages-slug-001
 const dbPath = path.join(process.cwd(), 'database', 'user-management.db')
 
 export const dynamic = 'force-dynamic'
 
-function runQuery<T>(query: string, params: any[] = []): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database(dbPath)
-    if (query.trim().toUpperCase().startsWith('SELECT')) {
-      db.all(query, params, (err, rows) => {
-        db.close()
-        if (err) reject(err)
-        else resolve(rows as T)
-      })
-    } else {
-      db.run(query, params, function(err) {
-        db.close()
-        if (err) reject(err)
-        else resolve({ lastID: this.lastID, changes: this.changes } as T)
-      })
-    }
-  })
+function getDb() {
+  const db = new Database(dbPath)
+  db.pragma('foreign_keys = ON')
+  return db
 }
 
 // GET - Fetch a single package by slug with its features
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  const db = getDb()
   try {
     const { slug } = await params
 
-    // Fetch the package
-    const packages = await runQuery<any[]>(`
-      SELECT * FROM packages_v2
+    const pkg = db.prepare(`
+      SELECT * FROM packages
       WHERE slug = ? AND is_active = 1
-    `, [slug])
+    `).get(slug) as any
 
-    if (packages.length === 0) {
+    if (!pkg) {
       return NextResponse.json(
         { success: false, error: 'Package not found' },
         { status: 404 }
       )
     }
 
-    const pkg = packages[0]
-
-    // Fetch all active features with their values for this package
-    const features = await runQuery<any[]>(`
+    const features = db.prepare(`
       SELECT
         f.id,
         f.name,
@@ -61,13 +45,12 @@ export async function GET(
         pfv.text_value,
         pfv.dropdown_options,
         pfv.dropdown_selected
-      FROM package_features_v2 f
-      LEFT JOIN package_feature_values_v2 pfv ON f.id = pfv.feature_id AND pfv.package_id = ?
+      FROM package_features f
+      LEFT JOIN package_feature_values pfv ON f.id = pfv.feature_id AND pfv.package_id = ?
       WHERE f.is_active = 1
       ORDER BY f.display_order ASC
-    `, [pkg.id])
+    `).all(pkg.id) as any[]
 
-    // Build the response
     const packageDetail = {
       id: pkg.id,
       name: pkg.name,
@@ -100,20 +83,19 @@ export async function GET(
             textValue: f.text_value,
             dropdownOptions: f.dropdown_options ? JSON.parse(f.dropdown_options) : [],
             dropdownSelected: f.dropdown_selected,
-            displayValue
+            displayValue,
           }
-        })
+        }),
     }
 
-    return NextResponse.json({
-      success: true,
-      package: packageDetail
-    })
-  } catch (error) {
-    console.error('[API /api/packages-v2/[slug]] Error:', error)
+    return NextResponse.json({ success: true, package: packageDetail })
+  } catch (error: any) {
+    console.error('[API /api/packages/[slug]] Error:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch package' },
       { status: 500 }
     )
+  } finally {
+    db.close()
   }
 }

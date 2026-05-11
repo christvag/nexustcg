@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useUrlParam } from '@/lib/hooks/use-url-state'
+import { DashboardErrorBanner } from '@/components/dashboard/error-banner'
 import {
   Plus,
   Trash2,
@@ -19,7 +21,7 @@ import {
   Loader2
 } from 'lucide-react'
 
-// id: admin-packages-v2-page-001
+// id: admin-packages-page-001
 
 interface Package {
   id: number
@@ -59,12 +61,26 @@ interface FeatureValue {
   dropdown_selected: string | null
 }
 
-export default function PackagesV2Page() {
+type TabKey = 'table' | 'packages' | 'features'
+const VALID_TABS: TabKey[] = ['table', 'packages', 'features']
+
+export default function PackagesPage() {
+  return (
+    <Suspense fallback={<div id="packages-loading" className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d83f0a]"></div></div>}>
+      <PackagesPageInner />
+    </Suspense>
+  )
+}
+
+function PackagesPageInner() {
   const [packages, setPackages] = useState<Package[]>([])
   const [features, setFeatures] = useState<Feature[]>([])
   const [featureValues, setFeatureValues] = useState<FeatureValue[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'table' | 'packages' | 'features'>('table')
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [tabParam, setTabParam] = useUrlParam('tab', 'table')
+  const activeTab: TabKey = (VALID_TABS as string[]).includes(tabParam) ? (tabParam as TabKey) : 'table'
+  const setActiveTab = (next: TabKey) => setTabParam(next === 'table' ? null : next)
 
   // Modal states
   const [showPackageModal, setShowPackageModal] = useState(false)
@@ -112,18 +128,40 @@ export default function PackagesV2Page() {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('/api/admin/packages-v2', {
+      setLoadError(null)
+      const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null
+      if (!token) {
+        setLoadError('You are not signed in. Please log in as an admin to view packages.')
+        setIsLoading(false)
+        return
+      }
+
+      const response = await fetch('/api/admin/packages', {
         headers: getAuthHeaders()
       })
-      const data = await response.json()
 
+      if (response.status === 401 || response.status === 403) {
+        setLoadError('Your session is invalid or has expired. Please log out and log back in as an admin.')
+        return
+      }
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => '')
+        setLoadError(`Failed to load packages (HTTP ${response.status}). ${text.slice(0, 200)}`)
+        return
+      }
+
+      const data = await response.json()
       if (data.success) {
         setPackages(data.packages || [])
         setFeatures(data.features || [])
         setFeatureValues(data.featureValues || [])
+      } else {
+        setLoadError(data.error || 'Server returned an unexpected response.')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching data:', error)
+      setLoadError(error?.message || 'Network error while fetching packages.')
     } finally {
       setIsLoading(false)
     }
@@ -139,7 +177,7 @@ export default function PackagesV2Page() {
     updates: Partial<FeatureValue>
   ) => {
     try {
-      const response = await fetch('/api/admin/packages-v2/values', {
+      const response = await fetch('/api/admin/packages/values', {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -187,7 +225,7 @@ export default function PackagesV2Page() {
         ? { id: editingPackage.id, ...packageForm }
         : packageForm
 
-      const response = await fetch('/api/admin/packages-v2', {
+      const response = await fetch('/api/admin/packages', {
         method,
         headers: getAuthHeaders(),
         body: JSON.stringify(body)
@@ -208,7 +246,7 @@ export default function PackagesV2Page() {
     if (!confirm('Are you sure you want to delete this package?')) return
 
     try {
-      const response = await fetch(`/api/admin/packages-v2?id=${id}`, {
+      const response = await fetch(`/api/admin/packages?id=${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
       })
@@ -229,7 +267,7 @@ export default function PackagesV2Page() {
         ? { id: editingFeature.id, ...featureForm }
         : featureForm
 
-      const response = await fetch('/api/admin/packages-v2/features', {
+      const response = await fetch('/api/admin/packages/features', {
         method,
         headers: getAuthHeaders(),
         body: JSON.stringify(body)
@@ -250,7 +288,7 @@ export default function PackagesV2Page() {
     if (!confirm('Are you sure you want to delete this feature?')) return
 
     try {
-      const response = await fetch(`/api/admin/packages-v2/features?id=${id}`, {
+      const response = await fetch(`/api/admin/packages/features?id=${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
       })
@@ -327,16 +365,16 @@ export default function PackagesV2Page() {
 
   if (isLoading) {
     return (
-      <div id="packages-v2-loading" className="flex items-center justify-center h-64">
+      <div id="packages-loading" className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d83f0a]"></div>
       </div>
     )
   }
 
   return (
-    <div id="packages-v2-page" className="space-y-6">
+    <div id="packages-page" className="space-y-6">
       {/* Header */}
-      <div id="packages-v2-header" className="flex justify-between items-center">
+      <div id="packages-header" className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-white">Packages V2</h1>
           <p className="text-gray-400 mt-1">Configure table-style pricing page</p>
@@ -351,8 +389,17 @@ export default function PackagesV2Page() {
         </a>
       </div>
 
+      {loadError && (
+        <DashboardErrorBanner
+          message={loadError}
+          onRetry={fetchData}
+          idPrefix="packages"
+          title="Couldn't load packages"
+        />
+      )}
+
       {/* Tabs */}
-      <div id="packages-v2-tabs" className="flex gap-2 border-b border-gray-800">
+      <div id="packages-tabs" className="flex gap-2 border-b border-gray-800">
         {[
           { key: 'table', label: 'Pricing Table' },
           { key: 'packages', label: 'Packages (Columns)' },

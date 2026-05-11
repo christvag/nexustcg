@@ -1,69 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server'
-import sqlite3 from 'sqlite3'
+import Database from 'better-sqlite3'
 import path from 'path'
 
-// id: api-packages-v2-public-001
+// id: api-packages-public-001
 const dbPath = path.join(process.cwd(), 'database', 'user-management.db')
 
 export const dynamic = 'force-dynamic'
 
-function runQuery<T>(query: string, params: any[] = []): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database(dbPath)
-    if (query.trim().toUpperCase().startsWith('SELECT')) {
-      db.all(query, params, (err, rows) => {
-        db.close()
-        if (err) reject(err)
-        else resolve(rows as T)
-      })
-    } else {
-      db.run(query, params, function(err) {
-        db.close()
-        if (err) reject(err)
-        else resolve({ lastID: this.lastID, changes: this.changes } as T)
-      })
-    }
-  })
+function getDb() {
+  const db = new Database(dbPath)
+  db.pragma('foreign_keys = ON')
+  return db
 }
 
-// GET - Public endpoint to fetch all packages v2 data for the pricing table
-export async function GET(request: NextRequest) {
+// GET - Public endpoint that returns the comparison-table pricing data.
+export async function GET(_request: NextRequest) {
+  const db = getDb()
   try {
-    // Fetch all active packages
-    const packages = await runQuery<any[]>(`
-      SELECT * FROM packages_v2
+    const packages = db.prepare(`
+      SELECT * FROM packages
       WHERE is_active = 1
       ORDER BY display_order ASC
-    `)
+    `).all() as any[]
 
-    // Fetch all active features
-    const features = await runQuery<any[]>(`
-      SELECT * FROM package_features_v2
+    const features = db.prepare(`
+      SELECT * FROM package_features
       WHERE is_active = 1
       ORDER BY display_order ASC
-    `)
+    `).all() as any[]
 
-    // Fetch all feature values
-    const featureValues = await runQuery<any[]>(`
+    const featureValues = db.prepare(`
       SELECT pfv.*, p.slug as package_slug, f.name as feature_name
-      FROM package_feature_values_v2 pfv
-      JOIN packages_v2 p ON pfv.package_id = p.id
-      JOIN package_features_v2 f ON pfv.feature_id = f.id
+      FROM package_feature_values pfv
+      JOIN packages p ON pfv.package_id = p.id
+      JOIN package_features f ON pfv.feature_id = f.id
       WHERE p.is_active = 1 AND f.is_active = 1
-    `)
+    `).all() as any[]
 
-    // Fetch settings
-    const settings = await runQuery<any[]>(`
-      SELECT setting_key, setting_value FROM packages_v2_settings
-    `)
+    const settings = db.prepare(`
+      SELECT setting_key, setting_value FROM packages_settings
+    `).all() as any[]
 
-    // Transform settings into object
     const settingsObj = settings.reduce((acc, s) => {
       acc[s.setting_key] = s.setting_value
       return acc
     }, {} as Record<string, string>)
 
-    // Build the pricing table structure
     const pricingTable = {
       packages: packages.map(pkg => ({
         id: pkg.id,
@@ -72,17 +54,16 @@ export async function GET(request: NextRequest) {
         price: pkg.price,
         priceSuffix: pkg.price_suffix,
         ctaText: pkg.cta_text,
-        ctaUrl: pkg.cta_url || `/packages-v2/${pkg.slug}`,
+        ctaUrl: pkg.cta_url || `/packages/${pkg.slug}`,
         description: pkg.description,
         longDescription: pkg.long_description,
         iconUrl: pkg.icon_url,
         imageUrl: pkg.image_url,
         highlightColor: pkg.highlight_color,
-        isFeatured: pkg.is_featured === 1
+        isFeatured: pkg.is_featured === 1,
       })),
       features: features.map(feat => {
         const values: Record<string, any> = {}
-
         featureValues
           .filter(fv => fv.feature_id === feat.id)
           .forEach(fv => {
@@ -91,30 +72,28 @@ export async function GET(request: NextRequest) {
               isChecked: fv.is_checked === 1,
               textValue: fv.text_value,
               dropdownOptions: fv.dropdown_options ? JSON.parse(fv.dropdown_options) : [],
-              dropdownSelected: fv.dropdown_selected
+              dropdownSelected: fv.dropdown_selected,
             }
           })
-
         return {
           id: feat.id,
           name: feat.name,
           description: feat.description,
           category: feat.category,
-          values
+          values,
         }
       }),
-      settings: settingsObj
+      settings: settingsObj,
     }
 
-    return NextResponse.json({
-      success: true,
-      data: pricingTable
-    })
-  } catch (error) {
-    console.error('[API /api/packages-v2] Error:', error)
+    return NextResponse.json({ success: true, data: pricingTable })
+  } catch (error: any) {
+    console.error('[API /api/packages] Error:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch packages v2 data' },
+      { success: false, error: 'Failed to fetch packages data' },
       { status: 500 }
     )
+  } finally {
+    db.close()
   }
 }

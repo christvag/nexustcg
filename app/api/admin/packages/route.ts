@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verify } from 'jsonwebtoken'
-import sqlite3 from 'sqlite3'
+import Database from 'better-sqlite3'
 import path from 'path'
 
-// id: api-admin-packages-v2-001
+// id: api-admin-packages-001
 const dbPath = path.join(process.cwd(), 'database', 'user-management.db')
 const JWT_SECRET = process.env.JWT_SECRET || 'nexus-tcgrading-secret-key-2024'
 
 export const dynamic = 'force-dynamic'
+
+function getDb() {
+  const db = new Database(dbPath)
+  db.pragma('foreign_keys = ON')
+  return db
+}
 
 function checkAdminAuth(request: NextRequest) {
   const token = request.headers.get('authorization')?.replace('Bearer ', '')
@@ -22,25 +28,6 @@ function checkAdminAuth(request: NextRequest) {
   }
 }
 
-function runQuery<T>(query: string, params: any[] = []): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database(dbPath)
-    if (query.trim().toUpperCase().startsWith('SELECT')) {
-      db.all(query, params, (err, rows) => {
-        db.close()
-        if (err) reject(err)
-        else resolve(rows as T)
-      })
-    } else {
-      db.run(query, params, function(err) {
-        db.close()
-        if (err) reject(err)
-        else resolve({ lastID: this.lastID, changes: this.changes } as T)
-      })
-    }
-  })
-}
-
 // GET - Fetch all packages (admin view - includes inactive)
 export async function GET(request: NextRequest) {
   const auth = checkAdminAuth(request)
@@ -48,36 +35,28 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: auth.error }, { status: auth.status })
   }
 
+  const db = getDb()
   try {
-    const packages = await runQuery<any[]>(`
-      SELECT * FROM packages_v2 ORDER BY display_order ASC
-    `)
-
-    const features = await runQuery<any[]>(`
-      SELECT * FROM package_features_v2 ORDER BY display_order ASC
-    `)
-
-    const featureValues = await runQuery<any[]>(`
-      SELECT * FROM package_feature_values_v2
-    `)
-
-    const settings = await runQuery<any[]>(`
-      SELECT * FROM packages_v2_settings
-    `)
+    const packages = db.prepare('SELECT * FROM packages ORDER BY display_order ASC').all()
+    const features = db.prepare('SELECT * FROM package_features ORDER BY display_order ASC').all()
+    const featureValues = db.prepare('SELECT * FROM package_feature_values').all()
+    const settings = db.prepare('SELECT * FROM packages_settings').all()
 
     return NextResponse.json({
       success: true,
       packages,
       features,
       featureValues,
-      settings
+      settings,
     })
-  } catch (error) {
-    console.error('[API /api/admin/packages-v2] GET Error:', error)
+  } catch (error: any) {
+    console.error('[API /api/admin/packages] GET Error:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch data' },
+      { success: false, error: 'Failed to fetch data', detail: process.env.NODE_ENV !== 'production' ? error.message : undefined },
       { status: 500 }
     )
+  } finally {
+    db.close()
   }
 }
 
@@ -88,6 +67,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: auth.error }, { status: auth.status })
   }
 
+  const db = getDb()
   try {
     const body = await request.json()
     const {
@@ -104,7 +84,7 @@ export async function POST(request: NextRequest) {
       highlight_color = '#d83f0a',
       is_featured = false,
       is_active = true,
-      display_order = 0
+      display_order = 0,
     } = body
 
     if (!name || !slug || price === undefined) {
@@ -114,31 +94,50 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const result = await runQuery<any>(`
-      INSERT INTO packages_v2 (name, slug, price, price_suffix, cta_text, cta_url, description, long_description, icon_url, image_url, highlight_color, is_featured, is_active, display_order)
+    const insertPackage = db.prepare(`
+      INSERT INTO packages (name, slug, price, price_suffix, cta_text, cta_url, description, long_description, icon_url, image_url, highlight_color, is_featured, is_active, display_order)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [name, slug, price, price_suffix, cta_text, cta_url, description, long_description, icon_url, image_url, highlight_color, is_featured ? 1 : 0, is_active ? 1 : 0, display_order])
+    `)
+    const insertFeatureValue = db.prepare(`
+      INSERT INTO package_feature_values (package_id, feature_id, value_type, is_checked)
+      VALUES (?, ?, 'check', 0)
+    `)
 
-    // Create default feature values for the new package
-    const features = await runQuery<any[]>('SELECT id FROM package_features_v2')
-    for (const feat of features) {
-      await runQuery(`
-        INSERT INTO package_feature_values_v2 (package_id, feature_id, value_type, is_checked)
-        VALUES (?, ?, 'check', 0)
-      `, [result.lastID, feat.id])
-    }
+    const result = db.transaction(() => {
+      const info = insertPackage.run(
+        name,
+        slug,
+        price,
+        price_suffix,
+        cta_text,
+        cta_url,
+        description,
+        long_description,
+        icon_url,
+        image_url,
+        highlight_color,
+        is_featured ? 1 : 0,
+        is_active ? 1 : 0,
+        display_order
+      )
+      const newId = Number(info.lastInsertRowid)
+      const features = db.prepare('SELECT id FROM package_features').all() as { id: number }[]
+      for (const f of features) insertFeatureValue.run(newId, f.id)
+      return newId
+    })()
 
-    return NextResponse.json({
-      success: true,
-      message: 'Package created successfully',
-      packageId: result.lastID
-    }, { status: 201 })
+    return NextResponse.json(
+      { success: true, message: 'Package created successfully', packageId: result },
+      { status: 201 }
+    )
   } catch (error: any) {
-    console.error('[API /api/admin/packages-v2] POST Error:', error)
+    console.error('[API /api/admin/packages] POST Error:', error)
     return NextResponse.json(
       { success: false, error: error.message || 'Failed to create package' },
       { status: 500 }
     )
+  } finally {
+    db.close()
   }
 }
 
@@ -149,6 +148,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: auth.error }, { status: auth.status })
   }
 
+  const db = getDb()
   try {
     const body = await request.json()
     const { id, ...updates } = body
@@ -160,23 +160,28 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const fields = []
-    const values = []
+    const fields: string[] = []
+    const values: any[] = []
 
-    if (updates.name !== undefined) { fields.push('name = ?'); values.push(updates.name) }
-    if (updates.slug !== undefined) { fields.push('slug = ?'); values.push(updates.slug) }
-    if (updates.price !== undefined) { fields.push('price = ?'); values.push(updates.price) }
-    if (updates.price_suffix !== undefined) { fields.push('price_suffix = ?'); values.push(updates.price_suffix) }
-    if (updates.cta_text !== undefined) { fields.push('cta_text = ?'); values.push(updates.cta_text) }
-    if (updates.cta_url !== undefined) { fields.push('cta_url = ?'); values.push(updates.cta_url) }
-    if (updates.description !== undefined) { fields.push('description = ?'); values.push(updates.description) }
-    if (updates.long_description !== undefined) { fields.push('long_description = ?'); values.push(updates.long_description) }
-    if (updates.icon_url !== undefined) { fields.push('icon_url = ?'); values.push(updates.icon_url) }
-    if (updates.image_url !== undefined) { fields.push('image_url = ?'); values.push(updates.image_url) }
-    if (updates.highlight_color !== undefined) { fields.push('highlight_color = ?'); values.push(updates.highlight_color) }
-    if (updates.is_featured !== undefined) { fields.push('is_featured = ?'); values.push(updates.is_featured ? 1 : 0) }
-    if (updates.is_active !== undefined) { fields.push('is_active = ?'); values.push(updates.is_active ? 1 : 0) }
-    if (updates.display_order !== undefined) { fields.push('display_order = ?'); values.push(updates.display_order) }
+    const setField = (col: string, value: any) => {
+      fields.push(`${col} = ?`)
+      values.push(value)
+    }
+
+    if (updates.name !== undefined) setField('name', updates.name)
+    if (updates.slug !== undefined) setField('slug', updates.slug)
+    if (updates.price !== undefined) setField('price', updates.price)
+    if (updates.price_suffix !== undefined) setField('price_suffix', updates.price_suffix)
+    if (updates.cta_text !== undefined) setField('cta_text', updates.cta_text)
+    if (updates.cta_url !== undefined) setField('cta_url', updates.cta_url)
+    if (updates.description !== undefined) setField('description', updates.description)
+    if (updates.long_description !== undefined) setField('long_description', updates.long_description)
+    if (updates.icon_url !== undefined) setField('icon_url', updates.icon_url)
+    if (updates.image_url !== undefined) setField('image_url', updates.image_url)
+    if (updates.highlight_color !== undefined) setField('highlight_color', updates.highlight_color)
+    if (updates.is_featured !== undefined) setField('is_featured', updates.is_featured ? 1 : 0)
+    if (updates.is_active !== undefined) setField('is_active', updates.is_active ? 1 : 0)
+    if (updates.display_order !== undefined) setField('display_order', updates.display_order)
 
     if (fields.length === 0) {
       return NextResponse.json(
@@ -186,18 +191,17 @@ export async function PUT(request: NextRequest) {
     }
 
     values.push(id)
-    await runQuery(`UPDATE packages_v2 SET ${fields.join(', ')} WHERE id = ?`, values)
+    db.prepare(`UPDATE packages SET ${fields.join(', ')} WHERE id = ?`).run(...values)
 
-    return NextResponse.json({
-      success: true,
-      message: 'Package updated successfully'
-    })
+    return NextResponse.json({ success: true, message: 'Package updated successfully' })
   } catch (error: any) {
-    console.error('[API /api/admin/packages-v2] PUT Error:', error)
+    console.error('[API /api/admin/packages] PUT Error:', error)
     return NextResponse.json(
       { success: false, error: error.message || 'Failed to update package' },
       { status: 500 }
     )
+  } finally {
+    db.close()
   }
 }
 
@@ -208,6 +212,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: auth.error }, { status: auth.status })
   }
 
+  const db = getDb()
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
@@ -219,17 +224,16 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    await runQuery('DELETE FROM packages_v2 WHERE id = ?', [id])
+    db.prepare('DELETE FROM packages WHERE id = ?').run(id)
 
-    return NextResponse.json({
-      success: true,
-      message: 'Package deleted successfully'
-    })
+    return NextResponse.json({ success: true, message: 'Package deleted successfully' })
   } catch (error: any) {
-    console.error('[API /api/admin/packages-v2] DELETE Error:', error)
+    console.error('[API /api/admin/packages] DELETE Error:', error)
     return NextResponse.json(
       { success: false, error: error.message || 'Failed to delete package' },
       { status: 500 }
     )
+  } finally {
+    db.close()
   }
 }

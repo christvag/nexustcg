@@ -97,11 +97,13 @@ function seedUserDb() {
           INSERT INTO packages (name, slug, price, cta_text, cta_url, description, is_featured, is_active, display_order)
           VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
         `)
+        // Leave cta_url blank so the public packages page falls back to /packages/<slug>.
+        // Storing /packages-v2/<slug> here used to send the Get Started button to a 404.
         const seed = [
-          ['Authentication', 'authentication', 10, 'Get Started', '/packages-v2/authentication', 'Verify card authenticity', 0, 1],
-          ['Bulk Grading', 'bulk-grading', 12, 'Get Started', '/packages-v2/bulk-grading', 'Best for 50+ cards', 0, 2],
-          ['Standard', 'standard', 15, 'Get Started', '/packages-v2/standard', 'Standard grading service', 1, 3],
-          ['Express', 'express', 20, 'Get Started', '/packages-v2/express', 'Priority turnaround', 0, 4],
+          ['Authentication', 'authentication', 10, 'Get Started', '', 'Verify card authenticity', 0, 1],
+          ['Bulk Grading', 'bulk-grading', 12, 'Get Started', '', 'Best for 50+ cards', 0, 2],
+          ['Standard', 'standard', 15, 'Get Started', '', 'Standard grading service', 1, 3],
+          ['Express', 'express', 20, 'Get Started', '', 'Priority turnaround', 0, 4],
         ]
         const tx = db.transaction((rows) => { for (const r of rows) insert.run(...r) })
         tx(seed)
@@ -110,6 +112,19 @@ function seedUserDb() {
     } catch (err) {
       // packages table may not exist in older schemas — non-fatal
       console.log('[db-seed] Skipped packages seed:', err.message)
+    }
+
+    // One-shot cleanup: clear any cta_url that points at the old /packages-v2/* path
+    // so the Get Started button falls back to /packages/<slug>. Idempotent.
+    try {
+      const fix = db.prepare(
+        "UPDATE packages SET cta_url = '' WHERE cta_url LIKE '/packages-v2/%'"
+      ).run()
+      if (fix.changes > 0) {
+        console.log(`[db-seed] Cleared stale /packages-v2/* cta_url on ${fix.changes} row(s)`)
+      }
+    } catch (err) {
+      // table missing in older schemas — non-fatal
     }
   } finally {
     db.close()
