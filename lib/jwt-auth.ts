@@ -1,7 +1,14 @@
 import jwt from 'jsonwebtoken'
 import { setCookie, getCookie, deleteCookie } from 'cookies-next'
 import { NextRequest, NextResponse } from 'next/server'
-import type { User } from './tcgrading-database'
+
+interface User {
+  id: number
+  email: string
+  role: string
+  first_name: string
+  last_name: string
+}
 
 const JWT_SECRET = process.env.JWT_SECRET || 'nexus-tcgrading-secret-key-2024'
 const TOKEN_EXPIRY = '7d' // 7 days

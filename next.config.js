@@ -26,7 +26,6 @@ const nextConfig = {
       'product-images.tcgplayer.com',
       'cdn.scryfall.com',
       'cards.scryfall.io',
-      'assets.tcgdex.net',
       'api.scryfall.com'
     ],
   },

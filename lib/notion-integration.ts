@@ -1,5 +1,11 @@
 import { Client } from '@notionhq/client'
-import { getDb } from './tcgrading-database'
+import Database from 'better-sqlite3'
+import path from 'path'
+
+function getDb() {
+  const dbPath = path.join(process.cwd(), 'database', 'user-management.db')
+  return new Database(dbPath, { readonly: true })
+}
 
 interface NotionConfig {
   auth: string
@@ -190,18 +196,17 @@ export class NotionIntegration {
   }
 
   async syncCardPopularityData(): Promise<{ synced: number; errors: number }> {
+    const db = getDb()
     try {
-      const db = getDb()
-      
       // Generate comprehensive population report data from order items
       const populationData = db.prepare(`
-        SELECT 
+        SELECT
           card_name,
           card_game,
           card_rarity,
           card_number,
-          card_set,
-          image_url,
+          card_type AS card_set,
+          card_image_url AS image_url,
           COUNT(*) as total_graded,
           COUNT(CASE WHEN grade = '10' THEN 1 END) as grade_10,
           COUNT(CASE WHEN grade = '9.5' THEN 1 END) as grade_9_5,
@@ -216,13 +221,15 @@ export class NotionIntegration {
           COUNT(CASE WHEN grade = '3' THEN 1 END) as grade_3,
           COUNT(CASE WHEN grade = '2' THEN 1 END) as grade_2,
           COUNT(CASE WHEN grade = '1' THEN 1 END) as grade_1,
-          MAX(updated_at) as last_updated
-        FROM order_items 
-        WHERE grading_status = 'graded' AND grade IS NOT NULL
-        GROUP BY card_name, card_game, card_rarity, card_number, card_set
+          MAX(created_at) as last_updated
+        FROM order_items
+        WHERE grade IS NOT NULL AND grade <> ''
+        GROUP BY card_name, card_game, card_rarity, card_number, card_type
         HAVING COUNT(*) > 0
         ORDER BY total_graded DESC
       `).all() as any[]
+
+      db.close()
 
       let synced = 0
       let errors = 0
@@ -245,6 +252,7 @@ export class NotionIntegration {
       return { synced, errors }
     } catch (error) {
       console.error('❌ Error syncing to Notion:', error)
+      try { db.close() } catch {}
       throw error
     }
   }
@@ -430,60 +438,25 @@ export class NotionIntegration {
     return rarityMap[rarity.toLowerCase()] || rarity
   }
 
-  async updateCardData(cardName: string, game: string, type: 'search' | 'order') {
-    try {
-      const db = getDb()
-      
-      // Update local database first
-      const existing = db.prepare(`
-        SELECT * FROM card_popularity 
-        WHERE card_name = ? AND card_game = ?
-      `).get(cardName, game) as CardPopularityData | undefined
-
-      if (existing) {
-        if (type === 'search') {
-          db.prepare(`
-            UPDATE card_popularity 
-            SET search_count = search_count + 1, last_searched = CURRENT_TIMESTAMP
-            WHERE card_name = ? AND card_game = ?
-          `).run(cardName, game)
-        } else {
-          db.prepare(`
-            UPDATE card_popularity 
-            SET order_count = order_count + 1
-            WHERE card_name = ? AND card_game = ?
-          `).run(cardName, game)
-        }
-      } else {
-        db.prepare(`
-          INSERT INTO card_popularity (card_name, card_game, search_count, order_count)
-          VALUES (?, ?, ?, ?)
-        `).run(cardName, game, type === 'search' ? 1 : 0, type === 'order' ? 1 : 0)
-      }
-
-      // Optionally sync to Notion immediately (for real-time updates)
-      // await this.syncSingleCard(cardName, game)
-      
-      return true
-    } catch (error) {
-      console.error('❌ Error updating card data:', error)
-      return false
-    }
+  async updateCardData(_cardName: string, _game: string, _type: 'search' | 'order') {
+    // The legacy card_popularity table was removed with database/tcgrading.db.
+    // Search/order tracking is no longer persisted. Kept as a no-op so existing
+    // call sites don't error; remove this method once nothing imports it.
+    return true
   }
 
   async getPopularityReport(): Promise<any[]> {
+    const db = getDb()
     try {
-      const db = getDb()
-      
-      // Get population report data (same query as sync)
+      // Population report data derived from graded order items.
       const report = db.prepare(`
-        SELECT 
+        SELECT
           card_name,
           card_game,
           card_rarity,
           card_number,
-          card_set,
-          image_url,
+          card_type AS card_set,
+          card_image_url AS image_url,
           COUNT(*) as total_graded,
           COUNT(CASE WHEN grade = '10' THEN 1 END) as grade_10,
           COUNT(CASE WHEN grade = '9.5' THEN 1 END) as grade_9_5,
@@ -499,18 +472,20 @@ export class NotionIntegration {
           COUNT(CASE WHEN grade = '2' THEN 1 END) as grade_2,
           COUNT(CASE WHEN grade = '1' THEN 1 END) as grade_1,
           ROUND((CAST(COUNT(CASE WHEN grade = '10' THEN 1 END) AS FLOAT) / CAST(COUNT(*) AS FLOAT)) * 100, 2) as grade_10_percentage,
-          MAX(updated_at) as last_updated
-        FROM order_items 
-        WHERE grading_status = 'graded' AND grade IS NOT NULL
-        GROUP BY card_name, card_game, card_rarity, card_number, card_set
+          MAX(created_at) as last_updated
+        FROM order_items
+        WHERE grade IS NOT NULL AND grade <> ''
+        GROUP BY card_name, card_game, card_rarity, card_number, card_type
         HAVING COUNT(*) > 0
         ORDER BY total_graded DESC
         LIMIT 50
       `).all()
 
+      db.close()
       return report
     } catch (error) {
       console.error('❌ Error generating population report:', error)
+      try { db.close() } catch {}
       throw error
     }
   }

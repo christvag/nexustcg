@@ -50,23 +50,6 @@ function applySchema(dbPath, schemaPath) {
   }
 }
 
-function maybeRunV2DropMigration() {
-  // Pre-existing DBs from the V2 era still have packages_v2 tables. Detect and run the
-  // one-shot migration BEFORE applying the new schema so we don't end up with both sets.
-  if (!fs.existsSync(USER_DB)) return
-  let needs = false
-  const probe = new Database(USER_DB, { readonly: true })
-  try {
-    needs = !!probe.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='packages_v2'").get()
-  } finally {
-    probe.close()
-  }
-  if (needs) {
-    console.log('[db-seed] Detected legacy packages_v2 tables — running migration first…')
-    require('./migrate-drop-v2-suffix.js')
-  }
-}
-
 function seedUserDb() {
   if (!fs.existsSync(USER_SCHEMA)) {
     console.log('[db-seed] user-management-schema.sql not present yet — skipping (postinstall will run again later).')
@@ -89,7 +72,7 @@ function seedUserDb() {
       console.log(`[db-seed] Admin user already present (id=${existing.id})`)
     }
 
-    // Default packages V2 (only if empty)
+    // Default packages (only if empty)
     try {
       const pkgCount = db.prepare('SELECT COUNT(*) AS c FROM packages').get()
       if (pkgCount && pkgCount.c === 0) {
@@ -98,7 +81,6 @@ function seedUserDb() {
           VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
         `)
         // Leave cta_url blank so the public packages page falls back to /packages/<slug>.
-        // Storing /packages-v2/<slug> here used to send the Get Started button to a 404.
         const seed = [
           ['Authentication', 'authentication', 10, 'Get Started', '', 'Verify card authenticity', 0, 1],
           ['Bulk Grading', 'bulk-grading', 12, 'Get Started', '', 'Best for 50+ cards', 0, 2],
@@ -114,18 +96,6 @@ function seedUserDb() {
       console.log('[db-seed] Skipped packages seed:', err.message)
     }
 
-    // One-shot cleanup: clear any cta_url that points at the old /packages-v2/* path
-    // so the Get Started button falls back to /packages/<slug>. Idempotent.
-    try {
-      const fix = db.prepare(
-        "UPDATE packages SET cta_url = '' WHERE cta_url LIKE '/packages-v2/%'"
-      ).run()
-      if (fix.changes > 0) {
-        console.log(`[db-seed] Cleared stale /packages-v2/* cta_url on ${fix.changes} row(s)`)
-      }
-    } catch (err) {
-      // table missing in older schemas — non-fatal
-    }
   } finally {
     db.close()
   }
@@ -198,7 +168,6 @@ function seedCardsDb() {
 }
 
 try {
-  maybeRunV2DropMigration()
   seedUserDb()
   seedCardsDb()
   console.log('[db-seed] ✓ Done')

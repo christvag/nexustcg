@@ -197,7 +197,7 @@ export const createUserSync = async (userData: {
   }
 }
 
-// User management functions - v2 (DEPRECATED - keeping for backwards compatibility)
+// User management functions (DEPRECATED - keeping for backwards compatibility)
 export const createUser = async (userData: {
   email: string
   password: string

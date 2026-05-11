@@ -11,7 +11,6 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Refresh,
   Settings,
   Lock,
   Unlock,

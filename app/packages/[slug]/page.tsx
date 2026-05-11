@@ -56,7 +56,7 @@ interface CartItem {
   quantity: number
 }
 
-export default function PackageV2DetailPage() {
+export default function PackageDetailPage() {
   const params = useParams()
   const router = useRouter()
   const slug = params.slug as string
@@ -190,7 +190,7 @@ export default function PackageV2DetailPage() {
 
   if (loading) {
     return (
-      <div id="package-v2-detail-loading" className="min-h-screen flex items-center justify-center bg-[#0b0b0b]">
+      <div id="package-detail-detail-loading" className="min-h-screen flex items-center justify-center bg-[#0b0b0b]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d83f0a] mx-auto mb-4"></div>
           <p className="text-gray-400">Loading package details...</p>
@@ -201,7 +201,7 @@ export default function PackageV2DetailPage() {
 
   if (!packageData) {
     return (
-      <div id="package-v2-not-found" className="min-h-screen flex items-center justify-center bg-[#0b0b0b]">
+      <div id="package-detail-not-found" className="min-h-screen flex items-center justify-center bg-[#0b0b0b]">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-white mb-4">Package Not Found</h2>
           <button
@@ -219,7 +219,7 @@ export default function PackageV2DetailPage() {
   const highlightColor = packageData.highlightColor || '#d83f0a'
 
   return (
-    <div id="package-v2-detail-page" className="min-h-screen bg-[#0b0b0b] py-20 px-4">
+    <div id="package-detail-detail-page" className="min-h-screen bg-[#0b0b0b] py-20 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Back Button */}
         <button
@@ -233,7 +233,7 @@ export default function PackageV2DetailPage() {
 
         <div className="grid lg:grid-cols-2 gap-12 items-start">
           {/* Left Column - Package Visual */}
-          <div id="package-v2-visual-section">
+          <div id="package-detail-visual-section">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -244,7 +244,7 @@ export default function PackageV2DetailPage() {
                 {packageData.imageUrl ? (
                   <div className="mb-6">
                     <img
-                      id="package-v2-image"
+                      id="package-detail-image"
                       src={packageData.imageUrl}
                       alt={packageData.name}
                       className="w-full h-auto rounded-lg mx-auto"
@@ -253,7 +253,7 @@ export default function PackageV2DetailPage() {
                 ) : packageData.iconUrl ? (
                   <div className="w-48 h-48 mx-auto mb-6 flex items-center justify-center">
                     <img
-                      id="package-v2-icon"
+                      id="package-detail-icon"
                       src={packageData.iconUrl}
                       alt={`${packageData.name} icon`}
                       className="max-w-full max-h-full object-contain"
@@ -267,10 +267,10 @@ export default function PackageV2DetailPage() {
                     <PackageIcon className="h-24 w-24 text-white" />
                   </div>
                 )}
-                <h3 id="package-v2-visual-name" className="text-2xl font-bold text-white">{packageData.name}</h3>
+                <h3 id="package-detail-visual-name" className="text-2xl font-bold text-white">{packageData.name}</h3>
                 {packageData.isFeatured && (
                   <span
-                    id="package-v2-featured-badge"
+                    id="package-detail-featured-badge"
                     className="inline-block mt-3 px-4 py-1 text-white text-sm font-bold rounded-full"
                     style={{ backgroundColor: highlightColor }}
                   >
@@ -282,14 +282,14 @@ export default function PackageV2DetailPage() {
           </div>
 
           {/* Right Column - Package Details */}
-          <div id="package-v2-info-section">
+          <div id="package-detail-info-section">
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               className="space-y-6"
             >
               {/* Package Header */}
-              <div id="package-v2-header">
+              <div id="package-detail-header">
                 <h1 className="text-4xl font-bold text-white mb-2">{packageData.name}</h1>
                 {packageData.description && (
                   <p className="text-xl text-gray-400">{packageData.description}</p>
@@ -297,7 +297,7 @@ export default function PackageV2DetailPage() {
               </div>
 
               {/* Pricing */}
-              <div id="package-v2-pricing" className="bg-[#171717] border border-gray-800 rounded-lg p-6">
+              <div id="package-detail-pricing" className="bg-[#171717] border border-gray-800 rounded-lg p-6">
                 <div className="flex items-baseline space-x-2">
                   <span
                     className="text-5xl font-bold"
@@ -311,7 +311,7 @@ export default function PackageV2DetailPage() {
 
               {/* Long Description */}
               {packageData.longDescription && (
-                <div id="package-v2-long-description" className="bg-[#171717] border border-gray-800 rounded-lg p-6">
+                <div id="package-detail-long-description" className="bg-[#171717] border border-gray-800 rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-white mb-3">About This Package</h3>
                   <p className="text-gray-300 leading-relaxed">{packageData.longDescription}</p>
                 </div>
@@ -319,11 +319,11 @@ export default function PackageV2DetailPage() {
 
               {/* Features */}
               {packageData.features && packageData.features.length > 0 && (
-                <div id="package-v2-features" className="bg-[#171717] border border-gray-800 rounded-lg p-6">
+                <div id="package-detail-features" className="bg-[#171717] border border-gray-800 rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-white mb-4">What's Included</h3>
                   <div className="grid grid-cols-1 gap-3">
                     {packageData.features.map((feature) => (
-                      <div key={feature.id} id={`package-v2-feature-${feature.id}`} className="flex items-start space-x-3">
+                      <div key={feature.id} id={`package-detail-feature-${feature.id}`} className="flex items-start space-x-3">
                         <div
                           className="mt-1 rounded-full p-1"
                           style={{ backgroundColor: `${highlightColor}33` }}
@@ -346,13 +346,13 @@ export default function PackageV2DetailPage() {
               )}
 
               {/* Quantity Selector & Add to Cart */}
-              <div id="package-v2-cart-section" className="bg-[#171717] border border-gray-800 rounded-lg p-6">
+              <div id="package-detail-cart-section" className="bg-[#171717] border border-gray-800 rounded-lg p-6">
                 <h3 className="text-lg font-semibold text-white mb-4">Select Quantity</h3>
 
                 {/* Quantity Controls */}
                 <div className="flex items-center space-x-4 mb-6">
                   <button
-                    id="package-v2-decrease-quantity-btn"
+                    id="package-detail-decrease-quantity-btn"
                     onClick={() => handleQuantityChange(-1)}
                     disabled={quantity <= 1}
                     className="p-3 bg-[#0b0b0b] border border-gray-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800"
@@ -361,7 +361,7 @@ export default function PackageV2DetailPage() {
                   </button>
 
                   <input
-                    id="package-v2-quantity-input"
+                    id="package-detail-quantity-input"
                     type="number"
                     value={quantity}
                     onChange={(e) => {
@@ -372,7 +372,7 @@ export default function PackageV2DetailPage() {
                   />
 
                   <button
-                    id="package-v2-increase-quantity-btn"
+                    id="package-detail-increase-quantity-btn"
                     onClick={() => handleQuantityChange(1)}
                     className="p-3 bg-[#0b0b0b] border border-gray-700 rounded-lg text-white hover:bg-gray-800"
                   >
@@ -393,7 +393,7 @@ export default function PackageV2DetailPage() {
                 {/* Action Buttons */}
                 <div className="space-y-3">
                   <button
-                    id="package-v2-add-to-cart-btn"
+                    id="package-detail-add-to-cart-btn"
                     onClick={handleAddToCart}
                     className="w-full py-4 bg-[#0b0b0b] border-2 text-white font-semibold rounded-lg hover:bg-[#171717] transition-all flex items-center justify-center space-x-2"
                     style={{ borderColor: highlightColor }}
@@ -403,7 +403,7 @@ export default function PackageV2DetailPage() {
                   </button>
 
                   <button
-                    id="package-v2-proceed-checkout-btn"
+                    id="package-detail-proceed-checkout-btn"
                     onClick={handleProceedToCheckout}
                     className="w-full py-4 text-white font-semibold rounded-lg hover:opacity-90 transition-all flex items-center justify-center space-x-2"
                     style={{ background: `linear-gradient(135deg, ${highlightColor}, ${highlightColor}cc)` }}

@@ -37,7 +37,7 @@ curl http://localhost:3000/api/demo
     - `user-database.ts` - Users, orders, order items
     - `population-report-database.ts` - TCG population statistics + cards (the only card source of truth)
     - `card-games-database.ts` - Card game metadata
-    - `tcgrading-database.ts` - Legacy: opens `database/tcgrading.db`. Still imported by `app/api/orders/[id]/route.ts`, `app/api/orders/[id]/items/route.ts`, `app/api/admin/dashboard/route.ts`, and `lib/notion-integration.ts`. Slated for migration onto `user-management.db`.
+    - All order, user, dashboard, and Notion-sync routes read/write `user-management.db`. The legacy `tcgrading.db` and `lib/tcgrading-database.ts` were removed; all consumers were migrated to inline `better-sqlite3` access.
   - PostgreSQL (`lib/database.ts`, `lib/auth.ts`) - Configured but unused
 
 ### Database Usage Pattern
@@ -109,7 +109,7 @@ All API routes follow RESTful patterns under `/app/api/`:
 ### Database Files & Deployment
 - `.db` files are git-ignored (`/database/*.db` in `.gitignore`). They never travel with the repo.
 - Every fresh checkout / clean install seeds the DB automatically via `npm run postinstall` → `scripts/db-seed.js`.
-- `scripts/db-seed.js` is **idempotent**: it creates the schema if missing, runs `migrate-drop-v2-suffix.js` if legacy V2 tables are detected, seeds the admin user only if no admin exists, and seeds default `packages` only if the table is empty.
+- `scripts/db-seed.js` is **idempotent**: it creates the schema if missing, seeds the admin user only if no admin exists, and seeds default `packages` only if the table is empty.
 - Manual reseed: `npm run db:seed`. Override admin credentials via `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` env vars.
 - The single source of truth for cards is `population_report_cards` in `graded-cards.db`, served by `lib/population-report-database.ts`.
 

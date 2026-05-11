@@ -92,105 +92,6 @@ function CardSelectionContent() {
     loadGames()
   }, [])
 
-  // Search Pokemon cards directly using TCGdex API - Show all variations
-  const searchPokemonCardsDirect = async (query: string, page: number = 1, onProgressUpdate?: (cards: any[]) => void) => {
-    addDebugLog(`[Pokemon Direct] Starting progressive search: "${query}"`)
-    
-    // Apply rate limiting for TCGdex API
-    await yugiohRateLimiter.throttle()
-    
-    const searchUrl = `https://api.tcgdex.net/v2/en/cards?name=${encodeURIComponent(query)}`
-    addDebugLog(`[Pokemon Direct] Step 1 - Fetching from: ${searchUrl}`)
-    const searchResponse = await fetch(searchUrl)
-    addDebugLog(`[Pokemon Direct] Step 1 response status: ${searchResponse.status} ${searchResponse.statusText}`)
-    
-    if (!searchResponse.ok) {
-      throw new Error(`TCGdex search API error: ${searchResponse.status}`)
-    }
-    
-    const searchData = await searchResponse.json()
-    addDebugLog(`[Pokemon Direct] Step 1 data: ${JSON.stringify(searchData, null, 2).substring(0, 500)}...`)
-    
-    let cardIds = searchData || []
-    if (!Array.isArray(cardIds) || cardIds.length === 0) {
-      addDebugLog(`[Pokemon Direct] No cards found in step 1`)
-      return { cards: [], totalCount: 0 }
-    }
-    
-    const totalCount = cardIds.length
-    addDebugLog(`[Pokemon Direct] Found ${totalCount} total cards, starting progressive loading`)
-    
-    const detailedCards = []
-    const CARDS_PER_BATCH = 10
-    const BATCH_DELAY = 1000 // 1 second
-    
-    // Process cards in batches of 10 every second
-    for (let batchStart = 0; batchStart < cardIds.length; batchStart += CARDS_PER_BATCH) {
-      const batchEnd = Math.min(batchStart + CARDS_PER_BATCH, cardIds.length)
-      const batch = cardIds.slice(batchStart, batchEnd)
-      
-      addDebugLog(`[Pokemon Direct] Processing batch ${Math.floor(batchStart/CARDS_PER_BATCH) + 1}: cards ${batchStart + 1}-${batchEnd}`)
-      
-      // Process current batch
-      const batchPromises = batch.map(async (cardBasic, index) => {
-        try {
-          // Apply rate limiting for each card request
-          await yugiohRateLimiter.throttle()
-          
-          const cardId = cardBasic.id || cardBasic
-          const detailUrl = `https://api.tcgdex.net/v2/en/cards/${cardId}`
-          const detailResponse = await fetch(detailUrl)
-          
-          if (detailResponse.ok) {
-            const cardDetail = await detailResponse.json()
-            
-            return {
-              id: `pokemon-${cardId}`,
-              name: cardDetail.name || 'Unknown Pokemon',
-              game: 'Pokemon TCG',
-              type: cardDetail.set?.name || 'Unknown Set',
-              rarity: cardDetail.rarity || 'Common',
-              number: cardDetail.localId || cardId || 'N/A',
-              imageUrl: cardDetail.image ? `${cardDetail.image}/low.jpg` : null,
-              availableSets: [cardDetail.set?.name || 'Unknown Set'],
-              availableRarities: [cardDetail.rarity || 'Common'],
-              cardImages: [{
-                id: parseInt(cardId.replace(/\D/g, '')) || 0,
-                image_url: cardDetail.image ? `${cardDetail.image}/high.jpg` : null,
-                image_url_small: cardDetail.image ? `${cardDetail.image}/low.jpg` : null,
-                image_url_cropped: cardDetail.image ? `${cardDetail.image}/low.jpg` : null
-              }]
-            }
-          }
-          return null
-        } catch (error) {
-          addDebugLog(`[Pokemon Direct] Error fetching card: ${error}`)
-          return null
-        }
-      })
-      
-      // Wait for current batch to complete
-      const batchResults = await Promise.all(batchPromises)
-      const validCards = batchResults.filter(card => card !== null)
-      
-      detailedCards.push(...validCards)
-      addDebugLog(`[Pokemon Direct] Batch complete: ${validCards.length} cards processed, ${detailedCards.length}/${totalCount} total`)
-      
-      // Update progress if callback provided
-      if (onProgressUpdate) {
-        onProgressUpdate([...detailedCards])
-      }
-      
-      // Wait 1 second before next batch (except for last batch)
-      if (batchEnd < cardIds.length) {
-        await new Promise(resolve => setTimeout(resolve, BATCH_DELAY))
-      }
-    }
-    
-    addDebugLog(`[Pokemon Direct] Progressive loading complete: ${detailedCards.length} cards loaded`)
-    return { cards: detailedCards, totalCount }
-  }
-
   // Search cards function - optimized for dropdown
   const searchCards = async (query: string, game: string = '', page: number = 1) => {
     if (!query.trim()) {
@@ -207,35 +108,8 @@ function CardSelectionContent() {
       const offset = (page - 1) * limit
       
       addDebugLog(`Starting search: query="${query}", game="${game}", page=${page}, limit=${limit}`)
-      
-      // Handle Pokemon TCG directly
-      if (game === 'Pokemon TCG') {
-        if (!query.trim()) {
-          addDebugLog('Pokemon search requires a query')
-          setDropdownCards([])
-          return
-        }
-        
-        // Initialize dropdown with custom cards for immediate display
-        setDropdownCards([...customCards])
-        
-        // Start progressive loading with callback to update cards as they load
-        const result = await searchPokemonCardsDirect(query, page, (progressCards) => {
-          // Update dropdown with progressively loaded cards
-          const allCards = [...customCards, ...progressCards]
-          setDropdownCards(allCards)
-          addDebugLog(`Progress update: ${progressCards.length} Pokemon cards loaded so far`)
-        })
-        
-        // Final update when complete
-        const allCards = [...customCards, ...result.cards]
-        setDropdownCards(allCards)
-        setTotalDropdownPages(1) // No pagination needed with progressive loading
-        addDebugLog(`Pokemon loading complete: ${result.cards.length} total cards loaded`)
-        return
-      }
-      
-      // Handle other games through internal API
+
+      // All games route through the internal API
       const params = new URLSearchParams()
       if (query) params.append('q', query)
       if (game) params.append('game', game)
@@ -318,29 +192,14 @@ function CardSelectionContent() {
     }
 
     if (searchQuery.trim()) {
-      // Apply different debounce times based on game for rate limiting
-      if (selectedGame === 'Pokemon TCG' || selectedGame.includes('Pokemon')) {
-        // Shorter delay for Pokemon but still debounced for rate limiting
-        const timeout = setTimeout(() => {
-          setCurrentDropdownPage(1)
-          searchCards(searchQuery, selectedGame, 1)
-        }, 200)
-        setSearchTimeout(timeout)
-      } else if (selectedGame === 'Yu-Gi-Oh!' || selectedGame.includes('Yu-Gi-Oh')) {
-        // Longer debounce for Yu-Gi-Oh due to strict rate limits
-        const timeout = setTimeout(() => {
-          setCurrentDropdownPage(1)
-          searchCards(searchQuery, selectedGame, 1)
-        }, 750)
-        setSearchTimeout(timeout)
-      } else {
-        // Standard debounce for other games
-        const timeout = setTimeout(() => {
-          setCurrentDropdownPage(1)
-          searchCards(searchQuery, selectedGame, 1)
-        }, 300)
-        setSearchTimeout(timeout)
-      }
+      // Longer debounce for Yu-Gi-Oh due to strict rate limits; standard for everything else.
+      const isYugioh = selectedGame === 'Yu-Gi-Oh!' || selectedGame.includes('Yu-Gi-Oh')
+      const delay = isYugioh ? 750 : 300
+      const timeout = setTimeout(() => {
+        setCurrentDropdownPage(1)
+        searchCards(searchQuery, selectedGame, 1)
+      }, delay)
+      setSearchTimeout(timeout)
     } else {
       setDropdownCards([])
       setShowDropdown(false)

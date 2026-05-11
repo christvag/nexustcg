@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
 import { BarChart3, TrendingUp, Package, Users } from 'lucide-react';
 
 interface AnalyticsData {
